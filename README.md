@@ -1,6 +1,6 @@
 # ai-core
 
-A fixed, tool-agnostic workflow for AI coding agents (opencode today; Claude Code next), installed into each
+A fixed, tool-agnostic workflow for AI coding agents (opencode and Claude Code), installed into each
 project's knowledge folder (`<project>/.ai`, its own git repo) and adapted per stack.
 
 ```
@@ -27,8 +27,12 @@ stack on its own files. Tests of the adapters: `node --experimental-strip-types 
 
 ## Install into a project
 
-Requirements: **Node ≥ 22.6** (runs the TypeScript as is, no npm install) and **git** — on Windows the full Git for
-Windows (git runs the hooks with its `usr\bin\sh.exe`; `/doctor` says so when it is missing).
+Users: [docs/quick-guide.en.md](docs/quick-guide.en.md) · [docs/guia-rapida.es.md](docs/guia-rapida.es.md) · in detail
+[docs/install.en.md](docs/install.en.md) · [docs/instalacion.es.md](docs/instalacion.es.md) · all docs: [docs/](docs/README.md).
+
+Requirements: **Node ≥ 22.6** (runs the TypeScript as is, no npm install) and **git** — `install.sh` / `install.ps1`
+offer to install both when they are missing (nvm / apt / dnf / brew / winget). On Windows the full Git for Windows (git
+runs the hooks with its `usr\bin\sh.exe`; `/doctor` says so when it is missing).
 
 ```bash
 ~/devel/ai-core/install.sh <project>                 # Linux · WSL · macOS
@@ -41,15 +45,22 @@ Windows (git runs the hooks with its `usr\bin\sh.exe`; `/doctor` says so when it
    java; package.json + tsconfig → react-ts) and the exec (`.ddev/` → ddev, a compose file → docker, else local).
 2. **Asks** — stacks, name, exec, language, agents — with the detected values as defaults (`--yes` takes them all;
    `--stack/--name/--exec/--lang/--agents` answer one).
-3. **Writes** `<project>/.ai/`: the managed files, `project.json`, `ai-core.lock.json`, an empty knowledge skeleton
-   (skills, known-issues, tickets, context, project/parts) and `git init` if `.ai` is new.
-4. **Wires** the checkout (`node .ai/scripts/cli.ts setup`): git hooks in `.git/ai-core-hooks` (the project's own keep
-   running), `.git/info/exclude`, `opencode.json` + stubs, the stack's indexes.
-5. **Checks** with the doctor (`/doctor`, `bash .ai/scripts/setup/doctor.sh`, `node .ai/scripts/cli.ts doctor`).
+3. **Tools** (`core/scripts/lib/deps.ts`): what this machine needs for that configuration (git, docker + ddev, php +
+   composer, java + mvn/gradle, npm), version or missing, and for each missing one its install command for this system,
+   asking y/N (`--install-deps` without asking, `--no-deps` skips; later `cli.ts deps --install`).
+4. **Writes** `<project>/.ai/`: the managed files, `project.json`, `ai-core.lock.json`, an empty knowledge skeleton
+   (skills, known-issues, tickets, context, project/parts), starter `intro.md` / `facts.md`, and `git init` if `.ai` is new.
+5. **Wires** the checkout (`node .ai/scripts/cli.ts setup`): git hooks in `.git/ai-core-hooks` (the project's own keep
+   running), `.git/info/exclude`, `opencode.json` + stubs + plugin SDK, `.claude/`, the stack's indexes.
+6. **Checks**: `cli.ts promptcheck` (every prompt against the model gateway's injection guardrail — the lines it
+   blocks) and the doctor (`/doctor`, `bash .ai/scripts/setup/doctor.sh`, `node .ai/scripts/cli.ts doctor`).
 
 Later: `--update` (newer ai-core) · `--reconfigure` (ask again) · `--status` · `--uninstall` (removes the wiring;
 the knowledge stays) · `--adopt` (take ai-core's version of every managed file, even edited ones) · `--help`.
 Then write the project's own parts in `<project>/.ai/project/parts/` (at least `intro.md` and `facts.md`) and `--update`.
+
+Tests: `node --experimental-strip-types --test tests/*.test.mts core/tests/*.test.mts` — the adapters per stack, the
+opencode load of every stack, the team layout, the tools step and the gateway check.
 
 ## Agents: opencode and Claude Code
 

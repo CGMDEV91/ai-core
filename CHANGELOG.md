@@ -14,6 +14,8 @@
   provider; `{env:…}` keys, Windows variables from WSL) and names the exact lines it blocks (bisection, a few calls per
   file); results cached per content in `.ai/promptcheck.local.json`. The installer runs it, `/doctor` shows a
   **prompts** row from the cache. Found one more in giportal: a skill line "…overrides all rules".
+- **Docs in ai-core** (`docs/`): quick guide and install guide (EN/ES), workflows, agents (EN/ES), the presentation
+  (EN) — generic for any project; README points to them.
 - Tests: `tests/deps.test.mts` (tools per configuration; promptcheck against a fake gateway).
 
 ## 0.10.3 — 2026-11-10
