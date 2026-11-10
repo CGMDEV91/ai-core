@@ -3,6 +3,7 @@
 // (git-ignored). No npm import: the stub in <project>/.opencode/plugin/ re-exports this file.
 import { readFileSync, writeFileSync, existsSync } from "node:fs"
 import { join, relative, isAbsolute } from "node:path"
+import { runPrefix, stack } from "../../lib/project.ts"
 import { runInProject } from "../tool/_lib.ts"
 
 const EDIT_TOOLS = new Set(["edit", "write", "multiedit", "patch"])
@@ -35,28 +36,36 @@ function recordChange(worktree: string, filePath: string, today = new Date().toI
   return rel
 }
 
+/** After an edit (opencode tool.execute.after, Claude Code PostToolUse): record it in the ticket's ## Changes, then
+ *  deterministic feedback for the model — phpcs on the PHP file, and the hook signatures against the installed API. */
+export async function afterEdit(root: string, path: string): Promise<string> {
+  let out = ""
+  try { recordChange(root, path) } catch { /* never break the session for bookkeeping */ }
+  try {
+    const rel = (isAbsolute(path) || /^\\\\/.test(path) ? relative(root, path) : String(path)).replace(/\\/g, "/")
+    if (!/^lib\/.*\.(php|module|inc|theme|install)$/.test(rel) && !/\/(modules|themes)\/custom\/.*\.(php|module|inc|theme|install)$/.test(rel)) return out
+    if (process.env.AI_PHPCS_ON_EDIT === "0") return out
+    const run = runPrefix(stack("drupal")).join(" ")   // ddev exec · docker compose exec -T <service> · (local)
+    const r = await runInProject(root, `${run ? run + " " : ""}./vendor/bin/phpcs --standard=phpcs.xml --report=emacs -q ${rel}`, 60000)
+    const lines = r.out.split("\n").filter((l) => /: (error|warning) - /.test(l))
+    if (lines.length) out += `\n\n[phpcs on ${rel}] ${lines.length} issue(s):\n${lines.slice(0, 12).join("\n")}${lines.length > 12 ? "\n…" : ""}`
+    else if (r.ok) out += `\n\n[phpcs on ${rel}] clean`
+    else if (/not running|could not find|not found|No such file/i.test(r.out)) out += `\n\n[phpcs skipped: ${run ? `${stack("drupal").exec} not running` : "vendor/bin/phpcs not installed"}]`
+    if (/\.(module|inc|theme|install|profile)$/.test(rel)) {
+      const a = await runInProject(root, `node --experimental-strip-types --no-warnings .ai/scripts/cli.ts apiindex --check ${rel}`, 30000)
+      if (/^ERROR /m.test(a.out)) out += `\n\n[api-signatures on ${rel}] hook signature does not match the installed Drupal — fix it now:\n${a.out.split("\n").filter((l) => /^ERROR |^  (expected|source):/.test(l)).slice(0, 9).join("\n")}`
+    }
+  } catch { /* never break the session */ }
+  return out
+}
+
 export const TicketChanges = async ({ directory, worktree }: { directory?: string; worktree?: string }) => {
   // worktree is "/" when opencode does not detect the git repo (UNC path) — the launch folder is the project root
   const root = [directory, worktree].find((c) => c && c !== "/" && existsSync(join(c, ".ai"))) ?? directory ?? worktree ?? process.cwd()
   return {
   "tool.execute.after": async (input: { tool: string; args: any }, output: { output: string }) => {
     if (!EDIT_TOOLS.has(input.tool)) return
-    const path = input.args?.filePath ?? input.args?.path ?? input.args?.file
-    try { recordChange(root, path) } catch { /* never break the session for bookkeeping */ }
-    // Deterministic feedback: phpcs on the PHP file just edited, appended to the edit's own result.
-    try {
-      const rel = (isAbsolute(path) || /^\\\\/.test(path) ? relative(root, path) : String(path)).replace(/\\/g, "/")
-      if (!/^lib\/.*\.(php|module|inc|theme|install)$/.test(rel) || process.env.AI_PHPCS_ON_EDIT === "0") return
-      const r = await runInProject(root, `ddev exec ./vendor/bin/phpcs --standard=phpcs.xml --report=emacs -q ${rel}`, 60000)
-      const lines = r.out.split("\n").filter((l) => /: (error|warning) - /.test(l))
-      if (lines.length) output.output += `\n\n[phpcs on ${rel}] ${lines.length} issue(s):\n${lines.slice(0, 12).join("\n")}${lines.length > 12 ? "\n…" : ""}`
-      else if (r.ok) output.output += `\n\n[phpcs on ${rel}] clean`
-      else if (/not running|could not find|not found/i.test(r.out)) output.output += `\n\n[phpcs skipped: ddev not running]`
-      if (/\.(module|inc|theme|install|profile)$/.test(rel)) {
-        const a = await runInProject(root, `node --experimental-strip-types --no-warnings .ai/scripts/cli.ts apiindex --check ${rel}`, 30000)
-        if (/^ERROR /m.test(a.out)) output.output += `\n\n[api-signatures on ${rel}] hook signature does not match the installed Drupal — fix it now:\n${a.out.split("\n").filter((l) => /^ERROR |^  (expected|source):/.test(l)).slice(0, 9).join("\n")}`
-      }
-    } catch { /* never break the session */ }
+    output.output += await afterEdit(root, input.args?.filePath ?? input.args?.path ?? input.args?.file)
   },
   }
 }

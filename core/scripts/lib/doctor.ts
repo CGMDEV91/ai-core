@@ -8,6 +8,7 @@ import { spawnSync } from "node:child_process"
 import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { isAbsolute, join } from "node:path"
 import { fileURLToPath } from "node:url"
+import * as claude from "./claude.ts"
 import { AI, ROOT, cfg, runPrefix, stack } from "./project.ts"
 import { read } from "./util.ts"
 
@@ -146,10 +147,15 @@ function remote(): void {
   else add("OK", ".ai remote", `in sync with ${up.out}`)
 }
 
+function claudeCode(): void {
+  if (!(cfg().agents ?? []).includes("claude-code")) return
+  for (const [s, d] of claude.check()) add(s as Row[0], "claude code", d, s === "OK" ? undefined : SETUP)
+}
+
 export function main(_argv: string[]): number {
   node()
   const { stacks } = project()
-  managed(); hooks(); exclude(); opencode(); fresh(stacks); execEnv(stacks); remote()
+  managed(); hooks(); exclude(); opencode(); claudeCode(); fresh(stacks); execEnv(stacks); remote()
   console.log(`DOCTOR — ${ROOT}\n\n| status | check | detail |\n|---|---|---|`)
   for (const [s, c, d] of rows) console.log(`| ${s} | ${c} | ${d} |`)
   const fixes = rows.filter((r) => (r[0] === "FAIL" || r[0] === "WARN") && r[3])

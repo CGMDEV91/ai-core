@@ -8,7 +8,7 @@
 import { readFileSync, existsSync } from "node:fs"
 import { join } from "node:path"
 
-function rootOf(directory?: string, worktree?: string): string {
+export function rootOf(directory?: string, worktree?: string): string {
   return [directory, worktree].find((c) => c && c !== "/" && existsSync(join(c, ".ai"))) ?? directory ?? worktree ?? process.cwd()
 }
 
@@ -17,7 +17,7 @@ function section(text: string, name: string): string {
   return m ? m[1].replace(/<!--[\s\S]*?-->/g, "").trim() : ""
 }
 
-function activeTicket(root: string): { key: string; text: string } | null {
+export function activeTicket(root: string): { key: string; text: string } | null {
   const f = join(root, ".ai", "current-ticket.local.md")
   if (!existsSync(f)) return null
   const m = readFileSync(f, "utf-8").match(/^\s*(?:key:\s*)?([A-Za-z0-9][\w.-]+)\s*$/m)
@@ -74,7 +74,7 @@ export function suggest(t: { key: string; text: string }): string {
   return `/close ${k}`
 }
 
-function header(t: { key: string; text: string }): string {
+export function header(t: { key: string; text: string }): string {
   const state = section(t.text, "Current state")
   const next = (state.match(/Next:\s*(.+)/) || [])[1] ?? "(no Next: line in Current state)"
   const open = section(t.text, "Open points").split("\n").filter((l) => /^\s*-\s*\[ \]/.test(l)).slice(0, 5)
@@ -84,6 +84,25 @@ function header(t: { key: string; text: string }): string {
     ...(suggest(t) ? [`Suggested next command for the human (from the ticket's state): ${suggest(t)}`] : []),
     open.length ? `Open points not done (answer each before saying you are ready):\n${open.join("\n")}` : "Open points: none pending",
   ].join("\n")
+}
+
+/** What a compacted (or resumed) session must keep about the active ticket — "" when there is none. */
+export function compactionContext(root: string): string {
+  const t = activeTicket(root)
+  if (!t) return ""
+  const notes = section(t.text, "Notes").split("\n").filter((l) => /Open question|Decision \(/.test(l)).slice(-10)
+  return [
+    `The session works on ticket ${t.key} (.ai/tickets/${t.key}.md) — re-read it after compaction; it rules over this summary.`,
+    header(t),
+    `Current state:\n${section(t.text, "Current state").slice(0, 1200)}`,
+    notes.length ? `Decisions and open questions:\n${notes.join("\n")}` : "",
+  ].filter(Boolean).join("\n\n")
+}
+
+/** The per-message header — "" when no ticket is active. */
+export function ticketHeader(root: string): string {
+  const t = activeTicket(root)
+  return t ? header(t) : ""
 }
 
 export const TicketContext = async ({ directory, worktree }: { directory?: string; worktree?: string }) => {
@@ -97,15 +116,8 @@ export const TicketContext = async ({ directory, worktree }: { directory?: strin
     },
     "experimental.session.compacting": async (_input: unknown, output: { context: string[] }) => {
       try {
-        const t = activeTicket(root)
-        if (!t) return
-        const notes = section(t.text, "Notes").split("\n").filter((l) => /Open question|Decision \(/.test(l)).slice(-10)
-        output.context.push([
-          `The session works on ticket ${t.key} (.ai/tickets/${t.key}.md) — re-read it after compaction; it rules over this summary.`,
-          header(t),
-          `Current state:\n${section(t.text, "Current state").slice(0, 1200)}`,
-          notes.length ? `Decisions and open questions:\n${notes.join("\n")}` : "",
-        ].filter(Boolean).join("\n\n"))
+        const c = compactionContext(root)
+        if (c) output.context.push(c)
       } catch { /* ignore */ }
     },
   }

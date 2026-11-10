@@ -39,6 +39,18 @@ Later: `--update` (newer ai-core) · `--reconfigure` (ask again) · `--status` �
 the knowledge stays) · `--adopt` (take ai-core's version of every managed file, even edited ones) · `--help`.
 Then write the project's own parts in `<project>/.ai/project/parts/` (at least `intro.md` and `facts.md`) and `--update`.
 
+## Agents: opencode and Claude Code
+
+`project.json` → `"agents": ["opencode"]`, `["claude-code"]` or both (installer question, `--agents`). Both read the
+same `.ai/` — rules, skills, tickets, known issues — so a ticket started in one continues in the other.
+
+| | opencode | Claude Code |
+|---|---|---|
+| rules | `opencode.json` → `instructions` | `CLAUDE.md` → `@.ai/core-rules.md` `@.ai/orchestrator.md` `@.ai/claude-code.md` |
+| tools `where` · `callers` · `touchpoints` · `impact` · `gate` | opencode tools (`.opencode/tool`) | `node .ai/scripts/cli.ts …` (allowed in settings) |
+| ticket header every message · state after compaction · edit tracking + lint | plugins | hooks `UserPromptSubmit` · `SessionStart` · `PostToolUse` → `cli.ts hook …` |
+| agents · commands · skills | `opencode.json` | `.claude/agents`, `.claude/commands`, `.claude/skills` (generated) |
+
 ## A team on the same project
 
 A new dev clones the project and its `.ai`, runs `bash .ai/scripts/setup/install.sh` once (or `node … cli.ts setup`),

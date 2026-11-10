@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.5.0 — 2026-11-10
+
+Claude Code as a second target (phase 3b, option A: tools through the CLI). With `"agents": ["opencode", "claude-code"]`
+in project.json (installer question / `--agents`), setup also writes:
+- `CLAUDE.md` → `@.ai/core-rules.md`, `@.ai/orchestrator.md`, `@.ai/claude-code.md` (new: how the opencode tools and
+  commands map in Claude Code);
+- `.claude/settings.json` — hooks `UserPromptSubmit` (ticket header + suggested command, every message), `SessionStart`
+  compact|resume (the ticket state the summary must keep), `PostToolUse` Edit|Write|MultiEdit (## Changes + the stack's
+  lint) — all `node .ai/scripts/cli.ts hook …`, the same functions as the opencode plugins; permissions translated from
+  opencode.json (a leading `*` — "contains" — also covers `ddev …`), plus .env / keys denied. The human's own entries
+  are kept;
+- `.claude/agents/` (11) and `.claude/commands/` (17) from the same sources (commands `@`-include `.ai/commands/x.md`;
+  subtask commands name their subagent); `.claude/skills` → link to `.ai/skills`.
+- New CLI commands: `where`, `callers`, `hook prompt|session|edit`. `/doctor` checks the Claude Code wiring;
+  `setup --uninstall` removes it. The edit lint follows the project's exec (no more hard-coded `ddev exec`).
+- Verified: generated files, the three hooks with Claude Code's JSON on stdin (header, compaction state, edit recorded
+  in ## Changes + lint). Not verified inside a live Claude Code session (none available on the test machines).
+
 ## 0.4.0 — 2026-11-10
 
 Team hooks (phase 3a) — what a dev gets without doing anything:

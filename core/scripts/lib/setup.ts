@@ -9,7 +9,8 @@ import { spawnSync } from "node:child_process"
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync, renameSync, rmSync, rmdirSync, writeFileSync } from "node:fs"
 import { dirname, isAbsolute, join } from "node:path"
 import { fileURLToPath } from "node:url"
-import { AI, ROOT, stack } from "./project.ts"
+import * as claude from "./claude.ts"
+import { AI, ROOT, cfg, stack } from "./project.ts"
 import { read } from "./util.ts"
 
 const MARK = "# ai-core hook wrapper"
@@ -171,6 +172,7 @@ function install(indexes: boolean): number {
     const why = r.out.split("\n").find((l) => /Error|ERROR|No such|ENOENT/.test(l)) ?? r.out.split("\n").pop()
     say(r.ok ? `✔ ${cmd}: ${r.out.split("\n").pop()}` : `⚠ ${cmd} ${args.join(" ")} failed: ${why}`)
   }
+  if ((cfg().agents ?? []).includes("claude-code")) claude.install()
   for (const [f, from] of [["AGENTS.md", "example.AGENTS.md"], ["CLAUDE.md", "example.CLAUDE.md"]])
     if (!existsSync(join(ROOT, f)) && existsSync(join(AI, from))) { copyFileSync(join(AI, from), join(ROOT, f)); say(`✔ ${f}`) }
   const mem = join(AI, "MEMORY.local.md"), tpl = join(AI, "templates", "MEMORY.local.template.md")
@@ -181,6 +183,7 @@ function install(indexes: boolean): number {
 
 function uninstall(): number {
   uninstallHooks(AI); uninstallHooks(ROOT)
+  claude.uninstall()
   for (const p of [join(ROOT, "opencode.json"), join(ROOT, ".opencode", "tool"), join(ROOT, ".opencode", "plugin")]) {
     if (existsSync(p)) { rmSync(p, { recursive: true, force: true }); say(`✔ removed ${p}`) }
   }
