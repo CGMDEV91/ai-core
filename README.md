@@ -72,6 +72,13 @@ and follows the flow. Without doing anything else:
 - **`/ticket`** says when `.ai` is behind its remote and proposes the pull; **`git push`** of the project warns when
   `.ai` has work not pushed; **`/close`** proposes the two commits and reminds to push both.
 
+## Several devs on one ticket
+
+`.ai/tickets/<KEY>/<KEY>.md` is shared; each dev has a diary `<KEY>.<user>.md` (user = global git user.name) with their
+Current state, Changes and Session log — nobody writes another's diary, so pushes do not collide. The header of every
+message shows who else is on the ticket and what they hold; plan blocks carry an owner. Migrate old flat files with
+`node .ai/scripts/cli.ts layout --migrate`.
+
 ## What belongs to whom
 
 | ai-core (managed, overwritten by `--update` unless edited by hand) | the project (never touched) |

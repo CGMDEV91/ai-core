@@ -18,16 +18,17 @@
 //   - lib/modules/x/src/Y.php 3f2a9c1
 // Severities: BLOCKER · MAJOR (both force another round) · MINOR · NIT. Statuses: open · fixed · wontfix — <reason>.
 import { existsSync } from "node:fs"
-import { AI, ROOT } from "./project.ts"
+import { combined, ticketFile } from "./knowledge.ts"
+import { AI, ROOT, cfg } from "./project.ts"
 import { cmp, escapeRe, read, sh, splitlines } from "./util.ts"
 
 const MAX_ROUNDS = 2, FULL_RATIO = 0.3
 type Finding = { id: string; sev: string; where: string; finding: string; status: string; round: string }
 
+/** the ticket as one text: shared file + every dev's diary (their Changes are all reviewed) */
 function ticket(key: string): string {
-  const f = `${AI}/tickets/${key}.md`
-  if (!existsSync(f)) { console.error(`No ticket ${f.slice(ROOT.length + 1)}`); process.exit(1) }
-  return read(f)
+  if (!ticketFile(key)) { console.error(`No ticket .ai/tickets/${key}/${key}.md`); process.exit(1) }
+  return combined(key)
 }
 
 export function section(text: string, name: string): string {
@@ -68,12 +69,23 @@ function fileHash(rel: string): string {
   return out.trim().slice(0, 7) || "?"
 }
 
-/** The ticket's ## Changes paths + the current diff (staged, unstaged, untracked) under lib/ and config/. */
+/** the folders whose files a review covers: every stack's code paths + config sync (giportal: lib/ and config/) */
+function tracked(): string[] {
+  const out = new Set<string>()
+  for (const s of cfg().stacks ?? []) {
+    for (const p of s.paths ?? []) out.add(String(p).split("/")[0] + "/")
+    if (s.configSync) out.add(String(s.configSync).split("/")[0] + "/")
+  }
+  return out.size ? [...out] : ["lib/", "config/"]
+}
+
+/** The ticket's ## Changes paths (every dev's diary) + the current diff (staged, unstaged, untracked) under them. */
 function changedFiles(text: string): string[] {
-  const files = new Set([...section(text, "Changes").matchAll(/`((?:lib|config)\/[^`\s]+)`/g)].map((m) => m[1]))
+  const pre = tracked(), under = (f: string) => pre.some((p) => f.startsWith(p))
+  const files = new Set([...section(text, "Changes").matchAll(/`([^`\s]+\/[^`\s]+)`/g)].map((m) => m[1]).filter(under))
   for (const cmd of [["diff", "--name-only", "HEAD"], ["ls-files", "--others", "--exclude-standard"]]) {
     const r = sh(["git", "-C", ROOT, ...cmd])
-    for (const f of splitlines(r[0] === 0 ? r[1] : "")) if (f.startsWith("lib/") || f.startsWith("config/")) files.add(f)
+    for (const f of splitlines(r[0] === 0 ? r[1] : "")) if (under(f)) files.add(f)
   }
   return [...files].sort(cmp)
 }

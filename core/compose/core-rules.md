@@ -31,8 +31,10 @@ The plugin injects the active ticket (key, next step, open points) into every me
 
 ## Memory
 
-Work in progress → `.ai/tickets/<key>.md` (Jira key, or `YYYY-MM-DD-<slug>`) · confirmed bugs →
-`.ai/known-issues/<key>-<slug>.md`, index `INDEX.md` (read it before debugging) · business rules → skills (propose,
+Work in progress → `.ai/tickets/<key>/<key>.md` (shared: intent, plan, decisions, review) + **your diary**
+`<key>.<you>.md` (Current state, Changes, Session log — only you write it; `node .ai/scripts/cli.ts knowledge paths <key>`
+prints both and who else is on the ticket) · confirmed bugs →
+`.ai/known-issues/<id>/<id>.md`, index `INDEX.md` (read it before debugging) · business rules → skills (propose,
 never edit silently) · technical facts → `.ai/context/` (index `context/README.md`). A code change always has a
 ticket: without `/ticket`, propose a key in one line and create it before the first edit.
 

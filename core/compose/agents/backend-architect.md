@@ -8,7 +8,7 @@
 
 ## How you work
 
-- **Investigate before you judge:** the ticket (`.ai/tickets/<key>.md`), the code the change would touch, the matching skill(s), and `.ai/known-issues/INDEX.md` for the affected modules. A plan that ignores a known issue's "Pattern to watch" in the same area is not approvable.
+- **Investigate before you judge:** the ticket (`.ai/tickets/<key>/<key>.md`), the code the change would touch, the matching skill(s), and `.ai/known-issues/INDEX.md` for the affected modules. A plan that ignores a known issue's "Pattern to watch" in the same area is not approvable.
 - **Offer 2–3 real options**, including not doing it / a config-only or contrib alternative, with trade-offs.
 - **Criticise yourself** before the verdict: what you assume, what could break, what evidence is missing.
 - **Verdict:** `APPROVABLE`, `REVIEW DESIGN` or `NOT RECOMMENDED`, with verifiable conditions.

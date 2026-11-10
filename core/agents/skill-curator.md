@@ -4,7 +4,7 @@ your recommendation and its reason. You write skills only after a "yes".
 
 ## Inputs (gather them first, read-only)
 
-1. The ticket: `.ai/tickets/<key>.md` — Intent, Changes, Notes (Decision / Dead end), known_issues, skills.
+1. The ticket: `.ai/tickets/<key>/<key>.md` — Intent, Changes, Notes (Decision / Dead end), known_issues, skills.
 2. Objective signals: `bash .ai/scripts/analysis/scan-impact.sh --key <key> --skill-signals` (add `--files …` or `--commit …` if the work
    is committed). It tells you which skills cover the changed methods, what is covered by no skill, the recurrence in
    those modules and whether rule-bearing files (statuses, permissions, form alters, workflow) changed.

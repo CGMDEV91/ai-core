@@ -14,7 +14,7 @@ related: []                      # other ids/keys where the same issue appeared
 # <id> — <title>
 
 <!--
-  One file per CONFIRMED issue: .ai/known-issues/<id>.md (id = <Jira key>-<short slug>). Written by /close (or by the agent after
+  One folder per CONFIRMED issue: .ai/known-issues/<id>/<id>.md (+ optional <id>.<user>.md notes per dev) (id = <Jira key>-<short slug>). Written by /close (or by the agent after
   the human confirms a fix — never before). Exists to be FOUND: write the symptom and keywords the way the
   next person will search. After creating or editing one, run `bash .ai/scripts/knowledge/scan-known-issues.sh --update`.
   Existing entries are not rewritten: when the issue reappears, add the key to `related`, update
@@ -41,4 +41,4 @@ related: []                      # other ids/keys where the same issue appeared
 - `lib/modules/<x>/<path>` (`methodName()`) — cite the methods: they are what /impact matches on
 
 **References:**
-- <key> (YYYY-MM-DD) — first confirmed; ticket .ai/tickets/<key>.md
+- <key> (YYYY-MM-DD) — first confirmed; ticket .ai/tickets/<key>/<key>.md

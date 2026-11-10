@@ -10,6 +10,7 @@ import { spawnSync } from "node:child_process"
 import { existsSync, readdirSync, statSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import * as impact from "./impact.ts"
+import { KNOWN, TICKETS, list } from "./knowledge.ts"
 import { ROOT, stack } from "./project.ts"
 import { cmp, comparePaths, dumps, read, splitlines, walk } from "./util.ts"
 
@@ -65,9 +66,8 @@ export function main(argv: string[]): number {
 
   // ── tickets ──
   const tickets = new Map<string, [string, Record<string, string>]>()
-  for (const f of glob(`${AI}/tickets`, /^[^/]+\.md$/)) {
-    if (impact.pname(f) === "README.md") continue
-    const text = read(f), fm = impact.frontMatter(text), stem = impact.pstem(f)
+  for (const [stem, f] of list(TICKETS)) {   // folder <KEY>/<KEY>.md or legacy flat <KEY>.md
+    const text = read(f), fm = impact.frontMatter(text)
     tickets.set(stem, [f, fm])
     if (fm.key !== stem) add("ERROR", "ticket", f, `key '${pyRepr(fm.key)}' != file name`)
     if (!TICKET_STATUS.has(fm.status as string)) add("ERROR", "ticket", f, `status '${pyRepr(fm.status)}' not in ${pyList(TICKET_STATUS)}`)
@@ -80,12 +80,11 @@ export function main(argv: string[]): number {
 
   // ── known issues ──
   const kis = new Map<string, [string, Record<string, string>]>()
-  for (const f of glob(`${AI}/known-issues`, /^[^/]+\.md$/)) {
-    const name = impact.pname(f)
-    if (name === "README.md" || name === "INDEX.md") continue
+  for (const [stem, f] of list(KNOWN)) {
+    const name = `${stem}.md`
     const fm = impact.frontMatter(read(f)), kid = fm.id ?? ""
     kis.set(kid, [f, fm])
-    if (!name.startsWith(kid + "-") && impact.pstem(f) !== kid) add("ERROR", "known-issue", f, `id '${kid}' does not match the file name`)
+    if (!name.startsWith(kid + "-") && stem !== kid) add("ERROR", "known-issue", f, `id '${kid}' does not match the file name`)
     if (!KI_STATUS.has(fm.status as string)) add("ERROR", "known-issue", f, `status '${pyRepr(fm.status)}' not in ${pyList(KI_STATUS)}`)
     for (const sk of impact.fmList(fm.skills ?? "")) if (!skillNames.has(sk)) add("ERROR", "known-issue", f, `skills names unknown skill '${sk}'`)
     for (const m of impact.fmList(fm.modules ?? "")) if (!mods.has(m)) add("WARN", "known-issue", f, `module '${m}' not found`)

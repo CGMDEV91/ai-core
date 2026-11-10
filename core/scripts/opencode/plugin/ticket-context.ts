@@ -5,8 +5,9 @@
 //  - experimental.session.compacting: the summary of a compacted session receives the ticket's current state,
 //    open points, open questions and decisions, so obligations are not lost in the summary.
 // No npm import: the stub in <project>/.opencode/plugin/ re-exports this file.
-import { readFileSync, existsSync } from "node:fs"
+import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
+import { combined, currentKey, devUser, diaryFile, others, sectionOf, ticketFile } from "../../lib/knowledge.ts"
 
 export function rootOf(directory?: string, worktree?: string): string {
   return [directory, worktree].find((c) => c && c !== "/" && existsSync(join(c, ".ai"))) ?? directory ?? worktree ?? process.cwd()
@@ -17,13 +18,11 @@ function section(text: string, name: string): string {
   return m ? m[1].replace(/<!--[\s\S]*?-->/g, "").trim() : ""
 }
 
-export function activeTicket(root: string): { key: string; text: string } | null {
-  const f = join(root, ".ai", "current-ticket.local.md")
-  if (!existsSync(f)) return null
-  const m = readFileSync(f, "utf-8").match(/^\s*(?:key:\s*)?([A-Za-z0-9][\w.-]+)\s*$/m)
-  if (!m) return null
-  const t = join(root, ".ai", "tickets", `${m[1]}.md`)
-  return existsSync(t) ? { key: m[1], text: readFileSync(t, "utf-8") } : null
+/** the active ticket, as one text: the shared file + every dev's diary (knowledge.ts combined()) */
+export function activeTicket(_root: string): { key: string; text: string } | null {
+  const key = currentKey()
+  if (!key || !ticketFile(key)) return null
+  return { key, text: combined(key) }
 }
 
 const field = (text: string, k: string) =>
@@ -75,12 +74,18 @@ export function suggest(t: { key: string; text: string }): string {
 }
 
 export function header(t: { key: string; text: string }): string {
-  const state = section(t.text, "Current state")
+  const me = devUser(), mine = diaryFile(t.key, me)
+  const own = existsSync(mine) ? sectionOf(readFileSync(mine, "utf-8"), "Current state") : ""
+  // my Next: from my diary, else from the shared file — never from another dev's diary
+  const shared = ticketFile(t.key)
+  const state = own || (shared ? sectionOf(readFileSync(shared, "utf-8"), "Current state") : "")
   const next = (state.match(/Next:\s*(.+)/) || [])[1] ?? "(no Next: line in Current state)"
+  const team = others(t.key, me).map(([u, st, at]) => `  - ${u} (${at.toISOString().slice(0, 16).replace("T", " ")}): ${st.slice(0, 140)}`)
   const open = section(t.text, "Open points").split("\n").filter((l) => /^\s*-\s*\[ \]/.test(l)).slice(0, 5)
   return [
-    `ACTIVE TICKET ${t.key} — ${field(t.text, "title")} (${field(t.text, "status") || "active"}) · file .ai/tickets/${t.key}.md`,
+    `ACTIVE TICKET ${t.key} — ${field(t.text, "title")} (${field(t.text, "status") || "active"}) · shared file ${(ticketFile(t.key) ?? "").replace(/^.*\/\.ai\//, ".ai/")} · your diary (${me}) .ai/tickets/${t.key}/${t.key}.${me}.md`,
     `Next: ${next.trim()}`,
+    ...(team.length ? [`Also on this ticket (do not take their plan blocks, do not edit their diaries):\n${team.join("\n")}`] : []),
     ...(suggest(t) ? [`Suggested next command for the human (from the ticket's state): ${suggest(t)}`] : []),
     open.length ? `Open points not done (answer each before saying you are ready):\n${open.join("\n")}` : "Open points: none pending",
   ].join("\n")
@@ -92,7 +97,7 @@ export function compactionContext(root: string): string {
   if (!t) return ""
   const notes = section(t.text, "Notes").split("\n").filter((l) => /Open question|Decision \(/.test(l)).slice(-10)
   return [
-    `The session works on ticket ${t.key} (.ai/tickets/${t.key}.md) — re-read it after compaction; it rules over this summary.`,
+    `The session works on ticket ${t.key} (.ai/tickets/${t.key}/) — re-read the shared file and your diary after compaction; they rule over this summary.`,
     header(t),
     `Current state:\n${section(t.text, "Current state").slice(0, 1200)}`,
     notes.length ? `Decisions and open questions:\n${notes.join("\n")}` : "",

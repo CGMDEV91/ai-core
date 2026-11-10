@@ -15,9 +15,11 @@ This command is the whole procedure (no other process file to load):
    the indexes after the pull). Do not pull yourself. `UP TO DATE` / `NO UPSTREAM` → go on.
 2. **Key.** A Jira key in the arguments → that key. No key and `.ai/current-ticket.local.md` exists → **resume that
    ticket** ("sigue por donde estábamos" means exactly this). Otherwise propose `YYYY-MM-DD-<slug>` from the request
-   in one line. File: `.ai/tickets/<key>.md`.
+   in one line. Files: `node .ai/scripts/cli.ts knowledge paths <key>` → the shared `.ai/tickets/<key>/<key>.md`, **your
+   diary** `<key>.<you>.md` (you = global git user.name) and the other devs on the ticket.
 3. **Resume or create.**
-   - Exists → read front matter, `Current state`, `Open points`, `Notes`, `## Plan`, last `Session log` entry.
+   - Exists → read the shared file (front matter, `Open points`, `Notes`, `## Plan`) and **your diary** (`Current state`,
+     last `Session log` entry); read the other diaries' `Current state` — say who else is on it and what they hold.
      **Then reconcile with the code — never trust `Current state` alone** (the session may have ended without
      `/end`): compare `git status` / `git diff --stat` and the auto-recorded `## Changes` with the `## Plan`. If they
      disagree, the code wins: rebuild `Current state` from what is really done. Tell the human in a short table
@@ -30,6 +32,10 @@ This command is the whole procedure (no other process file to load):
      asked for into `## Open points`.
    Write the key (one line) to `.ai/current-ticket.local.md` — the ticket-changes plugin then records every file
    you edit in `## Changes` (fill in the *why* of each auto-recorded line).
+   - New → create the shared file from `.ai/templates/ticket.template.md`; your diary is created on your first edit
+     (or now: it holds `Current state`, `Changes`, `Session log`). Never write another dev's diary.
+   - **Plan blocks have an owner** (`- [ ] B (<user>)`). "go" → take your own open block, else the first free one and
+     write your name on it in the shared file *before* coding; a block owned by somebody else → ask the human.
 4. **Code state.** `git status --short` and `git branch --show-current` in `{{repo}}`; record `branch` and
    `baseline` (`git rev-parse --short HEAD`). Uncommitted work not of this ticket → `WIP-other:` note and ask.
 5. **Prior art.** `.ai/known-issues/INDEX.md` → open only matching entries · `grep -ril "<keywords>" .ai/tickets/`

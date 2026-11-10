@@ -3,36 +3,31 @@
 // (git-ignored). No npm import: the stub in <project>/.opencode/plugin/ re-exports this file.
 import { readFileSync, writeFileSync, existsSync } from "node:fs"
 import { join, relative, isAbsolute } from "node:path"
+import { currentKey, ensureDiary, ticketFile } from "../../lib/knowledge.ts"
 import { runPrefix, stack } from "../../lib/project.ts"
 import { runInProject } from "../tool/_lib.ts"
 
 const EDIT_TOOLS = new Set(["edit", "write", "multiedit", "patch"])
-const TRACKED = /^(lib|config|web|docker|scripts|patches)\/|^(Dockerfile|composer\.json|phpstan\.neon|phpcs\.xml|\.eslintrc\.json)$/
+const TRACKED = /^(lib|config|web|src|app|frontend|docker|scripts|patches)\/|^(Dockerfile|composer\.json|phpstan\.neon|phpcs\.xml|\.eslintrc\.json)$/
 
-function currentTicket(worktree: string): string | null {
-  const f = join(worktree, ".ai", "current-ticket.local.md")
-  if (!existsSync(f)) return null
-  const m = readFileSync(f, "utf-8").match(/^\s*(?:key:\s*)?([A-Za-z0-9][\w.-]+)\s*$/m)
-  return m ? m[1] : null
-}
-
+/** Record a file the agent edited: in my diary (.ai/tickets/<KEY>/<KEY>.<user>.md) when the ticket uses the folder
+ *  layout, so two devs on one ticket never write the same lines; in the shared file for a legacy flat ticket. */
 function recordChange(worktree: string, filePath: string, today = new Date().toISOString().slice(0, 10)): string | null {
-  const key = currentTicket(worktree)
+  const key = currentKey()
   if (!key || !filePath) return null
   const rel = (isAbsolute(filePath) || /^\\\\/.test(filePath) ? relative(worktree, filePath) : filePath).replace(/\\/g, "/")
   if (!TRACKED.test(rel)) return null
-  const ticket = join(worktree, ".ai", "tickets", `${key}.md`)
-  if (!existsSync(ticket)) return null
+  const shared = ticketFile(key)
+  if (!shared) return null
+  const ticket = shared.endsWith(`/${key}/${key}.md`) ? ensureDiary(key) : shared
   const text = readFileSync(ticket, "utf-8")
   const sec = text.match(/^## Changes\s*\n([\s\S]*?)(?=^## |$(?![\s\S]))/m)
   if (!sec) return null
   if (sec[1].includes(rel)) return null
   const line = `- \`${rel}\` — edited ${today} (auto-recorded; say why)\n`
   const insertAt = (sec.index ?? 0) + sec[0].length
-  // keep the comment block of the template first, append after the last line of the section
   const body = sec[0].replace(/\s*$/, "\n")
-  const updated = text.slice(0, sec.index) + body + line + "\n" + text.slice(insertAt)
-  writeFileSync(ticket, updated, "utf-8")
+  writeFileSync(ticket, text.slice(0, sec.index) + body + line + "\n" + text.slice(insertAt), "utf-8")
   return rel
 }
 

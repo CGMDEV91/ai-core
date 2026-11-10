@@ -8,7 +8,7 @@ Do these steps in order and stop to ask wherever it says "propose" or "ask":
    `Impact: <skill> — re-tested [VERIFIED-BY-HUMAN …] | checked, not affected — <why>`. A ⚠ flow without one
    → ask the human; do not close.
 3. **Verification hygiene.** Every `[VERIFIED]` in `## Verification` has an evidence line; list what was not verified.
-4. **Known issue.** For a bugfix/analysis with a confirmed cause: create `.ai/known-issues/<key>-<short-slug>.md`
+4. **Known issue.** For a bugfix/analysis with a confirmed cause: create `.ai/known-issues/<key>-<short-slug>/<key>-<short-slug>.md`
    from `.ai/templates/known-issue.template.md`, or update the existing one (`related`, `last_seen`,
    References), and add its id to the ticket's `known_issues:`. Fill its `skills:` with `bash .ai/scripts/analysis/scan-impact.sh --files <its Files> --skills-only` plus the
    ticket's `skills:`, and cite methods in **Files**. Then run `bash .ai/scripts/knowledge/scan-known-issues.sh --update`.
@@ -17,7 +17,8 @@ Do these steps in order and stop to ask wherever it says "propose" or "ask":
    ticket and `bash .ai/scripts/analysis/scan-impact.sh --key <key> --skill-signals`, and asks the human **one** question with its
    recommendation and reason. Also run `/scan` logic if a service, content type, field or form alter changed, and
    `bash .ai/scripts/knowledge/scan-references.sh` — no new ERROR may remain.
-6. **Close the file.** `status: done`, `## Closure`, final `## Session log` entry, one Journal line in
+6. **Close the file.** In the shared file: `status: done` and `## Closure` — one line per dev diary (who did what:
+   their `Changes` and last `Current state`; the diaries stay as history); final `## Session log` entry in your diary; one Journal line in
    `.ai/MEMORY.local.md`.
 7. **Clear the active ticket:** delete `.ai/current-ticket.local.md` if it holds this key.
 8. **Jira drafts.** Offer `/jira <key>` (analysis comment, test instructions, worklog for the human to post).

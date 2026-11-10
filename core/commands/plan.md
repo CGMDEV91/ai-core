@@ -1,8 +1,9 @@
 # /plan — design critique and plan for a ticket
 
-Ticket key: `$ARGUMENTS` (if empty, use the most recently updated `active` ticket in `.ai/tickets/` and say which).
+Ticket key: `$ARGUMENTS` (if empty, use the active ticket of `.ai/current-ticket.local.md`, else the most recently updated
+`active` ticket in `.ai/tickets/` and say which). The plan goes in the shared file `.ai/tickets/<key>/<key>.md`.
 
-You are `backend-architect`. Read `.ai/tickets/<key>.md` (Intent, Boundaries, modules, Prior art), the code
+You are `backend-architect`. Read `.ai/tickets/<key>/<key>.md` (Intent, Boundaries, modules, Prior art), the code
 the change would touch, the skills listed in `skills:` and the matching `.ai/known-issues/` entries.
 
 Return, and write into the ticket's `## Plan` section (the only section you may edit):
@@ -12,7 +13,7 @@ Return, and write into the ticket's `## Plan` section (the only section you may 
 4. **Plan** (only if approvable): numbered steps, each with files, acceptance criterion and rollback;
    config exports (`ddev drush cex`), scanners to re-run, skills/context files that will become stale.
    Group the steps into blocks (each ends with `/gate` and a stop) and finish with the progress list the main agent
-   ticks: `Blocks:` then one line per block — `- [ ] A — steps 1–5: <concern>`.
+   ticks: `Blocks:` then one line per block — `- [ ] A — steps 1–5: <concern>`; a block someone takes gets their name: `- [ ] A (<user>) — …` (several devs on one ticket never take the same block).
 
 No `TBD`, no vague steps. Never write source code.
 

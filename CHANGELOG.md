@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.10.0 — 2026-11-10
+
+Several devs on one ticket, and tickets / known issues in folders:
+- `.ai/tickets/<KEY>/<KEY>.md` is the **shared** file (intent, plan, decisions, impact, review, verification);
+  `.ai/tickets/<KEY>/<KEY>.<user>.md` is **each dev's diary** (Current state, Changes, Session log) — only its owner
+  writes it, so two people on a ticket never edit the same lines. `<user>` = global `git config user.name` as a slug
+  (`AI_DEV` overrides). Known issues: `.ai/known-issues/<id>/<id>.md` (+ optional `<id>.<user>.md` notes).
+- The edit hook records changes in **your** diary; the header shows your Next (never another dev's) and
+  "Also on this ticket: <user> (<when>): <their state>"; `suggest()`, `/review`, `/impact` and the reviewer digest read
+  the combined ticket (shared file + every diary). Plan blocks carry their owner (`- [ ] B (<user>)`); `/ticket`
+  takes your own or a free block, never someone else's without asking. `/end` writes your diary; `/close` sums the
+  diaries in `## Closure`.
+- `node .ai/scripts/cli.ts layout [--migrate]`: flat files → folders (`git mv`), links rewritten, INDEX.md rebuilt.
+  `node .ai/scripts/cli.ts knowledge whoami | paths <KEY>`. Legacy flat files keep working.
+- The edit hook (changes + lint) is in the core now: React / Java / generic projects record changes too.
+  `/review` covers every stack's paths (not only lib/ and config/).
+- Tests: `tests/team.test.mts` (two devs on one ticket, migration).
+
 ## 0.9.0 — 2026-11-10
 
 - **Installer you can read:** five numbered steps (detect · configure · install · wire · check), each question with one

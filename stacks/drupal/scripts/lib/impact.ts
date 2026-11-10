@@ -5,6 +5,7 @@
 // Read-only on the project; never writes unless --write-ticket is given. Wrapper: bash .ai/scripts/analysis/scan-impact.sh
 import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
+import { combined, list, ticketFile } from "./knowledge.ts"
 import { AI, ROOT, stack, walkCode } from "./project.ts"
 import { cmp, comparePaths, cut, escapeRe, isFile, read, splitlines, walk } from "./util.ts"
 
@@ -156,9 +157,7 @@ export function loadSkills(): Doc[] {
 
 export function loadKnownIssues(): Doc[] {
   const docs: Doc[] = []
-  for (const f of globSorted(KI_DIR, /^[^/]+\.md$/)) {
-    const base = pname(f)
-    if (base === "README.md" || base === "INDEX.md") continue
+  for (const [, f] of list(KI_DIR)) {   // .ai/known-issues/<id>/<id>.md (or a legacy flat <id>.md)
     const text = read(f), fm = frontMatter(text)
     const d = new Doc("known-issue", fm.id ?? pstem(f), fm.title ?? pstem(f), f, fm.status ?? "")
     for (const x of fmList(fm.modules ?? "")) d.modules.add(x)
@@ -174,9 +173,9 @@ export function loadKnownIssues(): Doc[] {
 
 function loadTickets(exclude: string | null): Doc[] {
   const docs: Doc[] = []
-  for (const f of globSorted(TICKETS_DIR, /^[^/]+\.md$/)) {
-    if (pname(f) === "README.md" || pstem(f) === exclude) continue
-    const text = read(f), fm = frontMatter(text)
+  for (const [key, f] of list(TICKETS_DIR)) {   // shared file + every dev's diary (combined view)
+    if (key === exclude) continue
+    const text = combined(key), fm = frontMatter(text)
     const d = new Doc("ticket", fm.key ?? pstem(f), fm.title ?? pstem(f), f, fm.status ?? "")
     for (const x of fmList(fm.modules ?? "")) d.modules.add(x)
     for (const x of fmList(fm.skills ?? "")) d.skills.add(x)
@@ -244,13 +243,13 @@ export function changeFromDiff(base: string | null, commit: string | null): Chan
 }
 
 function changeFromTicket(key: string): Change {
-  const f = `${TICKETS_DIR}/${key}.md`
-  if (!isFile(f)) { console.error(`ticket not found: ${f}`); process.exit(1) }
+  const f = ticketFile(key)
+  if (!f) { console.error(`ticket not found: ${TICKETS_DIR}/${key}/${key}.md`); process.exit(1) }
   const d = new Doc("ticket", key, key, f)
-  harvestCodeRefs(d, section(read(f), "Changes"))
+  harvestCodeRefs(d, section(combined(key), "Changes"))
   const ch = new Change(`## Changes of ticket ${key}`)
   for (const p of d.files) if (!p.endsWith("/")) ch.files.add(p)
-  const text = section(read(f), "Changes")
+  const text = section(combined(key), "Changes")
   for (const p of ch.files) {
     const src = `${ROOT}/${p}`, defined = new Map<string, string>()
     if (isFile(src)) for (const line of splitlines(read(src))) { const m = line.match(FUNC_DEF_RE); if (m) defined.set(m[1].toLowerCase(), m[1]) }
@@ -303,8 +302,9 @@ function score(doc: Doc, ch: Change): [number, string[]] {
 }
 
 function declaredSkills(key: string | null): Set<string> {
-  if (!key || !isFile(`${TICKETS_DIR}/${key}.md`)) return new Set()
-  return fmList(frontMatter(read(`${TICKETS_DIR}/${key}.md`)).skills ?? "")
+  const f = key ? ticketFile(key) : null
+  if (!f) return new Set()
+  return fmList(frontMatter(read(f)).skills ?? "")
 }
 
 type Hit = [Doc, number, string[]]
@@ -393,8 +393,8 @@ function skillSignals(ch: Change): string {
 }
 
 function writeTicket(key: string, block: string): void {
-  const f = `${TICKETS_DIR}/${key}.md`
-  if (!isFile(f)) { console.error(`ticket not found: ${f}`); process.exit(1) }
+  const f = ticketFile(key)   // ## Impact is shared: it goes in the ticket's shared file
+  if (!f) { console.error(`ticket not found: ${TICKETS_DIR}/${key}/${key}.md`); process.exit(1) }
   let text = read(f)
   if (/^## Impact\b/m.test(text)) text = text.replace(/^## Impact\b[\s\S]*?(?=^## (?!#)|(?![\s\S]))/m, () => block + "\n")
   else if (/^## Verification\b/m.test(text)) text = text.replace(/^## Verification\b/m, () => block + "\n## Verification")
@@ -458,6 +458,6 @@ export function main(argv: string[]): number {
   if (a.signals) { console.log(skillSignals(ch)); return 0 }
   const block = render(ch, skills, kis, tickets, minLevel)
   console.log(block)
-  if (a.writeTicket) { writeTicket(a.writeTicket, block); console.log(`(written to .ai/tickets/${a.writeTicket}.md → ## Impact)`) }
+  if (a.writeTicket) { writeTicket(a.writeTicket, block); console.log(`(written to ${(ticketFile(a.writeTicket) ?? "").replace(/^.*\/\.ai\//, ".ai/")} → ## Impact)`) }
   return 0
 }
