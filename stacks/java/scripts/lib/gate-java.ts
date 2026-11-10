@@ -43,7 +43,7 @@ export function main(argv: string[]): number {
   const { base, files: given, flags } = args(argv)
   const files = given.length ? given : changedFiles(base, [...CODE, "pom.xml", "build.gradle", "build.gradle.kts"])
   const src = files.filter((f) => /\.(java|kt)$/.test(f))
-  const g = new Gate(base)
+  const g = new Gate(base, (S.gateSkip as string[] | undefined) ?? [])
 
   // compile (main + tests): javac errors as Maven prints them, or as Gradle/javac do
   const [rc, out] = build(...(MAVEN ? ["compile", "test-compile"] : ["compileJava", "compileTestJava"]))
@@ -62,11 +62,15 @@ export function main(argv: string[]): number {
 
   // Checkstyle, only when the build declares it
   const buildFile = ["pom.xml", "build.gradle", "build.gradle.kts"].map((f) => join(MOD, f)).find(existsSync)
-  const hasCs = buildFile ? /checkstyle/i.test(readFileSync(buildFile, "utf-8")) : false
-  if (!hasCs) g.row("checkstyle", "SKIPPED", "no checkstyle in the build", false)
+  // in the build, or (Maven) run by the gate with project.json "checkstyle" (e.g. google_checks.xml) — pom.xml untouched
+  const inBuild = buildFile ? /checkstyle/i.test(readFileSync(buildFile, "utf-8")) : false
+  const extCs = !inBuild && MAVEN && S.checkstyle ? [`-Dcheckstyle.config.location=${S.checkstyle}`, "-Dcheckstyle.failOnViolation=false"] : []
+  const hasCs = inBuild || extCs.length > 0
+  if (g.off("checkstyle")) { /* project decision */ }
+  else if (!hasCs) g.row("checkstyle", "NOT RUN", "no checkstyle in the build — node .ai/scripts/cli.ts qa (or qa --off)", false)
   else if (!src.length) g.row("checkstyle", "SKIPPED", "no Java files changed", false)
   else {
-    build(...(MAVEN ? ["checkstyle:checkstyle"] : ["checkstyleMain", "checkstyleTest"]))
+    build(...(MAVEN ? ["checkstyle:checkstyle", ...extCs] : ["checkstyleMain", "checkstyleTest"]))
     const reports = MAVEN ? xmls(join(MOD, "target")).filter((x) => x.includes("<checkstyle")) : xmls(join(MOD, "build", "reports", "checkstyle"))
     if (!reports.length) g.row("checkstyle", "NOT RUN", "no checkstyle XML report", false)
     else {
@@ -80,7 +84,8 @@ export function main(argv: string[]): number {
   }
 
   // tests (JUnit XML)
-  if (flags.has("--skip-tests")) g.row("tests", "SKIPPED", "--skip-tests", false)
+  if (g.off("tests")) { /* project decision */ }
+  else if (flags.has("--skip-tests")) g.row("tests", "SKIPPED", "--skip-tests", false)
   else {
     build(MAVEN ? "test" : "test")
     const reports = MAVEN ? xmls(join(MOD, "target", "surefire-reports")) : xmls(join(MOD, "build", "test-results", "test"))

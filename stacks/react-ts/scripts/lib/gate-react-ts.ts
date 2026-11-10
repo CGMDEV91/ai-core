@@ -44,12 +44,13 @@ export function main(argv: string[]): number {
   const { base, files: given, flags } = args(argv)
   const files = given.length ? given : changedFiles(base, [...CODE, `${PKG_REL}package.json`, `${PKG_REL}tsconfig.json`])
   const src = files.filter((f) => SRC_EXT.some((e) => f.endsWith(e)) && CODE.some((c) => f.startsWith(c)) && existsSync(join(ROOT, f)))
-  const g = new Gate(base)
+  const g = new Gate(base, (S.gateSkip as string[] | undefined) ?? [])
 
   // eslint (JSON report: only file, line, rule, message leave this script)
   const eslint = tool("eslint")
-  if (!src.length) g.row("eslint", "SKIPPED", "no source files changed", false)
-  else if (!eslint) g.row("eslint", "NOT RUN", "eslint is not installed — npm install", false)
+  if (g.off("eslint")) { /* project decision */ }
+  else if (!src.length) g.row("eslint", "SKIPPED", "no source files changed", false)
+  else if (!eslint) g.row("eslint", "NOT RUN", "eslint is not installed — node .ai/scripts/cli.ts qa (or qa --off)", false)
   else {
     const [rc, out] = sh([...eslint, "--format", "json", "--no-error-on-unmatched-pattern", ...src.map((f) => join(ROOT, f))], 900, PKG)
     let data: any[] | null = null
@@ -65,8 +66,9 @@ export function main(argv: string[]): number {
 
   // tsc --noEmit on the whole project (types cross files); errors outside the touched lines are PRE-EXISTING
   const tsc = tool("tsc")
-  if (!existsSync(join(PKG, "tsconfig.json"))) g.row("tsc", "SKIPPED", `no tsconfig.json in ${PKG_REL || "the project root"}`, false)
-  else if (!tsc) g.row("tsc", "NOT RUN", "typescript is not installed — npm install", false)
+  if (g.off("tsc")) { /* project decision */ }
+  else if (!existsSync(join(PKG, "tsconfig.json"))) g.row("tsc", "SKIPPED", `no tsconfig.json in ${PKG_REL || "the project root"}`, false)
+  else if (!tsc) g.row("tsc", "NOT RUN", "typescript is not installed — node .ai/scripts/cli.ts qa (or qa --off)", false)
   else {
     const [rc, out] = sh([...tsc, "--noEmit", "--pretty", "false"], 900, PKG)
     let n = 0, all = 0
@@ -83,8 +85,9 @@ export function main(argv: string[]): number {
   // tests: vitest / jest JSON. A failing test is a failure whatever the line — the behaviour is broken.
   const runner = String(S.test ?? (existsSync(join(PKG, "node_modules", "vitest")) ? "vitest" : "jest"))
   const t = tool(runner)
-  if (flags.has("--skip-tests") || runner === "none") g.row("tests", "SKIPPED", flags.has("--skip-tests") ? "--skip-tests" : "no test runner configured", false)
-  else if (!t) g.row("tests", "NOT RUN", `${runner} is not installed — npm install (or "test": "none" in project.json)`, false)
+  if (g.off("tests")) { /* project decision */ }
+  else if (flags.has("--skip-tests") || runner === "none") g.row("tests", "SKIPPED", flags.has("--skip-tests") ? "--skip-tests" : "no test runner configured", false)
+  else if (!t) g.row("tests", "NOT RUN", `${runner} is not installed — node .ai/scripts/cli.ts qa (or qa --off)`, false)
   else {
     const dir = mkdtempSync(join(tmpdir(), "gate-")), outFile = join(dir, "report.json")
     const cmd = runner === "vitest" ? [...t, "run", "--reporter=json", `--outputFile=${outFile}`] : [...t, "--json", `--outputFile=${outFile}`]

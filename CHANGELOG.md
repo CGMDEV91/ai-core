@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.13.0 — 2026-11-11
+
+- **Code checks for every stack** (`cli qa`, the installer's question, the doctor's row, the gates):
+  - react-ts: eslint (the package + a config: `eslint.config.*` / `.eslintrc*`; missing → `npm|pnpm|yarn add -D eslint
+    @eslint/js typescript-eslint eslint-plugin-react-hooks` from the lockfile + a base `eslint.config.mjs`), tsc
+    (`typescript`), tests (vitest / jest); declared but not in node_modules → `npm|pnpm|yarn install`.
+  - java: checkstyle — in the build, or with Maven run by the gate with Google's rules without touching pom.xml
+    (`project.json` `"checkstyle": "google_checks.xml"`); with Gradle a step by hand. tests — written by people: a step
+    by hand, or off.
+  - The installer's *Install them now? [Y/n]* covers them all; *no* turns off only the missing ones. `qa --off` / `--on`
+    work per stack (`gateSkip`). Every gate marks an off check SKIPPED and does not run it (`Gate.off()` in gatelib).
+  - Java: a build without checkstyle was SKIPPED, now NOT RUN until the project sets it up or turns it off — the same
+    rule as the others: a check that does not run is never reported as passed.
+
 ## 0.12.0 — 2026-11-11
 
 - **Code checks (Drupal: phpcs + phpstan) detected and set up, or turned off by decision.** `cli qa` says what is

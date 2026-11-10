@@ -32,8 +32,14 @@ export function touchedLines(base: string, f: string): Set<number> | null {
 export class Gate {
   rows: Row[] = []; newErrs: string[] = []; oldErrs: string[] = []; evidence: string[] = []
   touched = new Map<string, Set<number> | null>()
-  base: string
-  constructor(base: string) { this.base = base }
+  base: string; skip: string[]
+  constructor(base: string, skip: string[] = []) { this.base = base; this.skip = skip }
+  /** a check the project decided to go without (project.json stacks[].gateSkip): SKIPPED row, true = do not run it */
+  off(check: string): boolean {
+    if (!this.skip.includes(check)) return false
+    this.row(check, "SKIPPED", "off — project decision (project.json gateSkip; node .ai/scripts/cli.ts qa --on)", false)
+    return true
+  }
   isNew(f: string, line: number): boolean {
     if (!this.touched.has(f)) this.touched.set(f, touchedLines(this.base, f))
     const t = this.touched.get(f)

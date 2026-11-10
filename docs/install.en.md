@@ -24,6 +24,11 @@ The **Tools** step works out what this project needs from its configuration:
 | java, exec `local` | java + mvn / gradle (not needed when the project has `./mvnw` / `./gradlew`) |
 | react-ts | npm |
 
+Then the **code checks** of the gate — Drupal phpcs + phpstan, React eslint + tsc + tests, Java checkstyle + tests: what
+is ready, what is missing and the steps (composer / npm / pnpm / yarn add, a base config file, a project.json setting,
+or what a person does). One question, *Install them now? [Y/n]*: yes runs them; no records that the project goes
+without the missing ones (the gate marks them SKIPPED). Later: `node .ai/scripts/cli.ts qa` (`--setup`, `--off`, `--on`).
+
 For each missing tool it shows the command for your system — apt, dnf, brew, winget, or the official ddev / docker /
 nvm install scripts — and asks **y/N**. Nothing is installed without your yes, except with `--install-deps`. Docker on
 WSL is left to you (Docker Desktop → Settings → Resources → WSL integration). A tool still missing does not stop the
@@ -110,7 +115,7 @@ A blocked line in a skill or a project part: reword it there (same meaning, no "
 | "Request blocked: prompt injection attempt detected" | the gateway's detector blocked a line of a prompt | `node .ai/scripts/cli.ts promptcheck` → reword the line |
 | `/doctor` from opencode for Windows: hooks, exclude, ddev FAIL | Windows has no git / ddev for a WSL project (before 0.10.3) | update; commands re-run inside WSL |
 | `.claude/skills missing` on Windows | a WSL symlink is not visible from Windows | run the doctor from WSL, or update (≥ 0.10.3) |
-| `code checks` WARN: phpcs / phpstan not set up | composer.json never required them, or no config file | `node .ai/scripts/cli.ts qa --setup` (asks each step) — or `qa --off` if the project goes without them |
+| `code checks` WARN: phpcs / phpstan, eslint / tsc / tests, checkstyle / tests not set up | the packages or the config are missing | `node .ai/scripts/cli.ts qa --setup` (asks each step) — or `qa --off` if the project goes without them |
 | the gate says NOT RUN for a check | a tool is missing in the exec environment | `node .ai/scripts/cli.ts deps --install`, `composer install` / `npm ci` |
 | hooks do not run on Windows | Git for Windows without `usr\bin\sh.exe` | reinstall Git for Windows (complete) |
 | `upgrade.sh: No such file` | `.ai` from before 0.9 | `~/devel/ai-core/install.sh <project> --update` once |

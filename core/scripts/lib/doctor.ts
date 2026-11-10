@@ -159,17 +159,19 @@ function execEnv(stacks: string[]): void {
     if (missing.length) add("WARN", `${name} tools`, `missing: ${missing.join(", ")} — those gate checks will be NOT RUN`, "composer install (in the exec environment)")
     else if (tools.length) add("OK", `${name} tools`, tools.join(", "))
   }
-  if (stacks.includes("drupal")) codeChecks()   // also when the exec environment is down: it reads files only
+  codeChecks()   // every stack with code checks; also when the exec environment is down: it reads files only
 }
 
 function codeChecks(): void {
-  const q = qa.state(cfg(), ROOT), on = qa.CHECKS.filter((c) => !q.off.includes(c))
+  const q = qa.state(cfg(), ROOT)
   if (!q.applies) return
-  if (!on.length) { add("INFO", "code checks", "phpcs, phpstan off — project decision (project.json gateSkip); the gate marks them SKIPPED"); return }
-  if (qa.ok(q)) { add("OK", "code checks", `${on.map((c) => `${c} (${q[c as "phpcs"]})`).join(", ")} ready for the gate${q.off.length ? ` · ${q.off.join(", ")} off by decision` : ""}`); return }
-  const first = q.steps[0]
-  add("WARN", "code checks", `${q.missing.join(" · ")} — the gate cannot run ${on.join(" / ")} (INCOMPLETE)`,
-    `node .ai/scripts/cli.ts qa --setup (asks before each step; first: ${first.cmd ?? `write ${first.file}`}) — or qa --off if the project goes without them`)
+  const off = qa.offChecks(q), missing = qa.missingChecks(q), ready = q.checks.filter((c) => c.ready && !c.off).map((c) => `${c.check}${c.detail ? ` (${c.detail})` : ""}`)
+  const offNote = off.length ? ` · off by project decision: ${off.join(", ")}` : ""
+  if (!missing.length && !ready.length) { add("INFO", "code checks", `${off.join(", ")} off — project decision (project.json gateSkip); the gate marks them SKIPPED`); return }
+  if (!missing.length) { add("OK", "code checks", `${ready.join(", ")} ready for the gate${offNote}`); return }
+  const first = q.steps.find((s) => !s.manual) ?? q.steps[0]
+  add("WARN", "code checks", `${q.missing.join(" · ")} — the gate cannot run ${missing.join(" / ")} (INCOMPLETE)${offNote}`,
+    `node .ai/scripts/cli.ts qa --setup (asks before each step${first ? `; first: ${first.cmd ?? first.file ?? first.manual ?? first.what}` : ""}) — or qa --off if the project goes without them`)
 }
 
 function remote(): void {

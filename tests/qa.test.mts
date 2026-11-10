@@ -71,3 +71,42 @@ test("qa.state: packages already in vendor/ (dependencies of others) count; the 
   writeFileSync(join(d, "phpcs.xml"), "<ruleset/>"); writeFileSync(join(d, "phpstan.neon"), "")
   assert.equal(state(conf(), d).steps.length, 0)
 })
+
+import { cpSync, rmSync } from "node:fs"
+import { Gate } from "../core/scripts/lib/gatelib.ts"
+const copy = (name: string) => { const d = mkdtempSync(join(tmpdir(), `aicore-qa-${name}-`)); cpSync(join(CORE, "tests", "fixtures", name), d, { recursive: true }); return d }
+
+test("qa.state react-ts: eslint config and packages per package manager; tests runner", () => {
+  const d = copy("react"), rc = { name: "p", stacks: [{ name: "react-ts", exec: "local", paths: ["src"] }] }
+  let q = state(rc, d)
+  assert.deepEqual(q.checks.map((c) => `${c.check}:${c.ready}`), ["eslint:false", "tsc:true", "tests:true"])
+  assert.equal(q.steps[0].cmd, "npm install --save-dev @eslint/js typescript-eslint eslint-plugin-react-hooks")
+  assert.equal(q.steps[1].file, "eslint.config.mjs")
+  writeFileSync(join(d, "eslint.config.js"), "export default []\n"); writeFileSync(join(d, "pnpm-lock.yaml"), "")
+  rmSync(join(d, "node_modules", "typescript"), { recursive: true })
+  q = state(rc, d)
+  assert.deepEqual(q.steps.map((s) => s.cmd), ["pnpm install"], "typescript declared but not installed → pnpm install")
+  rmSync(join(d, "node_modules", "vitest"), { recursive: true })
+  assert.equal(state({ stacks: [{ name: "react-ts", exec: "local", paths: ["src"], gateSkip: ["tests"] }] }, d).checks.find((c) => c.check === "tests")!.off, true)
+})
+
+test("qa.state java: checkstyle in the build, by the gate (Maven), by hand (Gradle); tests are written by people", () => {
+  const d = copy("java"), jc = { stacks: [{ name: "java", exec: "local", paths: ["src/main/java"] }] }
+  assert.deepEqual(state(jc, d).checks.map((c) => `${c.check}:${c.ready}`), ["checkstyle:true", "tests:false"], "fixture: plugin in pom.xml, no test files")
+  writeFileSync(join(d, "src", "test", "java", "eu", "demo", "AppTest.java"), "class AppTest {}\n")
+  assert.ok(state(jc, d).checks.every((c) => c.ready))
+  writeFileSync(join(d, "pom.xml"), "<project></project>\n")
+  let q = state(jc, d)
+  assert.deepEqual(q.steps[0].set, { checkstyle: "google_checks.xml" })
+  assert.equal(state({ stacks: [{ name: "java", exec: "local", paths: ["src/main/java"], checkstyle: "google_checks.xml" }] }, d).checks[0].ready, true)
+  rmSync(join(d, "pom.xml")); writeFileSync(join(d, "build.gradle"), "plugins { id 'java' }\n"); rmSync(join(d, "src", "test"), { recursive: true })
+  q = state(jc, d)
+  assert.ok(q.steps.every((s) => s.manual), "Gradle checkstyle and missing tests: by hand")
+  assert.deepEqual(q.checks.map((c) => `${c.check}:${c.ready}`), ["checkstyle:false", "tests:false"])
+})
+
+test("gate: a check the project turned off is SKIPPED and not run", () => {
+  const g = new Gate("HEAD", ["eslint"])
+  assert.equal(g.off("eslint"), true); assert.equal(g.off("tsc"), false)
+  assert.deepEqual(g.rows[0].slice(0, 2), ["eslint", "SKIPPED"])
+})

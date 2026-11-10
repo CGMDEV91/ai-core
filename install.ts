@@ -74,37 +74,37 @@ function detect(project: string): { stacks: Detected[]; exec: string; execWhy: s
   return { stacks: out, exec, execWhy: exec === "ddev" ? ".ddev/config.yaml" : exec === "docker" ? "a compose file" : "no ddev / compose file" }
 }
 
-/** Drupal: phpcs + phpstan set up for the gate? Set them up now (asking each step), off by project decision, or later
- *  (then the summary's Next steps carry the commands). */
-/** Drupal: phpcs + phpstan set up for the gate? One question, yes by default: yes → every step now (composer
- *  require, phpcs.xml, phpstan.neon); no → the project goes without them (gateSkip), said clearly. Without a terminal
- *  (--yes, CI) nothing is changed in the project: the steps go to Next steps (--install-deps runs them). */
+/** The code checks of each stack's gate (Drupal phpcs/phpstan, React eslint/tsc/tests, Java checkstyle/tests): set
+ *  up? One question, yes by default: yes → every step that can run now; no → the project goes without the missing
+ *  ones (gateSkip), said clearly. Without a terminal (--yes, CI) the project is not changed: Next steps (or --install-deps). */
 async function codeChecks(project: string, conf: any, a: Args): Promise<void> {
   const q = qa.state(conf, project)
   if (!q.applies) return
-  if (qa.ok(q)) { if (q.off.length < qa.CHECKS.length) say(`  ${green("✔")} ${"checks".padEnd(9)} ${"phpcs".padEnd(10)} ${dim(`${q.phpcs ?? "off"} · phpstan ${q.phpstan ?? "off"} — the gate runs them`)}`); return }
-  say(`  ${yellow("✖")} ${"checks".padEnd(9)} ${yellow("phpcs/phpstan".padEnd(10))} ${dim(q.missing.join(" · "))}`)
+  const names = (cs: qa.Check[]) => cs.map((c) => c.check).join(", ")
+  const ready = q.checks.filter((c) => c.ready && !c.off), missing = q.checks.filter((c) => !c.ready)
+  if (ready.length) say(`  ${green("✔")} ${"checks".padEnd(9)} ${names(ready).padEnd(10)} ${dim("— the gate runs them")}`)
+  if (!missing.length) return
+  say(`  ${yellow("✖")} ${"checks".padEnd(9)} ${yellow(names(missing).padEnd(10))} ${dim(q.missing.join(" · "))}`)
   const interactive = !a.yes && process.stdin.isTTY
   let yes = a.deps === "install"
   if (interactive) {
-    say(`  ${dim("The gate runs phpcs and phpstan on every change. Installing them:")}`)
-    for (const st of q.steps) say(`    ${dim("·")} ${st.cmd ? green(st.cmd) : `${bold(st.file!)} ${dim("— a base to adapt")}`}`)
+    say(`  ${dim(`The gate runs ${names(missing)} on every change. To have them:`)}`)
+    for (const st of q.steps) say(`    ${dim("·")} ${st.cmd ? green(st.cmd) : st.file ? `${bold(st.file)} ${dim("— a base to adapt")}` : st.set ? `${dim("project.json:")} ${Object.entries(st.set).map(([k, v]) => `${k} = ${v}`).join(", ")} ${dim(`— ${st.what}`)}` : `${dim("by hand:")} ${st.manual}`}`)
     const rl = createInterface({ input: process.stdin, output: process.stdout })
     try { yes = !/^(n|no)$/i.test((await rl.question(`  ${cyan("?")} Install them now? ${dim("[Y/n]")}: `)).trim()) }
     catch { say(`\n  ${dim("→ no answer: nothing changed, the commands are in Next steps")}`); return }   // Ctrl+D / closed input
     finally { rl.close() }
   } else if (!yes) { say(`  ${dim("→ not changed without a terminal: the commands are in Next steps (or --install-deps)")}`); return }
   if (yes) {
-    await qa.setup(project, q, true, (s) => say(s))
-    const after = qa.state(conf, project)
-    if (qa.ok(after)) say(`  ${green("✔")} phpcs and phpstan ready ${dim("— commit composer.json, composer.lock, phpcs.xml and phpstan.neon in the project")}`)
-    else say(`  ${yellow("⚠")} not finished: ${after.missing.join(" · ")} ${dim("— the commands are in Next steps")}`)
+    await qa.setup(project, q, true, (s) => say(s), conf)
+    const after = qa.state(conf, project), left = after.checks.filter((c) => !c.ready)
+    if (!left.length) say(`  ${green("✔")} ${names(missing)} ready ${dim("— commit the project files that changed (composer / package files, configs)")}`)
+    else say(`  ${yellow("⚠")} not finished: ${names(left)} ${dim(`(${after.missing.join(" · ")}) — in Next steps`)}`)
     return
   }
-  const s = conf.stacks.find((x: any) => x.name === "drupal")
-  s.gateSkip = [...new Set([...(s.gateSkip ?? []), ...qa.CHECKS])]
-  say(`  ${yellow("·")} This project goes ${bold("without phpcs and phpstan")}: the gate marks them SKIPPED and only runs the rest`)
-  say(`    ${dim("(hook signatures, cache rebuild, smoke, config status). To use them later:")} ${green("node .ai/scripts/cli.ts qa --on && node .ai/scripts/cli.ts qa --setup")}`)
+  const off = qa.decideConf(conf, project, true)
+  say(`  ${yellow("·")} This project goes ${bold(`without ${off.join(", ")}`)}: the gate marks them SKIPPED and runs the rest.`)
+  say(`    ${dim("To use them later:")} ${green("node .ai/scripts/cli.ts qa --on && node .ai/scripts/cli.ts qa --setup")}`)
 }
 
 async function ask(rl: ReturnType<typeof createInterface> | null, q: string, def: string, help = ""): Promise<string> {
@@ -500,12 +500,13 @@ function summary(project: string, conf: any, managed: number, starters: string[]
   }
   const checks = qa.state(conf, project)
   if (!qa.ok(checks)) {
-    head("Turn on the code checks", "without phpcs and phpstan every gate ends INCOMPLETE")
+    head("Turn on the code checks", `without ${qa.missingChecks(checks).join(", ")} every gate ends INCOMPLETE`)
     text(dim(checks.missing.join(" · ")))
     text(`let it do it ${dim("(asks before each step)")}:`)
     shell(`cd ${homeRel(project)} && node .ai/scripts/cli.ts qa --setup`)
     text(dim("or by hand:"))
-    for (const st of checks.steps) st.cmd ? shell(st.cmd) : text(`${dim("write")} ${bold(st.file!)} ${dim("— node .ai/scripts/cli.ts qa shows a base to start from")}`)
+    for (const st of checks.steps) st.cmd ? shell(st.cmd) : st.file ? text(`${dim("write")} ${bold(st.file)} ${dim("— qa --setup writes a base to start from")}`)
+      : st.set ? text(`${dim("project.json:")} ${Object.entries(st.set).map(([k, v]) => `${k} = ${v}`).join(", ")} ${dim(`(${st.what})`)}`) : text(`${dim("by hand:")} ${st.manual}`)
     text(`${dim("the project goes without them:")} ${green("node .ai/scripts/cli.ts qa --off")}`)
     say("")
   }
