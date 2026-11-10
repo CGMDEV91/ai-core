@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0 — 2026-11-10
+
+- **`java` stack** (phase 5): Maven or Gradle (wrapper first; `"build"` in project.json to force one), local or docker.
+  Gate = compile main + test (javac errors as Maven / Gradle print them) + Checkstyle (XML, when the build declares it) +
+  JUnit XML (surefire / Gradle test-results), NEW vs PRE-EXISTING; a failing test always fails. The module folder is the
+  nearest pom.xml / build.gradle above the paths (multi-module) or `"root"`. Spring code index: classes, methods with
+  callers, beans, `@*Mapping` routes (class prefix + method), Kafka / Rabbit / JMS listeners, `@EventListener`,
+  `@Scheduled`. Reviewer / gate parts for Java. Detected by pom.xml + src/main/java or build.gradle.
+- Tested with a Spring fixture and a fake `mvn` (tests/stacks.test.mts). Not yet run on a real microservice nor on
+  Windows with a real JDK — that is the pilot of the plan.
+
 ## 0.7.0 — 2026-11-10
 
 Architecture and integrations, generated and watched (phase 4b, Drupal stack):

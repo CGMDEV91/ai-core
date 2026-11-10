@@ -1,0 +1,1 @@
+{ "permission": { "bash": { "mvn *": "allow", "./mvnw *": "allow", "gradle *": "allow", "./gradlew *": "allow", "*mvn deploy*": "deny", "*gradlew publish*": "deny" } } }

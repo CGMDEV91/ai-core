@@ -1,0 +1,6 @@
+{
+  "name": "java",
+  "indexes": [["codeindex", "--update"]],
+  "fresh": [["codeindex"]],
+  "tools": []
+}

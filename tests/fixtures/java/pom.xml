@@ -1,0 +1,2 @@
+<project><modelVersion>4.0.0</modelVersion><groupId>eu.demo</groupId><artifactId>demo</artifactId><version>1</version>
+<build><plugins><plugin><artifactId>maven-checkstyle-plugin</artifactId></plugin></plugins></build></project>

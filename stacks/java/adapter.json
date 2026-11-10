@@ -1,0 +1,6 @@
+{
+  "name": "java",
+  "description": "Java / Spring (Maven or Gradle); gate = compile (javac) + Checkstyle (XML) + JUnit XML tests, NEW vs PRE-EXISTING",
+  "vars": { "framework": "Java / Spring", "gateChecks": "compile / checkstyle / tests" },
+  "defaults": { "paths": ["src/main/java", "src/test/java"], "exec": "local" }
+}

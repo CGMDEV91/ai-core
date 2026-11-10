@@ -5,7 +5,7 @@
 //   node --experimental-strip-types --test tests/stacks.test.mts
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
-import { appendFileSync, cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
+import { appendFileSync, cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { test } from "node:test"
@@ -65,4 +65,21 @@ test("generic: a configured file:line linter splits NEW and PRE-EXISTING", () =>
   assert.equal(r.code, 1, r.out)
   assert.match(r.out, /\| lint \| FAIL \| lint: 1 new finding\(s\), 1 on untouched lines \|/)
   assert.match(r.out, /\| build \| PASS \| build: exit 0 \|/)
+})
+
+test("java: compile / checkstyle / JUnit split NEW and PRE-EXISTING; Spring routes and listeners indexed", () => {
+  const dir = project("java", ["--name", "Orders"])
+  rmSync(join(dir, "bin"), { recursive: true, force: true })
+  const f = join(dir, "src", "main", "java", "eu", "demo", "OrderService.java")
+  writeFileSync(f, readFileSync(f, "utf-8").trimEnd().replace(/}$/, "") + "\n  public void added() {\n    find(null);\n  }\n}\n")   // → lines 21-24
+  const env = { PATH: `${join(CORE, "tests", "fixtures", "java", "bin")}:${process.env.PATH}` }
+  const r = cli(dir, ["gate"], env)
+  assert.equal(r.code, 1, r.out)
+  assert.match(r.out, /\| compile \| FAIL \| compile: 1 new error\(s\), 1 on untouched lines \|/)
+  assert.match(r.out, /\| checkstyle \| FAIL \| checkstyle: 1 new issue\(s\), 1 on untouched lines \|/)
+  assert.match(r.out, /\| tests \| FAIL \| tests: 1 passed, 1 failed \|/)
+  assert.equal(cli(dir, ["gate"], { ...env, FAKE: "pass" }).code, 0)
+  cli(dir, ["codeindex", "--update"])
+  assert.match(cli(dir, ["where", "orders", "--kind", "route"]).out, /GET \/orders\/\{id\}.*OrderController::get\(\)/)
+  assert.match(cli(dir, ["callers", "OrderService::find()"]).out, /route GET \/orders\/\{id\}[\s\S]*kafka orders-created/)
 })

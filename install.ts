@@ -53,7 +53,8 @@ function detect(project: string): { stacks: Detected[]; exec: string; execWhy: s
     out.push({ stack: "drupal", why: `composer.json requires drupal/core${apiRoot ? `, core in ${apiRoot}/core` : ""}`,
       defaults: { paths: paths.length ? paths : ["web/modules/custom"], configSync: has("config/sync") ? "config/sync" : "config/sync", apiRoot: apiRoot ?? "web" } })
   }
-  if (has("pom.xml") || has("build.gradle") || has("build.gradle.kts")) out.push({ stack: "java", why: has("pom.xml") ? "pom.xml" : "build.gradle", defaults: {} })
+  if ((has("pom.xml") && has("src/main/java")) || has("build.gradle") || has("build.gradle.kts"))
+    out.push({ stack: "java", why: has("pom.xml") ? "pom.xml + src/main/java" : "build.gradle", defaults: { paths: ["src/main/java", "src/test/java"].filter(has) } })
   const pkg = text("package.json")
   if (/"react"\s*:/.test(pkg) && has("tsconfig.json")) out.push({ stack: "react-ts", why: "package.json with react + tsconfig.json",
     defaults: { paths: has("src") ? ["src"] : ["app"].filter(has), test: /"vitest"\s*:/.test(pkg) ? "vitest" : /"jest"\s*:/.test(pkg) ? "jest" : "none" } })

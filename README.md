@@ -19,6 +19,7 @@ install.sh · install.ps1 → install.ts   install · --update · --reconfigure 
 |---|---|---|---|
 | `drupal` | composer.json with drupal/core | phpcs · phpstan (JSON) · hook signatures · drush cr · smoke · config:status | methods, services, routes, events, hooks, fields, UI strings |
 | `react-ts` | package.json with react + tsconfig.json | eslint (JSON) · tsc · vitest / jest | components, functions, hooks, routes, i18n strings |
+| `java` | pom.xml + src/main/java, build.gradle | compile · Checkstyle (XML) · JUnit XML (Maven / Gradle) | classes, methods, beans, routes, listeners, @Scheduled |
 | `generic` | anything else | the commands in project.json `"gate"` (`file-line` or `exit`) | — |
 
 Several stacks in one repo (Drupal + a React front end): each stack has its `paths`; the gate and the index run each

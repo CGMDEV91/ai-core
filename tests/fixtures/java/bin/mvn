@@ -1,0 +1,14 @@
+#!/bin/sh
+# fake mvn (tests): canned javac / checkstyle / surefire outputs; FAKE=pass for a clean build
+case "$*" in
+  *compile*) [ "$FAKE" = pass ] && exit 0
+    echo "[ERROR] $PWD/src/main/java/eu/demo/OrderService.java:[23,5] cannot find symbol"
+    echo "[ERROR] $PWD/src/main/java/eu/demo/OrderController.java:[6,3] old warning turned error"
+    exit 1 ;;
+  *checkstyle*) mkdir -p target; if [ "$FAKE" = pass ]; then echo '<checkstyle></checkstyle>' > target/checkstyle-result.xml; else
+    printf '<checkstyle><file name="%s/src/main/java/eu/demo/OrderService.java"><error line="24" severity="warning" message="Missing a Javadoc comment." source="com.puppycrawl.tools.checkstyle.checks.javadoc.MissingJavadocMethodCheck"/><error line="4" severity="warning" message="Line is longer than 100 characters." source="x.LineLengthCheck"/></file></checkstyle>' "$PWD" > target/checkstyle-result.xml; fi ;;
+  *test*) mkdir -p target/surefire-reports
+    if [ "$FAKE" = pass ]; then f=""; else f='<failure message="expected: &lt;1&gt; but was: &lt;2&gt;"/>'; fi
+    printf '<testsuite><testcase classname="eu.demo.OrderServiceTest" name="finds"/><testcase classname="eu.demo.OrderServiceTest" name="purges">%s</testcase></testsuite>' "$f" > target/surefire-reports/TEST-eu.demo.OrderServiceTest.xml ;;
+esac
+exit 0
