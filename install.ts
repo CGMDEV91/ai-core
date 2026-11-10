@@ -86,7 +86,16 @@ async function codeChecks(project: string, conf: any, a: Args): Promise<void> {
   if (interactive) {
     say(`  ${dim("The gate runs phpcs and phpstan on every change. Without them each gate ends INCOMPLETE — unless the project decides to go without them.")}`)
     const rl = createInterface({ input: process.stdin, output: process.stdout })
-    try { choice = ((await rl.question(`  ${cyan("?")} Code checks: ${bold("s")}et them up now (asks before each step) · ${bold("o")}ff for this project · ${bold("l")}ater ${dim("[l]")}: `)).trim().toLowerCase() || "l")[0] }
+    say(`    ${bold("s")}  set them up now ${dim("— asks y/N before each step: composer require, phpcs.xml, phpstan.neon")}`)
+    say(`    ${bold("o")}  off for this project ${dim("— the gate marks them SKIPPED (undo: node .ai/scripts/cli.ts qa --on)")}`)
+    say(`    ${bold("l")}  later ${dim("— nothing now; the commands go to Next steps")}`)
+    try {
+      for (;;) {
+        const r = (await rl.question(`  ${cyan("?")} Code checks — type s, o or l ${dim("[l]")}: `)).trim().toLowerCase() || "l"
+        if (["s", "o", "l"].includes(r[0])) { choice = r[0]; break }
+        say(`  ${yellow("·")} s, o or l`)
+      }
+    }
     finally { rl.close() }
   }
   if (choice === "o") {
