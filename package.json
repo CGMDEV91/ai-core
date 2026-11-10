@@ -1,0 +1,6 @@
+{
+  "name": "ai-core",
+  "private": true,
+  "type": "module",
+  "description": "Installer of ai-core (install.sh / install.ps1 → install.ts). Node >= 22.6, no dependencies."
+}

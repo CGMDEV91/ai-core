@@ -4,7 +4,7 @@
 // knowledge). Literal search, case-insensitive unless --case.
 //   node .ai/scripts/cli.ts touchpoints <term> [--case] [--max N]
 import { basename, extname } from "node:path"
-import { AI, ROOT } from "./project.ts"
+import { AI, ROOT, stack } from "./project.ts"
 import { cut, escapeRe, read, splitlines, walk } from "./util.ts"
 
 const CODE_EXT = [".php", ".module", ".inc", ".theme", ".install"]
@@ -18,7 +18,7 @@ function groupFor(abs: string): string {
   if (rel.startsWith(".ai/skills/")) return "knowledge: skills"
   if (rel.startsWith(".ai/known-issues/")) return "knowledge: known issues"
   if (rel.startsWith(".ai/")) return "knowledge: context"
-  if (rel.startsWith("config/sync/")) {
+  if (rel.startsWith(stack("drupal").configSync.replace(/\/+$/, "") + "/")) {
     const prefix = name.split(".")[0]
     if ((prefix === "field" || prefix === "core") && name.includes(".entity_form_display.")) return "config: form displays"
     if (prefix === "core" && name.includes(".entity_view_display.")) return "config: view displays"
@@ -45,7 +45,8 @@ export function main(argv: string[]): number {
   }
   if (!term) { console.log("usage: node .ai/scripts/cli.ts touchpoints <term> [--case] [--max N]"); return 2 }
   const pat = new RegExp(escapeRe(term), caseSensitive ? "" : "i")
-  const roots = [`${ROOT}/lib`, `${ROOT}/config/sync`, `${ROOT}/po_translations`, `${ROOT}/translation_delivery_files_1-7-0-RC-1-1`,
+  const code = stack("drupal").paths.map((p) => `${ROOT}/${p.replace(/\/+$/, "")}`)
+  const roots = [...code, `${ROOT}/${stack("drupal").configSync}`, `${ROOT}/po_translations`, `${ROOT}/translation_delivery_files_1-7-0-RC-1-1`,
     `${AI}/skills`, `${AI}/known-issues`, `${AI}/context`]
   const hits = new Map<string, string[]>(), counts = new Map<string, number>(), files = new Map<string, Set<string>>()
   for (const base of roots) {
@@ -64,7 +65,7 @@ export function main(argv: string[]): number {
       })
     }
   }
-  if (!counts.size) { console.log(`No occurrence of "${term}" in lib/, config/sync/, translations or .ai/.`); return 0 }
+  if (!counts.size) { console.log(`No occurrence of "${term}" in ${stack("drupal").paths.join(", ")}, ${stack("drupal").configSync}, translations or .ai/.`); return 0 }
   const total = [...counts.values()].reduce((a, b) => a + b, 0)
   console.log(`Touchpoints of "${term}" — ${total} occurrence(s) in ${[...files.values()].reduce((a, s) => a + s.size, 0)} file(s)\n`)
   const key = (g: string): [number, number, number] => [Number(g.startsWith("knowledge")), Number(g.startsWith("translations")), -counts.get(g)!]

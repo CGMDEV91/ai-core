@@ -3,7 +3,7 @@
 import { existsSync, readFileSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
-import { posix } from "./util.ts"
+import { comparePaths, posix, walk } from "./util.ts"
 
 export const AI = posix(resolve(dirname(fileURLToPath(import.meta.url)), "..", ".."))   // .ai/scripts/lib → .ai
 export const ROOT = posix(dirname(AI))
@@ -26,3 +26,7 @@ export function runPrefix(s: Stack): string[] {
 }
 export const drushPrefix = (s: Stack) => (s.exec === "ddev" ? ["ddev", "drush"] : [...runPrefix(s), "vendor/bin/drush"])
 export const codePaths = (s: Stack) => s.paths.map((p) => p.replace(/\/+$/, "") + "/")
+/** Every file under the stack's code paths (lib/modules + lib/themes, web/modules/custom…), sorted like pathlib. */
+export function walkCode(keep: (abs: string) => boolean = () => true, name = "drupal"): string[] {
+  return stack(name).paths.flatMap((p) => walk(`${ROOT}/${p.replace(/\/+$/, "")}`, keep)).sort(comparePaths)
+}

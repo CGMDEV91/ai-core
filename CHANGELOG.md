@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.3.0 — 2026-11-10
+
+- **Installer in TypeScript** (phase 3): `install.sh` / `install.ps1` → `install.ts`; `install.py` is gone. Detects the
+  stack (drupal: composer.json, the core folder — `web/`, `docroot/` or `web/<x>/` — and the code paths) and the exec
+  (ddev / docker / local), asks with those as defaults (`--yes` for none), writes an empty knowledge skeleton and
+  `git init`s a new `.ai`. New: `--reconfigure`, `--uninstall`, `--adopt` on an existing install, `--help`.
+- **Wiring in TypeScript** (`node .ai/scripts/cli.ts setup | hooks`): the same on Windows without bash. Hooks are
+  `#!/bin/sh` (git for Windows runs them with its own shell); pass-throughs only for the usual hooks and the ones the
+  project has (no `reference-transaction` on every ref update). Indexes from `scripts/setup/stack.<name>.json`; a
+  command that rewrites knowledge (callpaths) runs only when its output is missing.
+- **`/doctor`** (`node .ai/scripts/cli.ts doctor`): Node, project.json, managed files and ai-core updates, hooks
+  installed *and able to run* (catches an incomplete Git for Windows), exclude, opencode.json + `{file:}` references +
+  stubs, indexes fresh, exec environment and the stack's tools, `.ai` vs its remote. One fix per problem.
+- The drupal stack follows `project.json` paths everywhere (code index, call paths, impact, touchpoints, references):
+  a standard Drupal (`web/modules/custom`) works, not only GI Portal's `lib/`.
+- Tested: clean install of a demo Drupal in WSL (non-interactive and interactive) and natively on Windows
+  (install.ps1 + node.exe + Git for Windows); giportal updated with the same golden outputs.
+
 ## 0.2.0 — 2026-11-10
 
 - **Runtime in TypeScript** (phase 2): `node .ai/scripts/cli.ts <command>` — gate, apiindex, impact, callpaths,

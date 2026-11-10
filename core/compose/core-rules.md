@@ -54,5 +54,6 @@ Only the human can type a command. When they ask for something a command does, d
 | what to re-test · Jira texts | `/tests <key>` (test-designer) · `/jira <key>` (jira-writer) |
 | stop for today · finished | `/end` · `/close <key>` |
 | skills · lessons · drift · references | `/skill` (skill-curator) · `/learn` · `/scan` · `/audit` (knowledge-auditor) |
+| is the AI set-up of this checkout OK | `/doctor` |
 
 Implementation steps → delegate to `@fullstack-developer` yourself.

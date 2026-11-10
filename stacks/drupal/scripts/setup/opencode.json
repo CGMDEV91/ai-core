@@ -300,6 +300,10 @@
       "template": "{file:./.ai/commands/audit.md}",
       "agent": "knowledge-auditor",
       "subtask": true
+    },
+    "doctor": {
+      "description": "Check this checkout's AI set-up (hooks, opencode wiring, indexes, exec environment, ai-core version) and say how to fix each problem. Usage: /doctor",
+      "template": "{file:./.ai/commands/doctor.md}"
     }
   },
   "permission": {

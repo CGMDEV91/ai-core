@@ -5,7 +5,7 @@
 // Read-only on the project; never writes unless --write-ticket is given. Wrapper: bash .ai/scripts/analysis/scan-impact.sh
 import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
-import { AI, ROOT } from "./project.ts"
+import { AI, ROOT, stack, walkCode } from "./project.ts"
 import { cmp, comparePaths, cut, escapeRe, isFile, read, splitlines, walk } from "./util.ts"
 
 export const AI_DIR = AI
@@ -68,13 +68,19 @@ export function section(text: string, ...names: string[]): string {
   return ""
 }
 
-export const moduleOf = (path: string) => (path.match(/^lib\/(?:modules|themes)\/([^/]+)/) ?? [])[1] ?? null
+const CODE = stack("drupal").paths.map((p) => p.replace(/\/+$/, ""))
+const TRACKED = ["lib/", "config/", ...CODE.map((p) => p + "/"), stack("drupal").configSync.replace(/\/+$/, "") + "/"]
+/** The module (or theme) a path belongs to: the folder right under one of the stack's code paths. */
+export function moduleOf(path: string): string | null {
+  for (const c of CODE) if (path.startsWith(c + "/")) return path.slice(c.length + 1).split("/")[0] || null
+  return (path.match(/^lib\/(?:modules|themes)\/([^/]+)/) ?? [])[1] ?? null
+}
 
 /** Paths, classes and methods cited in a text. Methods on a Key-files line bind to that file's class. */
 export function harvestCodeRefs(doc: Doc, text: string, keyfileText: string | null = null): void {
   for (const m of findall(PATH_RE, text)) {
     const p = prstrip(m[0], ".,)")
-    if (p.startsWith("lib/") || p.startsWith("config/")) {
+    if (TRACKED.some((t) => p.startsWith(t))) {
       doc.files.add(p.endsWith("/") || pname(p).includes(".") ? p : p + "/")
       const mod = moduleOf(p)
       if (mod) doc.modules.add(mod)
@@ -405,7 +411,7 @@ function checkSkills(): number {
     return cache.get(p)!
   }
   const classFiles = new Map<string, string[]>()
-  for (const p of walk(`${ROOT}/lib`, (x) => x.endsWith(".php"))) { const s = pstem(p); classFiles.set(s, [...(classFiles.get(s) ?? []), p]) }
+  for (const p of walkCode((x) => x.endsWith(".php"))) { const s = pstem(p); classFiles.set(s, [...(classFiles.get(s) ?? []), p]) }
   for (const s of loadSkills()) {
     const issues: string[] = []
     for (const f of [...s.files].sort(cmp)) {

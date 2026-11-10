@@ -10,7 +10,7 @@ import { spawnSync } from "node:child_process"
 import { existsSync, readdirSync, statSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import * as impact from "./impact.ts"
-import { ROOT } from "./project.ts"
+import { ROOT, stack } from "./project.ts"
 import { cmp, comparePaths, dumps, read, splitlines, walk } from "./util.ts"
 
 const AI = impact.AI_DIR
@@ -26,7 +26,7 @@ const glob = (dir: string, re: RegExp) => walk(dir, (p) => re.test(p.slice(dir.l
 
 function modulesExist(): Set<string> {
   const out = new Set<string>()
-  for (const base of [`${ROOT}/lib/modules`, `${ROOT}/lib/themes`])
+  for (const base of stack("drupal").paths.map((p) => `${ROOT}/${p.replace(/\/+$/, "")}`))
     if (existsSync(base)) for (const e of readdirSync(base)) { try { if (statSync(`${base}/${e}`).isDirectory()) out.add(e) } catch { /* */ } }
   return out
 }
@@ -72,7 +72,7 @@ export function main(argv: string[]): number {
     if (fm.key !== stem) add("ERROR", "ticket", f, `key '${pyRepr(fm.key)}' != file name`)
     if (!TICKET_STATUS.has(fm.status as string)) add("ERROR", "ticket", f, `status '${pyRepr(fm.status)}' not in ${pyList(TICKET_STATUS)}`)
     for (const sk of impact.fmList(fm.skills ?? "")) if (!skillNames.has(sk)) add("ERROR", "ticket", f, `skills names unknown skill '${sk}'`)
-    for (const m of impact.fmList(fm.modules ?? "")) if (!mods.has(m)) add("WARN", "ticket", f, `module '${m}' not found in lib/modules or lib/themes`)
+    for (const m of impact.fmList(fm.modules ?? "")) if (!mods.has(m)) add("WARN", "ticket", f, `module '${m}' not found in ${stack("drupal").paths.join(" or ")}`)
     for (const sha of impact.fmList(fm.commits ?? "")) if (!commitExists(sha)) add("ERROR", "ticket", f, `commit ${sha} not found in giportal`)
     if (["done", "abandoned"].includes(fm.status) && /^- Open question/m.test(text))
       add("WARN", "ticket", f, "closed with an open question in Notes — answer it or move it to a new ticket")

@@ -10,10 +10,9 @@
 import { createHash } from "node:crypto"
 import { writeFileSync } from "node:fs"
 import * as impact from "./impact.ts"
-import { ROOT } from "./project.ts"
-import { cmp, dumps, escapeRe, isFile, read, splitlines, walk } from "./util.ts"
+import { ROOT, walkCode } from "./project.ts"
+import { cmp, dumps, escapeRe, isFile, read, splitlines } from "./util.ts"
 
-const LIB = `${ROOT}/lib`
 export const SRC_EXT = [".php", ".module", ".inc", ".theme", ".install"]
 const DEPTH = 2, MAX_CHILDREN = 6, MAX_LINES = 70, SEEDS_PER_FILE = 3, MAX_RELATED = 8, SHORT_HOPS = 3, SHORT_MAX = 10, COMMON = 5
 const ENTRY_RE = /^(submitForm|buildForm|validateForm|build|blockAccess|access|on[A-Z]\w*|alter\w*|process\w*|handle\w*|execute|__invoke)$/
@@ -54,7 +53,7 @@ export type ByKey = Map<string, Func>
 
 export function indexCode(): [Func[], ByName, ByKey] {
   const funcs: Func[] = []
-  for (const p of walk(LIB, (x) => SRC_EXT.includes(impact.psuffix(x)) && !x.split("/").includes("node_modules"))) {
+  for (const p of walkCode((x) => SRC_EXT.includes(impact.psuffix(x)) && !x.split("/").includes("node_modules"))) {
     const rel = p.slice(ROOT.length + 1), isPhp = impact.psuffix(p) === ".php"
     let cls: string | null = null, cur: Func | null = null
     splitlines(read(p)).forEach((line, i) => {

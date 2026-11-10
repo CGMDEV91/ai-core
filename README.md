@@ -10,18 +10,34 @@ core/parts/      default parts (used only when neither the stack nor the project
 stacks/<name>/   what a stack adds — gate, indexes, lint, opencode.json, wiring; adapter.json = its vars and defaults
 stacks/<name>/parts/   the stack's parts for core/compose
 core/scripts/cli.ts    the runtime: node .ai/scripts/cli.ts <command> — TypeScript, Node ≥ 22.6, no dependencies; Linux, WSL, Windows
-install.py       install · --adopt · --update · --status · --promote (standard-library Python until phase 3)
+install.sh · install.ps1 → install.ts   install · --update · --reconfigure · --status · --promote · --adopt · --uninstall
 ```
 
 ## Install into a project
 
+Requirements: **Node ≥ 22.6** (runs the TypeScript as is, no npm install) and **git** — on Windows the full Git for
+Windows (git runs the hooks with its `usr\bin\sh.exe`; `/doctor` says so when it is missing).
+
 ```bash
-python3 -I ~/devel/ai-core/install.py <project> --stack drupal --name "My Portal"
+~/devel/ai-core/install.sh <project>                 # Linux · WSL · macOS
+```
+```powershell
+& C:\dev\ai-core\install.ps1 <project>              # Windows (clone ai-core on a local disk: execution policies block .ps1 on network paths)
 ```
 
-It writes `<project>/.ai/` (managed files + `project.json` + `ai-core.lock.json`) and runs the stack's wiring
-(`scripts/setup/install.sh`: git hooks, `.git/info/exclude`, `opencode.json`, opencode stubs, indexes).
-Then write the project's own parts in `<project>/.ai/project/parts/` (at least `intro.md` and `facts.md`) and re-run.
+1. **Detects** the stack (composer.json with drupal/core → `drupal`, with the core folder and the code paths; pom.xml →
+   java; package.json + tsconfig → react-ts) and the exec (`.ddev/` → ddev, a compose file → docker, else local).
+2. **Asks** — stacks, name, exec, language, agents — with the detected values as defaults (`--yes` takes them all;
+   `--stack/--name/--exec/--lang/--agents` answer one).
+3. **Writes** `<project>/.ai/`: the managed files, `project.json`, `ai-core.lock.json`, an empty knowledge skeleton
+   (skills, known-issues, tickets, context, project/parts) and `git init` if `.ai` is new.
+4. **Wires** the checkout (`node .ai/scripts/cli.ts setup`): git hooks in `.git/ai-core-hooks` (the project's own keep
+   running), `.git/info/exclude`, `opencode.json` + stubs, the stack's indexes.
+5. **Checks** with the doctor (`/doctor`, `bash .ai/scripts/setup/doctor.sh`, `node .ai/scripts/cli.ts doctor`).
+
+Later: `--update` (newer ai-core) · `--reconfigure` (ask again) · `--status` · `--uninstall` (removes the wiring;
+the knowledge stays) · `--adopt` (take ai-core's version of every managed file, even edited ones) · `--help`.
+Then write the project's own parts in `<project>/.ai/project/parts/` (at least `intro.md` and `facts.md`) and `--update`.
 
 ## What belongs to whom
 
@@ -35,10 +51,10 @@ You do not edit ai-core by hand. Change commands, agents or scripts in the `.ai`
 commit there as usual, then:
 
 ```bash
-python3 -I ~/devel/ai-core/install.py <project> --promote --dry-run      # what would go back
-python3 -I ~/devel/ai-core/install.py <project> --promote [--add agents/new.md --layer core]
+~/devel/ai-core/install.sh <project> --promote --dry-run      # what would go back
+~/devel/ai-core/install.sh <project> --promote [--add agents/new.md --layer core]
 git -C ~/devel/ai-core diff && git -C ~/devel/ai-core commit -am "…"     # review: ⚠ lines still look project-specific
-python3 -I ~/devel/ai-core/install.py <other-project> --update          # every other project
+~/devel/ai-core/install.sh <other-project> --update          # every other project
 ```
 
 - Untouched lines keep ai-core's `{{var}}`; changed lines get the project's name / repo / vars turned back into

@@ -1,5 +1,5 @@
 // codeindex.ts — the code index the opencode tools (`where`, `callers`) query. Writes .ai/context/code-index.json with,
-// for lib/ (custom modules + theme):
+// for the stack's code paths (custom modules + themes; project.json):
 //   methods   "Class::method()" / "function()" → file, start-end lines, callees, callers
 //   classes   Class → file · services  id → class (*.services.yml) · routes  name → path + handler (*.routing.yml)
 //   events    event name → handlers (getSubscribedEvents()) · hooks  hook name → implementations (.module/.inc/.theme)
@@ -9,7 +9,7 @@
 import { statSync, writeFileSync } from "node:fs"
 import { callees, indexCode } from "./callpaths.ts"
 import * as impact from "./impact.ts"
-import { ROOT } from "./project.ts"
+import { ROOT, walkCode } from "./project.ts"
 import { dumps, isFile, read, splitlines, walk } from "./util.ts"
 
 const OUT = `${impact.AI_DIR}/context/code-index.json`
@@ -60,7 +60,7 @@ export function build(): any {
 
   // services
   const services = new Map<string, { class: string; file: string }>()
-  for (const yml of walk(`${ROOT}/lib`, (p) => p.endsWith(".services.yml"))) {
+  for (const yml of walkCode((p) => p.endsWith(".services.yml"))) {
     let sid: string | null = null
     for (const line of splitlines(read(yml))) {
       const s = line.match(YML_SERVICE)
@@ -72,7 +72,7 @@ export function build(): any {
 
   // routes
   const routes = new Map<string, Record<string, string>>()
-  for (const yml of walk(`${ROOT}/lib`, (p) => p.endsWith(".routing.yml"))) {
+  for (const yml of walkCode((p) => p.endsWith(".routing.yml"))) {
     let name: string | null = null
     for (const line of splitlines(read(yml))) {
       if (/^[a-z_][\w.]*:\s*$/.test(line)) { name = line.replace(/:+$/, "").trim(); routes.set(name, { file: rel(yml) }); continue }
@@ -121,7 +121,7 @@ export function build(): any {
   // fields and UI strings
   const fields = new Map<string, Loc>(), strings = new Map<string, Loc>()
   const EXT = [".php", ".module", ".inc", ".theme", ".install", ".twig", ".js", ".yml"]
-  for (const p of walk(`${ROOT}/lib`, (x) => !x.split("/").includes("node_modules") && EXT.includes(impact.psuffix(x)))) {
+  for (const p of walkCode((x) => !x.split("/").includes("node_modules") && EXT.includes(impact.psuffix(x)))) {
     splitlines(read(p)).forEach((line, i) => {
       for (const fld of new Set([...line.matchAll(FIELD)].map((m) => m[0]))) addLoc(fields, fld, `${rel(p)}:${i + 1}`)
       for (const m of [...line.matchAll(T_CALL), ...line.matchAll(TWIG_T)]) addLoc(strings, m[2], `${rel(p)}:${i + 1}`)
