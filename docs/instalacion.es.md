@@ -86,8 +86,10 @@ porque el nombre del proyecto forma parte del texto.
 
 `node .ai/scripts/cli.ts promptcheck` envía cada comando, agente, regla y skill al gateway que usa opencode (el modelo
 del agente `build` y el `baseURL` / `apiKey` de su proveedor; las claves `{env:NOMBRE}` se leen del entorno o, en WSL,
-de las variables de usuario de Windows) y nombra las líneas exactas que bloquea, por bisección — pocas llamadas por
-fichero. Los resultados se guardan por contenido (`.ai/promptcheck.local.json`): solo se reenvía lo nuevo o cambiado, y
+de las variables de usuario de Windows) y nombra las líneas exactas que bloquea. Los prompts van en lotes de hasta 16 KB (el detector ignora textos de más
+de ~30 KB), así que la primera comprobación son unas pocas llamadas (~10 s, con barra de progreso); un lote bloqueado se
+acota hasta el fichero y la línea. Los resultados se guardan por contenido — en el proyecto
+(`.ai/promptcheck.local.json`) y por máquina y gateway (`~/.cache/ai-core`): otro proyecto solo envía lo que cambia, y
 `/doctor` muestra la fila **prompts** desde esa caché. Otro gateway: `AI_GUARD_URL`, `AI_GUARD_KEY`, `AI_GUARD_MODEL`.
 
 Una línea bloqueada en una skill o una part del proyecto: reescríbela ahí (mismo significado, sin «you are…», «act

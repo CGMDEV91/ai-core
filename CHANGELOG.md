@@ -12,7 +12,9 @@
   /learn) as an attempt to change the assistant's role. Both lines reworded.
 - **`cli promptcheck`**: sends every command, agent, rule and skill to the gateway opencode uses (the build agent's
   provider; `{env:…}` keys, Windows variables from WSL) and names the exact lines it blocks (bisection, a few calls per
-  file); results cached per content in `.ai/promptcheck.local.json`. The installer runs it, `/doctor` shows a
+  file); results cached per content in `.ai/promptcheck.local.json` and per machine + gateway in `~/.cache/ai-core`.
+  Batches of ≤ 16 KB (the Feniks detector stops looking at ~30 KB): a first check is ~4 calls / ~8 s instead of one
+  call per file; a progress bar while it runs. The installer runs it, `/doctor` shows a
   **prompts** row from the cache. Found one more in giportal: a skill line "…overrides all rules".
 - **Docs in ai-core** (`docs/`): quick guide and install guide (EN/ES), workflows, agents (EN/ES), the presentation
   (EN) — generic for any project; README points to them.

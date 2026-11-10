@@ -85,8 +85,10 @@ another, because the project's name is part of the text.
 
 `node .ai/scripts/cli.ts promptcheck` sends every command, agent, rule and skill to the gateway opencode uses (the
 `build` agent's model and its provider's `baseURL` / `apiKey`; `{env:NAME}` keys are read from the environment, or
-from Windows' user variables when it runs in WSL) and names the exact lines it blocks, by bisection — a few calls per
-file. Results are cached per content (`.ai/promptcheck.local.json`), so only new or changed prompts are sent again;
+from Windows' user variables when it runs in WSL) and names the exact lines it blocks. Prompts go in batches of up to 16 KB (the detector ignores texts over ~30 KB), so
+a first check is a handful of calls (~10 s, with a progress bar); a blocked batch is narrowed down to the file and the
+line. Results are cached per content — in the project (`.ai/promptcheck.local.json`) and per machine and gateway
+(`~/.cache/ai-core`), so a second project only sends what differs;
 `/doctor` shows the **prompts** row from that cache. Another gateway: `AI_GUARD_URL`, `AI_GUARD_KEY`, `AI_GUARD_MODEL`.
 
 A blocked line in a skill or a project part: reword it there (same meaning, no "you are…", "act as…", "behave…",

@@ -2,7 +2,9 @@
 // opencode uses and reports the lines its guardrail blocks ("Request blocked: prompt injection attempt detected").
 // Why: some gateways put an ML injection detector in front of the model. It is fuzzy — "You are in the `actg` root"
 // was blocked (role-play: "act…", "you are…") and the same line with another project name was not — so /ticket failed
-// on one project only. Each prompt is checked once per content (cache: .ai/promptcheck.local.json).
+// on one project only. Prompts go in batches of ≤ 16 KB (the detector ignores texts over ~30 KB); a blocked batch is
+// checked file by file and bisected to the line. Cache per content: .ai/promptcheck.local.json + one per machine and
+// gateway (~/.cache/ai-core), so a second project only sends what differs.
 //   node .ai/scripts/cli.ts promptcheck            check the new / changed prompts (calls the gateway)
 //   node .ai/scripts/cli.ts promptcheck --all      check everything again
 //   node .ai/scripts/cli.ts promptcheck --cached   no calls: what the cache says (used by /doctor)
@@ -11,12 +13,12 @@
 // baseURL / apiKey ({env:NAME} is read from the environment, or from Windows' user variables from WSL).
 import { spawnSync } from "node:child_process"
 import { createHash } from "node:crypto"
-import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { AI, ROOT } from "./project.ts"
 
-const CACHE = join(AI, "promptcheck.local.json")
+const CACHE = join(AI, "promptcheck.local.json"), BATCH = 16000
 type Entry = { ok: boolean; lines?: [number, string][] }
 type Gate = { url: string; key: string; model: string; from: string }
 const WSL = process.platform === "linux" && (() => { try { return /microsoft/i.test(readFileSync("/proc/version", "utf-8")) } catch { return false } })()
@@ -100,30 +102,65 @@ export async function main(argv: string[]): Promise<number> {
   const g = gateway()
   if (!g) { console.log("SKIPPED — no model gateway found (opencode config or $AI_GUARD_URL / $AI_GUARD_MODEL)"); return 0 }
   console.log(`Gateway: ${g.from} → ${g.url}`)
-  const cache = argv.includes("--all") ? {} : load(), todo = prompts().filter(([, t]) => !cache[sha(t)])
-  const bad: string[] = []
+  // shared by every project on this machine for the same gateway: a file already checked is not sent again
+  const shared = join(homedir(), ".cache", "ai-core", `promptcheck.${sha(g.url + " " + g.model)}.json`)
+  const global: Record<string, Entry> = json(shared) ?? {}
+  const cache = argv.includes("--all") ? {} : load()
+  if (!argv.includes("--all")) for (const [, t] of prompts()) if (!cache[sha(t)] && global[sha(t)]) cache[sha(t)] = global[sha(t)]
+  const todo = prompts().filter(([, t]) => !cache[sha(t)])
+  const calls = { n: 0 }, ask = (t: string) => (calls.n++, blocked(g, t))
+  // bisect a blocked file: halves blocked on their own are split again, down to the line
+  const culprit = async (text: string): Promise<[number, string][]> => {
+    const all = text.split("\n"), lines: [number, string][] = []
+    const find = async (a: number, b: number): Promise<void> => {
+      if (b - a === 1) { if (all[a].trim()) lines.push([a + 1, all[a].trim()]); return }
+      const m = (a + b) >> 1, left = await ask(all.slice(a, m).join("\n")), right = await ask(all.slice(m, b).join("\n"))
+      if (left) await find(a, m)
+      if (right) await find(m, b)
+      if (!left && !right) lines.push([a + 1, `lines ${a + 1}-${b} together (no part alone)`])
+    }
+    await find(0, all.length)
+    return lines
+  }
+  // batches of ≤ BATCH chars, one call each: the detector of the Feniks gateway stops looking at ~30 KB (above it
+  // everything passes), so a batch stays well under; a blocked batch is checked file by file, a blocked file bisected
+  const batches: [string, string][][] = []
+  for (const p of todo) {
+    const last = batches.at(-1), size = last ? last.reduce((n, [, t]) => n + t.length, 0) : Infinity
+    if (last && size + p[1].length <= BATCH) last.push(p); else batches.push([p])
+  }
+  // progress on one line (a TTY): the gateway takes seconds per call, without it the step looks frozen
+  const tty = process.stdout.isTTY, started = Date.now()
+  let done = 0, frame = 0
+  const bar = () => {
+    if (!tty) return
+    const w = 24, full = batches.length ? Math.round((done / batches.length) * w) : w
+    process.stdout.write(`\r  ${"⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"[frame++ % 10]} checking ${todo.length} prompt(s) [${"█".repeat(full)}${"░".repeat(w - full)}] ${done}/${batches.length} · ${Math.round((Date.now() - started) / 1000)}s `)
+  }
+  if (todo.length) console.log(`  ${todo.length} prompt(s) to check in ${batches.length} batch(es)${prompts().length > todo.length ? ` · ${prompts().length - todo.length} already checked (cache)` : ""}`)
+  const tick = todo.length && tty ? setInterval(bar, 200) : null
   let i = 0
   const worker = async () => {
-    while (i < todo.length) {
-      const [rel, text] = todo[i++]
-      if (!(await blocked(g, text))) { cache[sha(text)] = { ok: true }; continue }
-      // bisect: halves that are blocked on their own are split again, down to the line (log n calls per culprit)
-      const all = text.split("\n"), lines: [number, string][] = []
-      const find = async (a: number, b: number): Promise<void> => {
-        if (b - a === 1) { if (all[a].trim()) lines.push([a + 1, all[a].trim()]); return }
-        const m = (a + b) >> 1, left = await blocked(g, all.slice(a, m).join("\n")), right = await blocked(g, all.slice(m, b).join("\n"))
-        if (left) await find(a, m)
-        if (right) await find(m, b)
-        if (!left && !right) lines.push([a + 1, `lines ${a + 1}-${b} together (no part alone)`])
-      }
-      await find(0, all.length)
-      cache[sha(text)] = { ok: false, lines }
-      bad.push(rel)
+    while (i < batches.length) {
+      const batch = batches[i++]
+      try { await check(batch) } finally { done++; bar() }
     }
   }
+  const check = async (batch: [string, string][]) => {
+    if (batch.length > 1 && !(await ask(batch.map(([, t]) => t).join("\n\n")))) { for (const [, t] of batch) cache[sha(t)] = { ok: true }; return }
+    for (const [, text] of batch) {
+      if (!(await ask(text))) { cache[sha(text)] = { ok: true }; continue }
+      cache[sha(text)] = { ok: false, lines: await culprit(text) }
+    }
+  }
+  const stop = () => { if (tick) clearInterval(tick); if (tty && todo.length) process.stdout.write("\r\x1b[K") }
+  const save = () => {
+    writeFileSync(CACHE, JSON.stringify(cache, null, 1) + "\n")
+    try { mkdirSync(dirname(shared), { recursive: true }); writeFileSync(shared, JSON.stringify({ ...global, ...cache }, null, 1) + "\n") } catch { /* the shared cache is only a speed-up */ }
+  }
   try { await Promise.all([1, 2].map(worker)) }
-  catch (e) { writeFileSync(CACHE, JSON.stringify(cache, null, 1) + "\n"); console.log(`SKIPPED — the gateway did not answer: ${(e as Error).message}`); return 0 }
-  writeFileSync(CACHE, JSON.stringify(cache, null, 1) + "\n")
+  catch (e) { stop(); save(); console.log(`SKIPPED — the gateway did not answer: ${(e as Error).message}`); return 0 }
+  stop(); save()
   const { blocked: b } = cached()
   for (const [rel, e] of b) {
     console.log(`BLOCKED ${rel}`)
@@ -132,6 +169,6 @@ export async function main(argv: string[]): Promise<number> {
   }
   console.log(b.length
     ? `\n${b.length} prompt(s) blocked by the gateway's injection detector — reword those lines (often "you are…", "act…", "behave…": it reads them as an attempt to change the assistant's role). A file from ai-core: fix it there and --promote / report it; a project part or skill: edit it here. Then run this again.`
-    : `OK — ${todo.length} checked now, ${prompts().length} prompts pass the gateway`)
+    : `OK — ${prompts().length} prompts pass the gateway (${todo.length} checked now in ${calls.n} call(s), ${Math.round((Date.now() - started) / 1000)}s; the rest from the cache)`)
   return b.length ? 1 : 0
 }
