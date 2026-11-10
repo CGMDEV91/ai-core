@@ -2,7 +2,7 @@
 // Run: node --experimental-strip-types --test .ai/tests/suggest.test.mts   (or bash .ai/tests/run.sh)
 import { test } from "node:test"
 import assert from "node:assert/strict"
-import { suggest } from "../scripts/opencode/plugin/ticket-context.ts"
+import { suggest } from "../scripts/lib/ticketctx.ts"
 
 const K = "EUIPOFO-1"
 const ticket = (front: Record<string, string>, sections: Record<string, string>) =>

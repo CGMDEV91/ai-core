@@ -20,12 +20,12 @@ export async function main(argv: string[]): Promise<number> {
   try {
     let input: any = {}
     try { input = JSON.parse(readFileSync(0, "utf-8") || "{}") } catch { /* no stdin */ }
-    const ctx = await import(pathToFileURL(`${AI}/scripts/opencode/plugin/ticket-context.ts`).href)
+    const ctx = await import(pathToFileURL(`${AI}/scripts/lib/ticketctx.ts`).href)
     if (kind === "prompt") answer(event, ctx.ticketHeader(ROOT))
     else if (kind === "session") { if (input.source !== "clear") answer(event, ctx.compactionContext(ROOT)) }
     else {
       const file = input.tool_input?.file_path ?? input.tool_input?.notebook_path
-      const changes = `${AI}/scripts/opencode/plugin/ticket-changes.ts`
+      const changes = `${AI}/scripts/lib/edits.ts`
       if (file && existsSync(changes)) answer(event, (await (await import(pathToFileURL(changes).href)).afterEdit(ROOT, file)).trim())
     }
   } catch { /* never break the agent for bookkeeping */ }

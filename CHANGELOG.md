@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.2 — 2026-11-10
+
+- **Fix: opencode failed to load the project ("Failed to reload", no models).** opencode calls every exported function
+  of a plugin file as a plugin; ticket-context.ts also exported `suggest()`, `header()`… and ticket-changes.ts
+  `afterEdit()`, which broke the config load. The logic moved to `lib/ticketctx.ts` and `lib/edits.ts`; each plugin file
+  now exports only its plugin.
+- Setup installs `@opencode-ai/plugin` in `.opencode/` with WSL's npm when it is missing (opencode's own install can fail
+  on a `\\wsl.localhost` path: "Maximum call stack size exceeded").
+
 ## 0.10.1 — 2026-11-10
 
 - Installer: the "Next steps" of the summary are numbered, each with its purpose; shell commands one per line (`$`, after a `cd` into .ai) and chat commands apart (`›`).
