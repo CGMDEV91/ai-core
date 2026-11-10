@@ -2,3 +2,5 @@
 *.local.md
 __pycache__/
 context/code-index.json
+context/api-index.json
+context/.sync.log

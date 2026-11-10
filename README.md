@@ -39,6 +39,15 @@ Later: `--update` (newer ai-core) · `--reconfigure` (ask again) · `--status` �
 the knowledge stays) · `--adopt` (take ai-core's version of every managed file, even edited ones) · `--help`.
 Then write the project's own parts in `<project>/.ai/project/parts/` (at least `intro.md` and `facts.md`) and `--update`.
 
+## A team on the same project
+
+A new dev clones the project and its `.ai`, runs `bash .ai/scripts/setup/install.sh` once (or `node … cli.ts setup`),
+and follows the flow. Without doing anything else:
+- **pull / merge / rebase / branch switch** → the indexes are rebuilt in the background (hooks → `cli.ts sync`);
+- **generated files** (`INDEX.md`, `callgraph.json`) never stop a merge (`merge=ours` + regenerated after it);
+- **`/ticket`** says when `.ai` is behind its remote and proposes the pull; **`git push`** of the project warns when
+  `.ai` has work not pushed; **`/close`** proposes the two commits and reminds to push both.
+
 ## What belongs to whom
 
 | ai-core (managed, overwritten by `--update` unless edited by hand) | the project (never touched) |

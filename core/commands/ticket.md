@@ -10,6 +10,9 @@ This command is the whole procedure (no other process file to load):
 
 1. **Environment.** You are in the `{{repo}}` root and `.ai/` exists — if not, say so and stop.
    Get the date (`date`). Decide once whether you need the `wsl.exe` wrapper (`.ai/core-rules.md` rule 6).
+   **Team knowledge up to date:** `bash .ai/scripts/setup/ai-status.sh`. `BEHIND n` → tell the human and propose
+   `git -C .ai pull` before starting (other devs' skills, known issues and tickets are missing; the git hooks rebuild
+   the indexes after the pull). Do not pull yourself. `UP TO DATE` / `NO UPSTREAM` → go on.
 2. **Key.** A Jira key in the arguments → that key. No key and `.ai/current-ticket.local.md` exists → **resume that
    ticket** ("sigue por donde estábamos" means exactly this). Otherwise propose `YYYY-MM-DD-<slug>` from the request
    in one line. File: `.ai/tickets/<key>.md`.

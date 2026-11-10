@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0 — 2026-11-10
+
+Team hooks (phase 3a) — what a dev gets without doing anything:
+- **After a pull / merge / rebase / branch switch** (post-merge, post-rewrite, post-checkout in both repos):
+  `known-issues/INDEX.md` and the stack's indexes are regenerated in the background (`node .ai/scripts/cli.ts sync`,
+  log in `.ai/context/.sync.log`), so `where` / `callers` / `impact` answer from the code you now have.
+- **Generated files never stop a merge:** `.ai/.gitattributes` (now managed by ai-core) marks `known-issues/INDEX.md`
+  and `context/callgraph.json` `merge=ours`; setup sets the driver; post-merge regenerates INDEX.md from the merged
+  known issues (commit it). `context/api-index.json` is no longer tracked (it depends on each machine's install).
+- **`/ticket` checks the team's knowledge first:** `bash .ai/scripts/setup/ai-status.sh` (`sync --remote`: fetch +
+  counts) → `BEHIND n` → it proposes `git -C .ai pull` before starting.
+- Tested with two devs sharing remotes: a function pushed by A is in B's code index right after B's pull; two known
+  issues created at the same time merge (and rebase) without a conflict and INDEX.md lists both.
+
 ## 0.3.0 — 2026-11-10
 
 - **Installer in TypeScript** (phase 3): `install.sh` / `install.ps1` → `install.ts`; `install.py` is gone. Detects the
