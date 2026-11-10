@@ -18,6 +18,12 @@ This command is the whole procedure (no other process file to load):
    in one line. Files: `node .ai/scripts/cli.ts knowledge paths <key>` → the shared `.ai/tickets/<key>/<key>.md`, **your
    diary** `<key>.<you>.md` (you = global git user.name) and the other devs on the ticket.
 3. **Resume or create.**
+   - Exists with `status: done` (or `abandoned`) → it was closed. Ask **one** question: reopen it for this request (a
+     follow-up on the same Jira issue) — or is it a new ticket? On **reopen**: in the shared file `status: active`, a
+     `Notes` line `Reopened YYYY-MM-DD by <you>: <the request in one line>`, the request in `## Open points`, and new
+     plan blocks after the last letter (`- [ ] D (<you>)`) — the old blocks, `## Impact`, `## Review` and `## Closure`
+     stay as history (the next `/impact` and `/review` cover the new changes; `/close` adds a Closure line and updates
+     the known issue). Your new work goes to **your diary** as usual (`Changes`, `Session log`). Then go on as below.
    - Exists → read the shared file (front matter, `Open points`, `Notes`, `## Plan`) and **your diary** (`Current state`,
      last `Session log` entry); read the other diaries' `Current state` — say who else is on it and what they hold.
      **Then reconcile with the code — never trust `Current state` alone** (the session may have ended without

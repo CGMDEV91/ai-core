@@ -88,7 +88,7 @@ updated: YYYY-MM-DD
 
 ## Jira drafts
 
-<!-- Written by the jira-writer (/jira): analysis comment, test instructions, worklog — the developer posts them. -->
+<!-- Written by /jira: summary, analysis comment, test instructions, worklog — shown in the conversation too; the developer posts them. -->
 
 ## Closure
 

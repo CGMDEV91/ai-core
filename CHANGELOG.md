@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.13.1 — 2026-11-11
+
+- **`/jira` shows the drafts in the conversation**, each in its own block ready to copy — it ran as a subtask, so its
+  answer came back folded as a tool result. Now the main agent applies the `jira-writer` instructions (the agent stays
+  for `@jira-writer`). A new first draft, **Summary** (2–4 lines: what was done and its result); the worklog per dev
+  from every diary.
+- **More work on a closed ticket**: `/ticket <key> <what>` on a `done` ticket asks whether to reopen it; on yes
+  `status: active`, a `Reopened YYYY-MM-DD by <user>` note, the request in Open points, new plan blocks after the last
+  letter; the old blocks, Impact, Review and Closure stay as history. `/close` adds a dated Closure entry.
+
 ## 0.13.0 — 2026-11-11
 
 - **Code checks for every stack** (`cli qa`, the installer's question, the doctor's row, the gates):

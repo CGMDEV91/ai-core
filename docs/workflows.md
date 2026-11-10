@@ -26,7 +26,9 @@ ADAPTIVE    /ticket ─► touchpoints ─► /plan ─► steps + gate ─► /
 | 7 | `/tests ABC-123`, then you test the change **and** each ⚠ flow | **subagent `test-designer`** writes the manual checklist; you report the result | `### Manual checklist` · `[VERIFIED-BY-HUMAN …]` | — |
 | 8 | `/close ABC-123` | **main agent**: re-runs impact (gate) · known issue created/updated + `INDEX.md` · **subagent `skill-curator`** recommends EDIT / CREATE / NOTHING · `scan-references` · clears the active ticket | `known-issues/…` · `## Closure` · `## Session log` · `MEMORY.local.md` | **one question** about skills; then the commit messages |
 
-Optional at close: `/jira ABC-123` (**subagent `jira-writer`**) drafts the analysis comment, test instructions and worklog under `## Jira drafts`.
+Optional at close: `/jira ABC-123` (the main agent, with the `jira-writer` instructions) drafts the summary, analysis comment, test instructions and worklog under `## Jira drafts` and shows them in the conversation to copy.
+
+**More work on a closed ticket:** `/ticket <key> <what>` asks whether to reopen it; on yes the shared file goes back to `active` with a `Reopened` note and new plan blocks, your work goes to your diary, and the next `/close` adds a Closure entry.
 
 **It ends with you:** `git commit -m "ABC-123: …"` in the project, and
 `git -C .ai add tickets/ABC-123/ABC-123.md known-issues/… skills/…` + commit in `.ai` (the agent never commits).
@@ -73,7 +75,7 @@ A flow is flagged only when the **changed method is in its call path**. A flow t
 | `debugger` | subagent | nothing (read-only) | `/debug` |
 | `security-reviewer` | subagent | nothing (read-only) | `/security` |
 | `test-designer` | subagent | the ticket's checklist | `/tests` |
-| `jira-writer` | subagent | the ticket's Jira drafts | `/jira` |
+| `jira-writer` | instructions applied by the main agent (`@jira-writer` still works) | the ticket's Jira drafts | `/jira` |
 | `where` · `callers` · `touchpoints` · `impact` | tools | — | any agent |
 | `ticket-changes` | plugin | the active ticket's `## Changes` (+ lint feedback on each edit) | every edit |
 | `ticket-context` | plugin | — (injects the active ticket header; keeps it through compaction) | every message |

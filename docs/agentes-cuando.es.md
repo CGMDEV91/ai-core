@@ -36,7 +36,7 @@ Solo **tú** puedes escribir un comando. Por eso la IA no los ejecuta: te los **
 | `security-reviewer` | `/security <clave>` | 9, si cambian accesos, roles, webservices o datos personales | quieres una pasada de seguridad sobre cualquier diff | hallazgos con evidencias; no edita |
 | `test-designer` | `/tests <clave>` | 10 | necesitas un checklist de pruebas para QA | `### Manual checklist` |
 | `skill-curator` | `/skill <clave>` (y dentro de `/close`) | 11 | quieres decidir si un trabajo merece crear o actualizar una skill | recomendación; escribe solo tras tu «sí» |
-| `jira-writer` | `/jira <clave>` | 12, opcional | necesitas los textos de Jira de un ticket ya cerrado | `## Jira drafts`; nunca escribe en Jira |
+| `jira-writer` (lo aplica el agente principal) | `/jira <clave>` | 12, opcional | necesitas los textos de Jira de un ticket | summary, comentario de análisis, instrucciones de prueba, worklog — en `## Jira drafts` **y en la conversación** para copiarlos; nunca escribe en Jira |
 | `knowledge-auditor` | `/audit` | fuera del flujo | tras mover o renombrar skills, tickets o known issues, o una vez por sprint | tabla de referencias rotas y arreglos |
 
 ## Qué te propone la IA y de dónde sale

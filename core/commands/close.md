@@ -17,7 +17,8 @@ Do these steps in order and stop to ask wherever it says "propose" or "ask":
    ticket and `bash .ai/scripts/analysis/scan-impact.sh --key <key> --skill-signals`, and asks the human **one** question with its
    recommendation and reason. Also run `/scan` logic if a service, content type, field or form alter changed, and
    `bash .ai/scripts/knowledge/scan-references.sh` — no new ERROR may remain.
-6. **Close the file.** In the shared file: `status: done` and `## Closure` — one line per dev diary (who did what:
+6. **Close the file.** In the shared file: `status: done` and a dated entry in `## Closure` (a reopened ticket keeps
+   the earlier entries) — one line per dev diary (who did what:
    their `Changes` and last `Current state`; the diaries stay as history); final `## Session log` entry in your diary; one Journal line in
    `.ai/MEMORY.local.md`.
 7. **Clear the active ticket:** delete `.ai/current-ticket.local.md` if it holds this key.

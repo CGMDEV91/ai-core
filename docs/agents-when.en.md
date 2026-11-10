@@ -36,7 +36,7 @@ Only **you** can type a command. So the AI never runs one: it **proposes** it (s
 | `security-reviewer` | `/security <key>` | 9, if access, roles, web services or personal data change | you want a security pass on any diff | findings with evidence; no edits |
 | `test-designer` | `/tests <key>` | 10 | you need a test checklist for QA | `### Manual checklist` |
 | `skill-curator` | `/skill <key>` (and inside `/close`) | 11 | you want to decide whether a piece of work deserves a new or updated skill | recommendation; writes only after your yes |
-| `jira-writer` | `/jira <key>` | 12, optional | you need the Jira texts of a closed ticket | `## Jira drafts`; never writes to Jira |
+| `jira-writer` (applied by the main agent) | `/jira <key>` | 12, optional | you need the Jira texts of a ticket | summary, analysis comment, test instructions, worklog — in `## Jira drafts` **and shown in the conversation** to copy; never writes to Jira |
 | `knowledge-auditor` | `/audit` | outside the flow | after moving or renaming skills, tickets or known issues, or once per sprint | table of broken references and fixes |
 
 ## What the AI proposes and where it comes from

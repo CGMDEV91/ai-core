@@ -274,10 +274,8 @@
       "template": "{file:./.ai/commands/close.md}"
     },
     "jira": {
-      "description": "Jira drafts: analysis comment, test instructions, worklog (jira-writer). Usage: /jira [key]",
-      "template": "{file:./.ai/commands/jira.md}",
-      "agent": "jira-writer",
-      "subtask": true
+      "description": "Jira drafts — summary, analysis comment, test instructions, worklog — written in the ticket and shown here to copy. Usage: /jira [key]",
+      "template": "{file:./.ai/commands/jira.md}"
     },
     "skill": {
       "description": "Should this work update a skill, create one, or nothing? Recommends and asks (skill-curator). Usage: /skill [key]",
