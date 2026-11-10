@@ -434,11 +434,33 @@ function summary(project: string, conf: any, managed: number, starters: string[]
   row("Agents", (conf.agents ?? []).join(", "))
   row(".ai", `${managed} managed files · ${remote ? `remote ${remote}` : yellow("no remote yet")}`)
   row("Your parts", `${homeRel(join(ai, "project", "parts"))}${starters.length ? yellow(`  (${starters.join(", ")}: starter — improve)`) : ""}`)
-  say(`${line}\n  ${bold("Next")}`)
-  let n = 1
-  if (starters.length) say(`  ${n++}. Improve ${starters.join(" and ")} in .ai/project/parts (what the system is, conventions), then:\n       ${homeRel(join(CORE, "install.sh"))} ${homeRel(project)} --update`)
-  if (!remote) say(`  ${n++}. Create an empty repo for the knowledge (e.g. ${conf.repo}-ai) and push .ai:\n       git -C ${homeRel(ai)} add -A && git -C ${homeRel(ai)} commit -m "ai-core ${VERSION} install"\n       git -C ${homeRel(ai)} remote add origin <url> && git -C ${homeRel(ai)} push -u origin ${branch}`)
-  say(`  ${n++}. Open a NEW ${(conf.agents ?? ["opencode"]).join(" / ")} session in ${homeRel(project)} → /doctor → /ticket <KEY> <what to do>`)
+  say(`${line}\n  ${bold("Next steps")}\n`)
+  const num = ["①", "②", "③", "④"]
+  let n = 0
+  const head = (title: string, why: string) => say(`  ${cyan(bold(num[n++]))}  ${bold(title)}  ${dim("— " + why)}`)
+  const shell = (cmd: string) => say(`        ${dim("$")} ${green(cmd)}`)
+  const chat = (cmd: string) => say(`        ${dim("›")} ${yellow(cmd)}`)
+  const text = (t: string) => say(`        ${t}`)
+  if (starters.length) {
+    head("Describe the project", "the agents know little about it yet")
+    text(`edit ${bold(starters.join(" and "))} in ${bold(".ai/project/parts/")}`)
+    text(dim("what it is, for whom, its conventions — then delete the STARTER line"))
+    shell(`${homeRel(join(CORE, "install.sh"))} ${homeRel(project)} --update`)
+    say("")
+  }
+  if (!remote) {
+    head("Give the knowledge its own repo", "so the team gets the tickets, skills and known issues")
+    text(`create an empty repo ${dim(`(e.g. ${conf.repo}-ai, no README)`)}, then:`)
+    shell(`cd ${homeRel(ai)}`)
+    shell(`git add -A && git commit -m "ai-core ${VERSION} install"`)
+    shell(`git remote add origin <url>`)
+    shell(`git push -u origin ${branch}`)
+    say("")
+  }
+  head("Start working", "everything is ready")
+  text(`open a ${bold("NEW")} ${(conf.agents ?? ["opencode"]).join(" / ")} session in ${bold(homeRel(project))}, then type:`)
+  chat("/doctor")
+  chat("/ticket <KEY> <what to do>")
   say(line)
 }
 

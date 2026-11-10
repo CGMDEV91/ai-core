@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.1 — 2026-11-10
+
+- Installer: the "Next steps" of the summary are numbered, each with its purpose; shell commands one per line (`$`, after a `cd` into .ai) and chat commands apart (`›`).
+
 ## 0.10.0 — 2026-11-10
 
 Several devs on one ticket, and tickets / known issues in folders:
