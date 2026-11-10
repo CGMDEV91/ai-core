@@ -28,8 +28,26 @@ Then write the project's own parts in `<project>/.ai/project/parts/` (at least `
 |---|---|
 | every file listed in `.ai/ai-core.lock.json` | `skills/`, `known-issues/`, `tickets/`, `context/`, `docs/`, `project/`, `project.json`, tests with its own snapshot |
 
-Change the workflow **here**, then `install.py <project> --update` in each project. A managed file edited inside a
-project is kept and the new version lands next to it as `*.ai-core-new` (`--status` lists them).
+## Changing the workflow: work in a project, promote, update the others
+
+You do not edit ai-core by hand. Change commands, agents or scripts in the `.ai` of the project where you test them,
+commit there as usual, then:
+
+```bash
+python3 -I ~/devel/ai-core/install.py <project> --promote --dry-run      # what would go back
+python3 -I ~/devel/ai-core/install.py <project> --promote [--add agents/new.md --layer core]
+git -C ~/devel/ai-core diff && git -C ~/devel/ai-core commit -am "…"     # review: ⚠ lines still look project-specific
+python3 -I ~/devel/ai-core/install.py <other-project> --update          # every other project
+```
+
+- Untouched lines keep ai-core's `{{var}}`; changed lines get the project's name / repo / vars turned back into
+  `{{var}}`; a line that still names the project or a ticket key is flagged (`promoteWarn` in project.json adds words).
+- New files: `--add <path> --layer core` (any stack) or `--layer stacks/<name>`. A new agent or command also needs its
+  entry in the stack's `scripts/setup/opencode.json` — edit it in the project and promote it too.
+- Composed files (`core-rules.md`, `orchestrator.md`, 4 agents) are never promoted: a project change goes in
+  `.ai/project/parts/`; a change for everyone in `core/compose/` or `stacks/<s>/parts/`.
+- A managed file edited in a project and not promoted is kept by `--update` (the new version lands as
+  `*.ai-core-new`; `--status` lists them).
 
 ## Compose: `{{var}}` and `{{#part X}}`
 

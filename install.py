@@ -4,6 +4,7 @@
   python3 -I install.py <project-dir> --stack drupal [--name "GI Portal"] [--adopt] [--dry-run]   # first install
   python3 -I install.py <project-dir> --update [--dry-run]                                        # newer ai-core
   python3 -I install.py <project-dir> --status                                                    # what changed locally
+  python3 -I install.py <project-dir> --promote [--add PATH --layer core|stacks/<s>] [--dry-run]  # the way back
 
 Layers, copied into <project>/.ai/ at the same relative path:
   core/                 the workflow: commands, agents, templates, tools, plugins, git hooks (any stack)
@@ -18,10 +19,14 @@ listed in the lock.
 The lock (.ai/ai-core.lock.json) keeps the sha256 of every file written. On --update a file whose content no longer
 matches its lock entry was edited by hand: it is NOT overwritten — the new version goes to <file>.ai-core-new and the
 installer says so. --adopt (first install over an existing .ai, i.e. a migration) overwrites without that check.
+--promote is the way back: work only in the project's .ai (it is where you test), then promote the managed files you
+changed — and new ones with --add — into ai-core; untouched lines keep ai-core's {{var}}, changed lines get the
+project's name / repo / vars turned back into {{var}}, and lines that still look project-specific are flagged.
 After writing, it runs the stack's wiring script if there is one (stacks/drupal: scripts/setup/install.sh).
 Standard library only.
 """
 import argparse
+import difflib
 import hashlib
 import json
 import re
@@ -67,16 +72,24 @@ def render(tpl: str, vars_: dict, stacks: list[Path], project_parts: Path) -> st
     return re.sub(r"\{\{(\w+)\}\}", lambda m: str(vars_[m.group(1)]), out)
 
 
+def project_vars(project: Path, cfg: dict, stacks: list[Path]) -> dict:
+    v = {"aiCore": (CORE / "VERSION").read_text().strip(), "name": cfg["name"], "repo": cfg.get("repo", project.name)}
+    for s in stacks:
+        v.update(json.loads((s / "adapter.json").read_text()).get("vars", {}))
+    v.update(cfg.get("vars", {}))
+    return v
+
+
+SOURCES: dict[str, tuple[str, Path]] = {}   # rel → (layer, source file in ai-core), filled by plan()
+
+
 def plan(project: Path, cfg: dict) -> dict[str, bytes]:
     ai = project / ".ai"
     stacks = [CORE / "stacks" / s["name"] for s in cfg["stacks"]]
     for s in stacks:
         if not s.exists():
             sys.exit(f"ERROR: unknown stack {s.name} (available: {', '.join(p.name for p in (CORE / 'stacks').iterdir())})")
-    vars_ = {"aiCore": (CORE / "VERSION").read_text().strip(), "name": cfg["name"], "repo": cfg.get("repo", project.name)}
-    for s in stacks:
-        vars_.update(json.loads((s / "adapter.json").read_text()).get("vars", {}))
-    vars_.update(cfg.get("vars", {}))
+    vars_ = project_vars(project, cfg, stacks)
     out: dict[str, bytes] = {}
     for layer in [CORE / "core", *stacks]:
         for rel, p in files_of(layer).items():
@@ -84,10 +97,91 @@ def plan(project: Path, cfg: dict) -> dict[str, bytes]:
             if p.suffix in (".md", ".json") and b"{{" in data:   # known {{var}} only; Twig's {{ x }} has spaces
                 data = re.sub(r"\{\{(\w+)\}\}", lambda m: str(vars_.get(m.group(1), m.group(0))), data.decode()).encode()
             out[rel] = data
+            SOURCES[rel] = (str(layer.relative_to(CORE)), p)
     for p in sorted((CORE / "core" / "compose").rglob("*.md")):
         rel = str(p.relative_to(CORE / "core" / "compose"))
         out[rel] = render(p.read_text(), vars_, stacks, ai / "project" / "parts").encode()
+        SOURCES[rel] = ("compose", p)
     return out
+
+
+def promote(project: Path, cfg: dict, lock: dict, want: dict[str, bytes], add: list[str], layer: str, dry: bool) -> int:
+    """The way back: managed files edited in this project's .ai → ai-core (the source of every other project).
+    Untouched lines keep ai-core's {{var}}; changed or new lines get the project's identity (name, repo, project vars)
+    turned back into {{var}}. Composed files are never promoted: their pieces are parts (project or stack)."""
+    ai = project / ".ai"
+    ident = sorted([(str(v), k) for k, v in [("name", cfg["name"]), ("repo", cfg.get("repo", project.name)),
+                                               *cfg.get("vars", {}).items()] if v], key=lambda x: -len(x[0]))
+    warn_rx = [re.escape(str(v)) for v, _ in ident] + ([cfg["ticketKey"].strip("^$")] if cfg.get("ticketKey") else []) \
+        + [re.escape(w) for w in cfg.get("promoteWarn", [])]
+    warn_re = re.compile("|".join(warn_rx)) if warn_rx else None
+
+    def generic(line: str, templated: bool) -> str:
+        if templated:
+            for value, var in ident:
+                line = line.replace(value, "{{" + var + "}}")
+        return line
+
+    def merge(src: str, rendered: str, cur: str, templated: bool) -> tuple[str, list[str]]:
+        s_l, r_l, c_l = src.splitlines(True), rendered.splitlines(True), cur.splitlines(True)
+        if len(s_l) != len(r_l):            # a {{var}} spanning lines would break the 1:1 map — keep it simple
+            s_l = r_l
+        out, new = [], []
+        for op, i1, i2, j1, j2 in difflib.SequenceMatcher(a=r_l, b=c_l, autojunk=False).get_opcodes():
+            if op == "equal":
+                out += s_l[i1:i2]
+            elif op in ("replace", "insert"):
+                lines = [generic(l, templated) for l in c_l[j1:j2]]
+                out += lines
+                new += lines
+        return "".join(out), new
+
+    done, notes = [], []
+    for rel, (lay, src) in sorted(SOURCES.items()):
+        p = ai / rel
+        if not p.exists() or p.read_bytes() == want[rel]:
+            continue
+        if sha(p.read_bytes()) == lock["files"].get(rel) and rel in lock["files"]:
+            continue                        # untouched here; ai-core moved on (that is --update's job)
+        if lay == "compose":
+            notes.append(f"  · {rel} is composed: put the change in .ai/project/parts/ (this project) or in ai-core "
+                         f"core/compose/{rel} / stacks/<s>/parts/ (everyone) — not promoted")
+            continue
+        templated = src.suffix in (".md", ".json")
+        merged, new = merge(src.read_text(), want[rel].decode(), p.read_text(), templated)
+        done.append((rel, lay, src, merged, new))
+    for rel in add:
+        p = ai / rel
+        if not p.exists():
+            sys.exit(f"ERROR: --add {rel}: no such file in {ai}")
+        if rel in SOURCES:
+            sys.exit(f"ERROR: --add {rel}: already managed by ai-core ({SOURCES[rel][0]}) — just edit it and --promote")
+        if not layer:
+            sys.exit("ERROR: --add needs --layer core (any stack) or --layer stacks/<name> (one stack)")
+        templated = p.suffix in (".md", ".json")
+        text = "".join(generic(l, templated) for l in p.read_text().splitlines(True))
+        done.append((rel, layer, CORE / layer / rel, text, text.splitlines(True)))
+
+    for rel, lay, src, merged, new in done:
+        print(f"{'(dry run) ' if dry else ''}→ ai-core/{lay}/{rel}  ({len(new)} changed/new line(s))")
+        for l in new:
+            if warn_re and warn_re.search(l):
+                print(f"    ⚠ project-specific text in a generic file: {l.strip()[:140]}")
+        if not dry:
+            src.parent.mkdir(parents=True, exist_ok=True)
+            src.write_text(merged)
+            if (ai / rel).stat().st_mode & 0o111:
+                src.chmod(0o755)
+            lock["files"][rel] = sha((ai / rel).read_bytes())
+    for n in notes:
+        print(n)
+    if not done:
+        print("Nothing to promote: no managed file of this .ai differs from ai-core.")
+    elif not dry:
+        (ai / LOCK).write_text(json.dumps(lock, indent=1, sort_keys=True) + "\n")
+        print(f"\nReview and commit in ai-core:  git -C {CORE} diff · git -C {CORE} add -A · git -C {CORE} commit -m \"…\"\n"
+              f"Other projects get it with:   python3 -I {CORE / 'install.py'} <project> --update")
+    return 0
 
 
 def main(argv: list[str]) -> int:
@@ -98,6 +192,9 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--update", action="store_true")
     ap.add_argument("--adopt", action="store_true", help="first install over an existing .ai: overwrite managed paths")
     ap.add_argument("--status", action="store_true")
+    ap.add_argument("--promote", action="store_true", help="copy the managed files edited in this .ai back to ai-core")
+    ap.add_argument("--add", action="append", default=[], metavar="PATH", help="with --promote: a NEW file of this .ai to add to ai-core")
+    ap.add_argument("--layer", help="with --add: core | stacks/<name>")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--no-wiring", action="store_true", help="do not run the stack's wiring script")
     a = ap.parse_args(argv)
@@ -119,6 +216,9 @@ def main(argv: list[str]) -> int:
     lock = json.loads(lock_file.read_text()) if lock_file.exists() else {"files": {}}
     want = plan(project, cfg)
     version = (CORE / "VERSION").read_text().strip()
+
+    if a.promote:
+        return promote(project, cfg, lock, want, a.add, a.layer or "", a.dry_run)
 
     if a.status:
         for rel, h in sorted(lock["files"].items()):

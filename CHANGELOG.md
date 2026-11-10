@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.1 — 2026-11-10
+
+- `install.py --promote [--add PATH --layer core|stacks/<s>]`: the way back — managed files edited in a project's
+  `.ai` go into ai-core, keeping `{{var}}` on untouched lines and flagging project-specific text.
+
 ## 0.1.0 — 2026-11-10
 
 First version, extracted from the GI Portal knowledge repo (`feature/ticket-memory` + phases 0–0d of the plan).
