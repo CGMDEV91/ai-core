@@ -170,7 +170,7 @@ function install(indexes: boolean): number {
     d.dependencies ??= {}
     d.dependencies["@opencode-ai/plugin"] ??= process.env.OPENCODE_PLUGIN_VERSION ?? "1.3.17"
     writeFileSync(pkg, JSON.stringify(d, null, 2) + "\n")
-    if (!existsSync(join(ocDir, "node_modules", "@opencode-ai", "plugin"))) {
+    if (!existsSync(join(ocDir, "node_modules", "@opencode-ai", "plugin")) && !process.env.AI_SKIP_NPM) {
       const r = spawnSync("npm", ["install", "--silent", "--no-audit", "--no-fund"], { cwd: ocDir, encoding: "utf-8", shell: process.platform === "win32", timeout: 180_000 })
       say(r.status === 0 ? "✔ .opencode: @opencode-ai/plugin installed" : `⚠ .opencode: npm install failed — opencode will try at startup (${(r.stderr ?? "").trim().split("\n").pop() ?? ""})`)
     }

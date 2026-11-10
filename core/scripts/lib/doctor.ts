@@ -110,6 +110,9 @@ function opencode(): void {
     if (bad.length) add("FAIL", "opencode.json", `${bad.length} {file:} reference(s) missing: ${bad.slice(0, 3).join(", ")}`, "install.sh <project> --update")
     else add("OK", "opencode.json", `${refs.length} file references resolve`)
   }
+  const load = spawnSync(process.execPath, [...process.execArgv, fileURLToPath(new URL("../cli.ts", import.meta.url)), "ocload"], { encoding: "utf-8", cwd: ROOT, timeout: 60_000 })
+  if (load.status === 0) add("OK", "opencode load", "plugins and tools load as opencode loads them")
+  else add("FAIL", "opencode load", `${(load.stdout ?? "").trim().split("\n").slice(0, 3).join(" · ") || "error"} — opencode will fail to reload the project (no models)`, "install.sh <project> --update (or upgrade.sh); if it persists, report it to the ai-core maintainer")
   const missing: string[] = []
   for (const kind of ["tool", "plugin"]) {
     const from = join(AI, "scripts", "opencode", kind)

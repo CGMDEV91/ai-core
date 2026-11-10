@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.10.3 — 2026-11-10
+
+- `cli ocload` loads the opencode plugins and tools the way opencode does (every plugin export called, every tool
+  built) and `/doctor` shows it as the row **opencode load** — a broken plugin is caught before opencode says "Failed to
+  reload".
+- New test `tests/opencode.test.mts`: for drupal, react-ts, java and generic it installs into a sample project and checks
+  the load, the `{file:}` references of opencode.json, the single export of each plugin and the Claude Code hooks.
+- **Fix: `/doctor` from opencode for Windows said hooks / exclude / skills / ddev FAIL** on a project in WSL (Windows has no
+  git or ddev for it). `cli.ts` run by Windows node on a `\\wsl.localhost\…` path re-runs itself inside WSL, so every
+  command sees the real environment.
+- The tools' `wsl.exe bash -lc` calls load nvm first (a non-interactive shell had no `node`: the hook-signature check
+  after an edit did not run from Windows).
+- `AI_SKIP_NPM=1` skips the `.opencode` npm install (tests, offline machines).
+
 ## 0.10.2 — 2026-11-10
 
 - **Fix: opencode failed to load the project ("Failed to reload", no models).** opencode calls every exported function

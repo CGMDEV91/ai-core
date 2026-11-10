@@ -158,11 +158,15 @@ export function linuxPath(worktree: string): { distro?: string; path: string } {
   return { path: worktree }
 }
 
-const q = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`
+export const q = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`
+
+// `bash -lc` from wsl.exe is not interactive: ~/.bashrc returns before nvm is loaded, so `node` is not in PATH.
+export const NODE_ENV = `[ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh" >/dev/null 2>&1; ` +
+  `command -v node >/dev/null 2>&1 || export PATH="$HOME/.volta/bin:$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/bin:/usr/local/bin:$PATH"; `
 
 export function runInProject(root: string, command: string, timeoutMs = 60000): Promise<{ ok: boolean; out: string }> {
   const { distro, path } = linuxPath(root)
-  const cmd = `cd ${q(path)} && ${command}`
+  const cmd = `${NODE_ENV}cd ${q(path)} && ${command}`
   const [bin, argv] = process.platform === "win32"
     ? ["wsl.exe", [...(distro ? ["-d", distro] : []), "--", "bash", "-lc", cmd]]
     : ["bash", ["-lc", cmd]]
@@ -175,7 +179,7 @@ export function runInProject(root: string, command: string, timeoutMs = 60000): 
 
 export function runScript(worktree: string, script: string, args: string[], timeoutMs = 180000): Promise<string> {
   const { distro, path } = linuxPath(worktree)
-  const cmd = `cd ${q(path)} && bash .ai/${script} ${args.map(q).join(" ")}`
+  const cmd = `${NODE_ENV}cd ${q(path)} && bash .ai/${script} ${args.map(q).join(" ")}`
   const [bin, argv] = process.platform === "win32"
     ? ["wsl.exe", [...(distro ? ["-d", distro] : []), "--", "bash", "-lc", cmd]]
     : ["bash", ["-lc", cmd]]
