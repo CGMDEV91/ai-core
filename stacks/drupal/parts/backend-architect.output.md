@@ -1,0 +1,5 @@
+- Service definition with constructor arguments
+- Module structure with file locations
+- Config YAML snippets for content types and fields
+- Access control plan (which roles can do what, at which status)
+- List of affected existing services or modules

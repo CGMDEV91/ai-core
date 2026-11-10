@@ -1,0 +1,6 @@
+{
+  "name": "ai-core-opencode",
+  "private": true,
+  "type": "module",
+  "description": "opencode tools and plugins of the {{name}} knowledge base (loaded through stubs in <project>/.opencode/)"
+}

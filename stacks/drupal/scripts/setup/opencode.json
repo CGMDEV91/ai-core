@@ -1,0 +1,349 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    ".ai/core-rules.md",
+    ".ai/orchestrator.md"
+  ],
+  "skills": {
+    "paths": [
+      ".ai/skills"
+    ]
+  },
+  "agent": {
+    "backend-architect": {
+      "description": "Design critique + plan for a change (new module/service/field/transition, multi-module work). Writes only the ticket's Plan section; never source code.",
+      "mode": "subagent",
+      "temperature": 0.2,
+      "prompt": "{file:./.ai/agents/backend-architect.md}",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          ".ai/tickets/**": "allow",
+          "**/.ai/tickets/**": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "git status*": "allow",
+          "git diff*": "allow",
+          "git log*": "allow",
+          "git show*": "allow",
+          "date*": "allow"
+        }
+      }
+    },
+    "fullstack-developer": {
+      "description": "Implements ONE closed, scoped step of a ticket across config/sync, lib/modules and lib/themes, runs the gate and returns a summary. Use for implementation delegated by /ticket.",
+      "mode": "subagent",
+      "prompt": "{file:./.ai/agents/fullstack-developer.md}"
+    },
+    "code-reviewer": {
+      "description": "Independent, read-only, clean-context review of the current diff against the review checklist and known issues. Use before handing a change over (/review).",
+      "mode": "subagent",
+      "temperature": 0.1,
+      "prompt": "{file:./.ai/agents/code-reviewer.md}",
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "deny",
+          "git status*": "allow",
+          "git diff*": "allow",
+          "git log*": "allow",
+          "git show*": "allow",
+          "git blame*": "allow",
+          "bash .ai/scripts/analysis/scan-impact.sh*": "allow",
+          "wsl.exe *scan-impact.sh*": "allow",
+          "bash .ai/scripts/review/review.sh*": "allow",
+          "wsl.exe *review.sh*": "allow"
+        }
+      }
+    },
+    "knowledge-auditor": {
+      "description": "Keeps .ai consistent: runs scan-references, investigates each broken or suspicious reference (git history, where/callers) and proposes fixes with evidence. Edits only .ai/ after approval. Use via /audit.",
+      "mode": "subagent",
+      "temperature": 0.1,
+      "prompt": "{file:./.ai/agents/knowledge-auditor.md}",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          ".ai/**": "allow",
+          "**/.ai/**": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "git log*": "allow",
+          "git show*": "allow",
+          "git diff*": "allow",
+          "git status*": "allow",
+          "bash .ai/scripts/*": "allow",
+          "wsl.exe *.ai/scripts/*": "allow"
+        }
+      }
+    },
+    "skill-curator": {
+      "description": "At the end of a ticket decides, with evidence, whether to EDIT an existing skill, CREATE a new one or do NOTHING, always asks the human with its recommendation, and writes the skill only after a yes. Use via /skill or /close.",
+      "mode": "subagent",
+      "temperature": 0.2,
+      "prompt": "{file:./.ai/agents/skill-curator.md}",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          ".ai/**": "allow",
+          "**/.ai/**": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "git log*": "allow",
+          "git show*": "allow",
+          "git diff*": "allow",
+          "git status*": "allow",
+          "bash .ai/scripts/*": "allow",
+          "wsl.exe *.ai/scripts/*": "allow"
+        }
+      }
+    },
+    "code-scout": {
+      "description": "Read-only lookups: where a status / field / role / method lives (touchpoints, where, callers, impact), returned as a short summary in a clean context. Use via /touchpoints or @code-scout.",
+      "mode": "subagent",
+      "temperature": 0.1,
+      "prompt": "{file:./.ai/agents/code-scout.md}",
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "deny",
+          "git log*": "allow",
+          "git show*": "allow",
+          "git diff*": "allow",
+          "git status*": "allow"
+        }
+      }
+    },
+    "gate-runner": {
+      "description": "Runs the gate (phpcs, phpstan, drush cr, config status) on the changed files and returns pass/fail with only the error lines and the [VERIFIED] evidence strings. Use via /gate or after each implementation block.",
+      "mode": "subagent",
+      "temperature": 0,
+      "prompt": "{file:./.ai/agents/gate-runner.md}",
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "deny",
+          "git log*": "allow",
+          "git show*": "allow",
+          "git diff*": "allow",
+          "git status*": "allow",
+          "git blame*": "allow",
+          "git rev-parse*": "allow",
+          "bash .ai/scripts/gate/run-gate.sh*": "allow",
+          "wsl.exe *bash .ai/scripts/gate/run-gate.sh*": "allow",
+          "wsl.exe *git *": "allow"
+        }
+      }
+    },
+    "debugger": {
+      "description": "Finds and proves the root cause of a bug (prior art, where/callers, max 3 hypotheses, git log -S / blame, watchdog) and returns a diagnosis without fixing it. Use via /debug for correctives with an unknown cause.",
+      "mode": "subagent",
+      "temperature": 0.1,
+      "prompt": "{file:./.ai/agents/debugger.md}",
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "deny",
+          "git log*": "allow",
+          "git show*": "allow",
+          "git diff*": "allow",
+          "git status*": "allow",
+          "git blame*": "allow",
+          "grep *": "allow",
+          "rg *": "allow",
+          "ddev drush watchdog*": "allow",
+          "wsl.exe *ddev drush watchdog*": "allow",
+          "bash .ai/scripts/*": "allow",
+          "wsl.exe *.ai/scripts/*": "allow"
+        }
+      }
+    },
+    "security-reviewer": {
+      "description": "Independent read-only security pass on the current diff: access control, ownership/delegation, injection, data exposure, CSRF, secrets. Use via /security for changes to access, roles, web services or personal data.",
+      "mode": "subagent",
+      "temperature": 0.1,
+      "prompt": "{file:./.ai/agents/security-reviewer.md}",
+      "permission": {
+        "edit": "deny",
+        "bash": {
+          "*": "deny",
+          "git log*": "allow",
+          "git show*": "allow",
+          "git diff*": "allow",
+          "git status*": "allow",
+          "git blame*": "allow",
+          "bash .ai/scripts/review/review.sh*": "allow",
+          "wsl.exe *review.sh*": "allow",
+          "bash .ai/scripts/analysis/scan-impact.sh*": "allow"
+        }
+      }
+    },
+    "jira-writer": {
+      "description": "Drafts the Jira analysis comment, test instructions and worklog from a ticket file into its ## Jira drafts section. Never writes to Jira. Use via /jira.",
+      "mode": "subagent",
+      "temperature": 0.3,
+      "prompt": "{file:./.ai/agents/jira-writer.md}",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          ".ai/tickets/**": "allow",
+          "**/.ai/tickets/**": "allow"
+        },
+        "bash": {
+          "*": "deny"
+        }
+      }
+    },
+    "test-designer": {
+      "description": "Turns a change into a manual re-test checklist (role · status · language · action → expected) from the ticket's Impact and the skills of the affected flows. Use via /tests.",
+      "mode": "subagent",
+      "temperature": 0.2,
+      "prompt": "{file:./.ai/agents/test-designer.md}",
+      "permission": {
+        "edit": {
+          "*": "deny",
+          ".ai/tickets/**": "allow",
+          "**/.ai/tickets/**": "allow"
+        },
+        "bash": {
+          "*": "deny",
+          "bash .ai/scripts/analysis/*": "allow",
+          "wsl.exe *.ai/scripts/analysis/*": "allow"
+        }
+      }
+    }
+  },
+  "command": {
+    "ticket": {
+      "description": "Start or resume a ticket: prior art, intent, plan, implement, gate, stop for validation. Usage: /ticket <JIRA-KEY|request>",
+      "template": "{file:./.ai/commands/ticket.md}"
+    },
+    "plan": {
+      "description": "Design critique + plan written into the ticket (backend-architect subagent). Usage: /plan [key]",
+      "template": "{file:./.ai/commands/plan.md}",
+      "agent": "backend-architect",
+      "subtask": true
+    },
+    "gate": {
+      "description": "Run the gate (phpcs, phpstan, drush cr, config status) and get only pass/fail + error lines (gate-runner). Usage: /gate [paths]",
+      "template": "{file:./.ai/commands/gate.md}",
+      "agent": "gate-runner",
+      "subtask": true
+    },
+    "impact": {
+      "description": "Which workflows (skills), past bugs and past tickets the current change can affect, with a re-test checklist. Usage: /impact [key | --files … | --base ref]",
+      "template": "{file:./.ai/commands/impact.md}"
+    },
+    "touchpoints": {
+      "description": "Every place a status / field / role / method lives, summarised by a read-only subagent. Usage: /touchpoints term1, term2 [— question]",
+      "template": "{file:./.ai/commands/touchpoints.md}",
+      "agent": "code-scout",
+      "subtask": true
+    },
+    "debug": {
+      "description": "Root cause of a bug, proven, without fixing it (debugger). Usage: /debug <symptom or key>",
+      "template": "{file:./.ai/commands/debug.md}",
+      "agent": "debugger",
+      "subtask": true
+    },
+    "review": {
+      "description": "Independent read-only review of the current diff (code-reviewer subagent). Usage: /review [key]",
+      "template": "{file:./.ai/commands/review.md}",
+      "agent": "code-reviewer",
+      "subtask": true
+    },
+    "security": {
+      "description": "Independent security pass on the current diff (security-reviewer). Usage: /security [key]",
+      "template": "{file:./.ai/commands/security.md}",
+      "agent": "security-reviewer",
+      "subtask": true
+    },
+    "tests": {
+      "description": "Manual re-test checklist from the ticket's impact (test-designer). Usage: /tests [key]",
+      "template": "{file:./.ai/commands/tests.md}",
+      "agent": "test-designer",
+      "subtask": true
+    },
+    "end": {
+      "description": "End the session: confirm, update Current state + Session log + journal. Usage: /end [key]",
+      "template": "{file:./.ai/commands/end.md}"
+    },
+    "close": {
+      "description": "Close a ticket: verification, known issue, skill/context staleness, commit messages. Usage: /close [key]",
+      "template": "{file:./.ai/commands/close.md}"
+    },
+    "jira": {
+      "description": "Jira drafts: analysis comment, test instructions, worklog (jira-writer). Usage: /jira [key]",
+      "template": "{file:./.ai/commands/jira.md}",
+      "agent": "jira-writer",
+      "subtask": true
+    },
+    "skill": {
+      "description": "Should this work update a skill, create one, or nothing? Recommends and asks (skill-curator). Usage: /skill [key]",
+      "template": "{file:./.ai/commands/skill.md}",
+      "agent": "skill-curator",
+      "subtask": true
+    },
+    "learn": {
+      "description": "Capture a lesson into the right skill / known issue / convention (proposed first). Usage: /learn [lesson]",
+      "template": "{file:./.ai/commands/learn.md}"
+    },
+    "scan": {
+      "description": "Run the four knowledge-base drift scanners and report what must be updated.",
+      "template": "{file:./.ai/commands/scan.md}"
+    },
+    "audit": {
+      "description": "Check every reference of the knowledge base and propose fixes with evidence (knowledge-auditor). Usage: /audit [id]",
+      "template": "{file:./.ai/commands/audit.md}",
+      "agent": "knowledge-auditor",
+      "subtask": true
+    }
+  },
+  "permission": {
+    "bash": {
+      "*": "ask",
+      "date*": "allow",
+      "Get-ChildItem *": "allow",
+      "Test-Path *": "allow",
+      "rg *": "allow",
+      "grep *": "allow",
+      "cat *": "allow",
+      "ls *": "allow",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git log*": "allow",
+      "git show*": "allow",
+      "git blame*": "allow",
+      "git branch --show-current": "allow",
+      "git rev-parse*": "allow",
+      "git fetch*": "allow",
+      "ddev *": "allow",
+      "bash .ai/scripts/*": "allow",
+      "wsl.exe *": "allow",
+      "*git add*": "deny",
+      "*git commit*": "deny",
+      "*git push*": "deny",
+      "*git checkout*": "deny",
+      "*git switch*": "deny",
+      "*git reset*": "deny",
+      "*git restore*": "deny",
+      "*git stash*": "deny",
+      "*git clean*": "deny",
+      "*git rebase*": "deny",
+      "*git merge*": "deny",
+      "*rm -rf*": "deny",
+      "*drush cim*": "ask",
+      "*drush sql*": "ask",
+      "env": "deny",
+      "printenv*": "deny"
+    },
+    "where": "allow",
+    "callers": "allow",
+    "touchpoints": "allow",
+    "impact": "allow",
+    "gate": "allow"
+  }
+}

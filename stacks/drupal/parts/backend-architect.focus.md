@@ -1,0 +1,6 @@
+- Drupal service architecture (DI, EventSubscribers, service boundaries)
+- Module design and inter-module dependencies
+- Config sync structure and field modelling
+- Caching strategies and performance optimisation
+- Access control architecture (roles, permissions, field-level access)
+- JSON:API endpoint design for headless or semi-headless use cases

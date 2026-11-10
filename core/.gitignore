@@ -1,0 +1,4 @@
+.idea
+*.local.md
+__pycache__/
+context/code-index.json
