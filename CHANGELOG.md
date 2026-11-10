@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.9.0 — 2026-11-10
+
+- **Installer you can read:** five numbered steps (detect · configure · install · wire · check), each question with one
+  line on what it is for, detected values as defaults, files counted by folder (`--verbose` lists them), the wiring
+  indented, and a **summary** at the end (project, ai-core version and repo, stacks with their paths, exec, language,
+  agents, the state of .ai) with the next steps numbered.
+- **Starter parts:** a first install (or `--update` when they are missing) writes `.ai/project/parts/intro.md` and
+  `facts.md` from what was detected — framework and version, code folders with their modules and themes, config sync,
+  languages, npm scripts, exec, a few conventions of the stack — marked STARTER for a human to improve. The STARTER note
+  never reaches the composed rules; `/doctor` warns while it is there. Existing parts are never touched.
+- **`bash .ai/scripts/setup/upgrade.sh [--yes]`** (`cli.ts upgrade`) from the project: finds ai-core (the lock's source,
+  else clones `aiCoreRepo` into `$AI_CORE_HOME` or `~/devel/ai-core`), `git pull --ff-only` (stops if that clone has local
+  changes), shows the CHANGELOG entries since the installed version and the files a dry run would write, asks, updates
+  and re-wires, and proposes the commit of .ai. `project.json` gets `"aiCoreRepo"` from ai-core's origin.
+- **`/doctor` knows when ai-core has a newer version** (fetch + VERSION on the upstream) → `upgrade.sh`.
+- A new `.ai` repository starts on branch `main`.
+
 ## 0.8.0 — 2026-11-10
 
 - **`java` stack** (phase 5): Maven or Gradle (wrapper first; `"build"` in project.json to force one), local or docker.

@@ -144,7 +144,7 @@ export function main(argv: string[]): number {
     writeDocs(ints)
     const cards = writeModuleCards(ints)
     const by = ints.reduce<Record<string, number>>((a, i) => ((a[i.kind] = (a[i.kind] ?? 0) + 1), a), {})
-    console.log(`integrations.md written: ${ints.length} integration(s) — ${Object.entries(by).map(([k, v]) => `${v} ${k}`).join(", ")}; ${cards} module card(s)`)
+    console.log(`integrations.md written: ${ints.length} integration(s)${ints.length ? ` — ${Object.entries(by).map(([k, v]) => `${v} ${k}`).join(", ")}` : ""}; ${cards} module card(s)`)
     return 0
   }
   if (!isFile(snapFile)) { console.log("No snapshot yet — run: node .ai/scripts/cli.ts integrations --update"); return 0 }

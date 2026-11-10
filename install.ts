@@ -33,6 +33,13 @@ const VERSION = readFileSync(join(CORE, "VERSION"), "utf-8").trim()
 const sha = (b: Buffer | string) => createHash("sha256").update(b).digest("hex")
 const fwd = (p: string) => p.split("\\").join("/")
 const say = (s = "") => console.log(s)
+const COLOR = process.stdout.isTTY && !process.env.NO_COLOR
+const paint = (code: string) => (t: string) => (COLOR ? `\x1b[${code}m${t}\x1b[0m` : t)
+const bold = paint("1"), dim = paint("2"), green = paint("32"), yellow = paint("33"), cyan = paint("36")
+const STEPS = 5
+const step = (n: number, title: string) => say(`\n${cyan(bold(`[${n}/${STEPS}]`))} ${bold(title)}`)
+const homeRel = (p: string) => (process.env.HOME && p.startsWith(process.env.HOME) ? "~" + p.slice(process.env.HOME.length) : p)
+const git = (dir: string, ...a: string[]) => { const r = spawnSync("git", ["-C", dir, ...a], { encoding: "utf-8" }); return r.status === 0 ? (r.stdout ?? "").trim() : "" }
 const die = (s: string): never => { console.error(`ERROR: ${s}`); process.exit(1) }
 const readJson = (f: string) => JSON.parse(readFileSync(f, "utf-8"))
 const available = () => readdirSync(join(CORE, "stacks")).filter((s) => existsSync(join(CORE, "stacks", s, "adapter.json"))).sort()
@@ -62,31 +69,34 @@ function detect(project: string): { stacks: Detected[]; exec: string; execWhy: s
   return { stacks: out, exec, execWhy: exec === "ddev" ? ".ddev/config.yaml" : exec === "docker" ? "a compose file" : "no ddev / compose file" }
 }
 
-async function ask(rl: ReturnType<typeof createInterface> | null, q: string, def: string): Promise<string> {
-  if (!rl) return def
-  const a = (await rl.question(`${q} [${def}]: `)).trim()
+async function ask(rl: ReturnType<typeof createInterface> | null, q: string, def: string, help = ""): Promise<string> {
+  if (help) say(`  ${dim(help)}`)
+  if (!rl) { say(`  ${q}: ${bold(def)} ${dim("(default)")}`); return def }
+  const a = (await rl.question(`  ${cyan("?")} ${q} ${dim(`[${def}]`)}: `)).trim()
   return a || def
 }
 
 async function configure(project: string, a: Args, current: any | null): Promise<any> {
   const d = detect(project)
   const avail = available()
-  say(`ai-core ${VERSION} — ${project}`)
-  if (d.stacks.length) for (const s of d.stacks) say(`  detected: ${s.stack} (${s.why})${avail.includes(s.stack) ? "" : " — no adapter yet in this ai-core"}`)
-  else say("  detected: no known stack")
-  say(`  exec: ${d.exec} (${d.execWhy})`)
+  step(1, "Detecting the project")
+  if (d.stacks.length) for (const s of d.stacks) say(`  ${avail.includes(s.stack) ? green("✔") : yellow("·")} ${bold(s.stack.padEnd(9))} ${dim(s.why)}${avail.includes(s.stack) ? "" : yellow(" — no adapter in this ai-core")}`)
+  else say(`  ${yellow("·")} no known stack ${dim("— the generic stack runs the commands you configure")}`)
+  for (const s of d.stacks) { const p = (s.defaults.paths as string[] | undefined) ?? []; if (p.length) say(`  ${green("✔")} ${"code".padEnd(9)} ${dim(p.join(", "))}`) }
+  say(`  ${green("✔")} ${"exec".padEnd(9)} ${d.exec} ${dim(`(${d.execWhy})`)}`)
+  step(2, `Configuration ${dim("— Enter keeps the value in brackets")}`)
   const rl = a.yes || !process.stdin.isTTY ? null : createInterface({ input: process.stdin, output: process.stdout })
   try {
     let detectedUsable = d.stacks.map((s) => s.stack).filter((s) => avail.includes(s))
     if (!detectedUsable.length && avail.includes("generic")) detectedUsable = ["generic"]   // nothing known: configured commands
     const defStacks = a.stack.length ? a.stack : current ? current.stacks.map((s: any) => s.name) : detectedUsable
     if (!defStacks.length && !rl) die(`no stack detected and none given — use --stack ${avail.join("|")}`)
-    const stacks = (await ask(rl, `Stacks (${avail.join(", ")})`, defStacks.join(","))).split(",").map((s) => s.trim()).filter(Boolean)
+    const stacks = (await ask(rl, "Stacks", defStacks.join(","), `What the gate, the code index and the rules are built for. Available: ${avail.join(", ")} — several with commas (drupal,react-ts).`)).split(",").map((s) => s.trim()).filter(Boolean)
     for (const s of stacks) if (!avail.includes(s)) die(`unknown stack ${s} (available: ${avail.join(", ")})`)
-    const name = a.name ?? (await ask(rl, "Project name (as people call it)", current?.name ?? basename(project)))
-    const exec = a.exec ?? (await ask(rl, "Where do the tools run: ddev | docker | local", current?.stacks?.[0]?.exec ?? d.exec))
-    const language = a.lang ?? (await ask(rl, "Language of the human (replies; files stay in English)", current?.language ?? "en"))
-    const agents = (a.agents ?? (await ask(rl, "AI agents: opencode[,claude-code]", (current?.agents ?? ["opencode"]).join(",")))).split(",").map((s) => s.trim())
+    const name = a.name ?? (await ask(rl, "Project name", current?.name ?? basename(project), "How people call it — it heads the rules and the agents' prompts."))
+    const exec = a.exec ?? (await ask(rl, "Where the tools run", current?.stacks?.[0]?.exec ?? d.exec, "ddev · docker (compose service) · local — phpcs, drush, tests… run there."))
+    const language = a.lang ?? (await ask(rl, "Your language", current?.language ?? "en", "The agents answer you in it (es, en…); files stay in English."))
+    const agents = (a.agents ?? (await ask(rl, "AI agents", (current?.agents ?? ["opencode"]).join(","), "opencode · claude-code · both with a comma (opencode,claude-code). Claude Code uses Anthropic models."))).split(",").map((s) => s.trim())
     const conf = {
       aiCore: current?.aiCore ?? "", name, repo: current?.repo ?? basename(project), language, agents,
       stacks: stacks.map((s) => {
@@ -116,7 +126,8 @@ function filesOf(layer: string): Map<string, string> {
 function render(tpl: string, vars: Record<string, string>, stacks: string[], projectParts: string): string {
   let out = tpl.replace(/^\{\{#part ([\w.-]+)\}\}$/gm, (_, name) => {
     const proj = join(projectParts, `${name}.md`)
-    let texts = [...stacks.map((s) => join(s, "parts", `${name}.md`)), proj].filter(existsSync).map((f) => readFileSync(f, "utf-8").replace(/\n+$/, ""))
+    // the STARTER note of a generated part is for the human editing it, not for the agent: never composed
+    let texts = [...stacks.map((s) => join(s, "parts", `${name}.md`)), proj].filter(existsSync).map((f) => readFileSync(f, "utf-8").replace(/<!-- STARTER[\s\S]*?-->\n?/g, "").replace(/\n+$/, ""))
     if (existsSync(proj) && readFileSync(proj, "utf-8").startsWith("<!-- replace -->")) texts = [readFileSync(proj, "utf-8").split("\n").slice(1).join("\n").replace(/\n+$/, "")]
     const def = join(CORE, "core", "parts", `${name}.md`)
     if (!texts.length && existsSync(def)) texts = [readFileSync(def, "utf-8").replace(/\n+$/, "")]
@@ -225,7 +236,7 @@ const sortKeys = (o: any): any => (o && typeof o === "object" && !Array.isArray(
 // ── main ─────────────────────────────────────────────────────────────────────
 type Args = { project: string; stack: string[]; name?: string; exec?: string; lang?: string; agents?: string; yes: boolean; update: boolean;
   adopt: boolean; status: boolean; promote: boolean; add: string[]; layer?: string; dry: boolean; wiring: boolean; doctor: boolean;
-  reconfigure: boolean; uninstall: boolean }
+  reconfigure: boolean; uninstall: boolean; verbose?: boolean }
 function parse(argv: string[]): Args {
   const a: Args = { project: "", stack: [], yes: false, update: false, adopt: false, status: false, promote: false, add: [], dry: false,
     wiring: true, doctor: true, reconfigure: false, uninstall: false }
@@ -248,6 +259,7 @@ function parse(argv: string[]): Args {
     else if (o === "--no-doctor") a.doctor = false
     else if (o === "--reconfigure") a.reconfigure = true
     else if (o === "--uninstall") a.uninstall = true
+    else if (o === "--verbose") a.verbose = true
     else if (o === "-h" || o === "--help") { say(readFileSync(fileURLToPath(import.meta.url), "utf-8").split("\nimport ")[0].replace(/^\/\/ ?/gm, "")); process.exit(0) }
     else if (o.startsWith("--")) die(`unknown option ${o}`)
     else a.project = o
@@ -317,10 +329,17 @@ async function main(argv: string[]): Promise<number> {
     for (const [r, b] of want) files[r] = kept.includes(r) ? sha(readFileSync(join(ai, r))) : sha(b)
     writeFileSync(lockFile, JSON.stringify(sortKeys({ version: VERSION, source: fwd(CORE), stacks: conf.stacks.map((s: any) => s.name), files }), null, 1) + "\n")
     conf.aiCore = VERSION
+    const origin = git(CORE, "remote", "get-url", "origin")
+    if (origin && !conf.aiCoreRepo) conf.aiCoreRepo = origin   // where upgrade.sh clones ai-core from on another machine
     writeFileSync(cfgFile, JSON.stringify(conf, null, 2) + "\n")
   }
-  say(`${a.dry ? "(dry run) " : ""}ai-core ${VERSION} → ${ai}: ${written.length} written, ${same} unchanged, ${removed.length} removed, ${kept.length} kept`)
-  for (const r of written) say(`  + ${r}`)
+  if (!a.dry && !a.update && !a.status) step(3, "Installing the workflow into .ai/")
+  say(`  ${a.dry ? "(dry run) " : ""}ai-core ${VERSION} → ${homeRel(ai)}: ${green(`${written.length} written`)}, ${same} unchanged, ${removed.length} removed, ${kept.length ? yellow(`${kept.length} kept`) : "0 kept"}`)
+  if (written.length > 15 && !a.verbose) {
+    const groups = new Map<string, number>()
+    for (const r of written) { const g = r.includes("/") ? r.split("/")[0] : "rules & examples"; groups.set(g, (groups.get(g) ?? 0) + 1) }
+    say(`  ${dim([...groups].map(([g, n]) => `${g} ${n}`).join(" · "))}  ${dim("(--verbose lists them)")}`)
+  } else for (const r of written) say(`  + ${r}`)
   for (const r of removed) say(`  - ${r}`)
   for (const r of kept) say(`  ! ${r} — edited by hand: new version in ${r}.ai-core-new, merge it by hand`)
   for (const r of gone) say(`  ! ${r} — no longer in ai-core but edited by hand: left in place, delete it when it is not needed`)
@@ -329,14 +348,98 @@ async function main(argv: string[]): Promise<number> {
   for (const d of ["skills", "known-issues", "tickets", "context", "project/parts"]) {   // the project's knowledge, empty at first
     if (!existsSync(join(ai, d))) { mkdirSync(join(ai, d), { recursive: true }); writeFileSync(join(ai, d, ".gitkeep"), "") }
   }
-  if (!existsSync(join(ai, ".git"))) {
-    spawnSync("git", ["init", "-q", ai]); say(`\n✔ ${ai} is a new git repository — give it a remote (git -C .ai remote add origin <url>) and push it: it is the team's knowledge`)
+  const starters = starterParts(project, conf)
+  if (starters.length) {
+    say(`  ${green("✔")} starter ${starters.join(" + ")} in .ai/project/parts ${dim("— a minimal base from what was detected: improve it")}`)
+    const again = plan(project, conf)   // the composed rules now include the starters
+    for (const [r, b] of again.want) if (["core-rules.md", "orchestrator.md"].includes(r)) writeFileSync(join(ai, r), b)
+    const lk = readJson(lockFile); for (const r of ["core-rules.md", "orchestrator.md"]) lk.files[r] = sha(readFileSync(join(ai, r))); writeFileSync(lockFile, JSON.stringify(sortKeys(lk), null, 1) + "\n")
   }
-  if (!existsSync(join(project, ".git"))) { say(`⚠ ${project} is not a git checkout: hooks and exclude are skipped`); return 0 }
-  if (a.wiring) { say("\n→ wiring the checkout"); if (runCli(ai, "setup") !== 0) return 1 }
-  if (first) say(`\nWrite the project's own facts in ${join(ai, "project", "parts")} (intro.md, facts.md…) and re-run with --update.`)
-  if (a.wiring && a.doctor) { say(""); runCli(ai, "doctor") }
+  const newRepo = !existsSync(join(ai, ".git"))
+  if (newRepo) { spawnSync("git", ["init", "-q", "-b", "main", ai]); say(`  ${green("✔")} .ai is a new git repository ${dim("— it is the team's knowledge: it needs its own remote (see Next)")}`) }
+  if (!existsSync(join(project, ".git"))) { say(`  ${yellow("⚠")} ${project} is not a git checkout: hooks and exclude are skipped`); return 0 }
+  if (a.wiring) {
+    step(4, "Wiring the checkout (hooks, exclude, opencode / Claude Code, indexes)")
+    const r = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(ai, "scripts", "cli.ts"), "setup"], { cwd: project, encoding: "utf-8" })
+    for (const l of ((r.stdout ?? "") + (r.stderr ?? "")).split("\n"))
+      if (l.trim() && !/^Done\. Open a NEW/.test(l) && !/^✔ (tool|plugin|exclude \+=) /.test(l)) say(`  ${l.split(project).join(".").split(homeRel(project)).join(".")}`)
+    const tools = ((r.stdout ?? "").match(/^✔ (tool|plugin) /gm) ?? []).length
+    if (tools) say(`  ✔ ${tools} opencode tool/plugin stubs in .opencode/ · AI files excluded from the project's git`)
+    if (r.status !== 0) return 1
+  }
+  if (a.wiring && a.doctor) { step(5, "Checking (doctor)"); runCli(ai, "doctor") }
+  summary(project, conf, Object.keys(readJson(lockFile).files ?? {}).length, starters)
   return 0
+}
+
+/** A minimal intro.md / facts.md from what was detected, when the project has none — to be improved by a human. */
+function starterParts(project: string, conf: any): string[] {
+  const dir = join(project, ".ai", "project", "parts"), made: string[] = []
+  mkdirSync(dir, { recursive: true })
+  const has = (p: string) => existsSync(join(project, p))
+  const today = new Date().toISOString().slice(0, 10)
+  const note = (what: string) => `<!-- STARTER written by ai-core install (${today}) from what was detected. Improve it: ${what}. Then: install.sh <project> --update. Delete this comment when done. -->`
+  const st = conf.stacks ?? [], drupal = st.find((s: any) => s.name === "drupal")
+  let fw = st.map((s: any) => readJson(join(CORE, "stacks", s.name, "adapter.json")).vars?.framework ?? s.name).join(" + ")
+  if (drupal) {
+    const f = join(project, drupal.apiRoot ?? "web", "core", "lib", "Drupal.php")
+    const v = existsSync(f) ? (readFileSync(f, "utf-8").match(/const VERSION = '([^']+)'/) ?? [])[1] : ""
+    if (v) fw = fw.replace("Drupal", `Drupal ${v.split(".").slice(0, 2).join(".")} — the installed core, \`${drupal.apiRoot}/core\``)
+  }
+  const execs = [...new Set(st.map((s: any) => s.exec))].join(" / ")
+  if (!existsSync(join(dir, "intro.md"))) {
+    writeFileSync(join(dir, "intro.md"), `${note("say what the system is and for whom, in one line")}\nYou work on **${conf.name}** (${fw}). Code: the \`${conf.repo}\` repo. Knowledge: \`.ai/\`, a separate\ngit repo inside it. Facts and conventions: \`.ai/orchestrator.md\`. Business flows: skills (\`skill\` tool).\n`)
+    made.push("intro.md")
+  }
+  if (!existsSync(join(dir, "facts.md"))) {
+    const code: string[] = []
+    for (const s of st) for (const p of s.paths ?? []) {
+      const d = join(project, p)
+      const kids = existsSync(d) ? readdirSync(d).filter((x) => !x.startsWith(".") && statSync(join(d, x)).isDirectory()).sort(cmp) : []
+      code.push(`\`${p}/\`${kids.length ? ` (${kids.length}: ${kids.slice(0, 8).join(", ")}${kids.length > 8 ? " …" : ""})` : ""}`)
+    }
+    const lines = [note("2–3 lines on what the system does and who uses it, the roles, and the conventions a reviewer would reject a change for; keep it short — it is loaded in every message"),
+      `${conf.name} — ${fw}. _What it does and for whom: to be written._`, "",
+      `**Code:** ${code.join(" · ") || "_paths: see .ai/project.json_"}${drupal ? ` · config sync in \`${drupal.configSync}/\`` : ""} · tools run in: ${execs}.`]
+    const cfgSync = drupal ? join(project, drupal.configSync) : ""
+    if (cfgSync && existsSync(cfgSync)) {
+      const langs = readdirSync(cfgSync).filter((f) => /^language\.entity\.[a-z-]+\.yml$/.test(f)).map((f) => f.split(".")[2]).filter((l) => !["und", "zxx"].includes(l))
+      if (langs.length) lines.push(`**Languages:** ${langs.join(", ")}.`)
+    }
+    if (has("package.json")) { const sc = Object.keys(readJson(join(project, "package.json")).scripts ?? {}); if (sc.length) lines.push(`**npm scripts:** ${sc.slice(0, 10).join(", ")}.`) }
+    lines.push("", "**Where to look:** code → tools `where` / `callers` / `touchpoints` / `impact`; integrations → `.ai/context/integrations.md`;",
+      "modules → `.ai/context/modules/`; technical docs → `.ai/context/`; business flows → skills.", "", "---", "", "## Critical Conventions", "",
+      "_The rules a reviewer would reject a change for — to be written. Starting points:_")
+    if (drupal) lines.push(`- Export configuration with \`${conf.vars?.drush ?? "drush"} cex\` — \`${drupal.configSync}/\` is the source of truth.`,
+      `- Run \`${conf.vars?.drush ?? "drush"} cr\` after any module or config change.`, "- Services injected through the constructor and declared in `<module>.services.yml`.")
+    if (st.some((s: any) => s.name === "react-ts")) lines.push("- Types for props, state and API data; no `any`.")
+    if (st.some((s: any) => s.name === "java")) lines.push("- Constructor injection; transactions on the service layer.")
+    lines.push("- Code comments and docblocks in English.")
+    writeFileSync(join(dir, "facts.md"), lines.join("\n") + "\n")
+    made.push("facts.md")
+  }
+  return made
+}
+
+function summary(project: string, conf: any, managed: number, starters: string[]): void {
+  const ai = join(project, ".ai"), remote = git(ai, "remote", "get-url", "origin"), branch = git(ai, "symbolic-ref", "--short", "HEAD") || "main"
+  const row = (k: string, v: string) => say(`  ${dim(k.padEnd(12))} ${v}`)
+  const line = dim("─".repeat(72))
+  say(`\n${line}\n  ${bold("Summary")}\n${line}`)
+  row("Project", `${bold(conf.name)}  ${dim(homeRel(project))}`)
+  row("ai-core", `${VERSION}  ${dim(homeRel(CORE))}${conf.aiCoreRepo ? dim(` · ${conf.aiCoreRepo}`) : ""}`)
+  for (const s of conf.stacks ?? []) row("Stack", `${bold(s.name)}  code ${(s.paths ?? []).join(", ")}${s.configSync && s.name === "drupal" ? ` · config ${s.configSync} · core ${s.apiRoot}` : ""}`)
+  row("Exec", `${[...new Set((conf.stacks ?? []).map((s: any) => s.exec))].join(", ")}${conf.vars?.drush ? dim(`  (drush: ${conf.vars.drush})`) : ""}`)
+  row("Language", conf.language)
+  row("Agents", (conf.agents ?? []).join(", "))
+  row(".ai", `${managed} managed files · ${remote ? `remote ${remote}` : yellow("no remote yet")}`)
+  row("Your parts", `${homeRel(join(ai, "project", "parts"))}${starters.length ? yellow(`  (${starters.join(", ")}: starter — improve)`) : ""}`)
+  say(`${line}\n  ${bold("Next")}`)
+  let n = 1
+  if (starters.length) say(`  ${n++}. Improve ${starters.join(" and ")} in .ai/project/parts (what the system is, conventions), then:\n       ${homeRel(join(CORE, "install.sh"))} ${homeRel(project)} --update`)
+  if (!remote) say(`  ${n++}. Create an empty repo for the knowledge (e.g. ${conf.repo}-ai) and push .ai:\n       git -C ${homeRel(ai)} add -A && git -C ${homeRel(ai)} commit -m "ai-core ${VERSION} install"\n       git -C ${homeRel(ai)} remote add origin <url> && git -C ${homeRel(ai)} push -u origin ${branch}`)
+  say(`  ${n++}. Open a NEW ${(conf.agents ?? ["opencode"]).join(" / ")} session in ${homeRel(project)} → /doctor → /ticket <KEY> <what to do>`)
+  say(line)
 }
 
 process.exitCode = await main(process.argv.slice(2))

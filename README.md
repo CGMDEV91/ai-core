@@ -78,6 +78,13 @@ and follows the flow. Without doing anything else:
 |---|---|
 | every file listed in `.ai/ai-core.lock.json` | `skills/`, `known-issues/`, `tickets/`, `context/`, `docs/`, `project/`, `project.json`, tests with its own snapshot |
 
+## Updating a project to the latest ai-core
+
+From the project (anybody, any machine): `bash .ai/scripts/setup/upgrade.sh` — it finds or clones ai-core
+(`aiCoreRepo` in project.json), pulls it, shows what changed since the installed version and which files would be
+written, asks, updates and re-wires; then commit and push `.ai` so the team gets it. `/doctor` tells when there is a
+newer version.
+
 ## Changing the workflow: work in a project, promote, update the others
 
 You do not edit ai-core by hand. Change commands, agents or scripts in the `.ai` of the project where you test them,

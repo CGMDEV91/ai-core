@@ -56,10 +56,22 @@ function managed(): void {
   else if (pending.length) add("WARN", "managed files", `${pending.length} new version(s) to merge by hand: ${pending.slice(0, 4).join(", ")}`, "merge <file>.ai-core-new into <file>, delete it, then --update")
   else if (edited.length) add("WARN", "managed files", `${edited.length} edited here: ${edited.slice(0, 4).join(", ")}`, "promote them to ai-core (install --promote) or restore them (--update keeps them)")
   else add("OK", "managed files", `${Object.keys(lock.files ?? {}).length} files as installed (ai-core ${lock.version})`)
+  // A newer ai-core? fetch its clone (the lock's source) and read VERSION on its upstream
   if (lock.source && existsSync(join(lock.source, "VERSION"))) {
-    const avail = read(join(lock.source, "VERSION")).trim()
-    if (avail !== lock.version) add("WARN", "ai-core version", `installed ${lock.version}, ${avail} available in ${lock.source}`, `install.sh <project> --update (from ${lock.source})`)
-  }
+    const fetched = git(lock.source, "fetch", "-q").ok
+    const up = git(lock.source, "show", "@{u}:VERSION")
+    const avail = (up.ok ? up.out : read(join(lock.source, "VERSION"))).trim().split("\n").pop()!.trim()
+    const newer = (a: string, b: string) => { const x = a.split(".").map(Number), y = b.split(".").map(Number); for (let i = 0; i < 3; i++) if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) > (y[i] ?? 0); return false }
+    if (newer(avail, lock.version)) add("WARN", "ai-core version", `installed ${lock.version}, ${avail} available${fetched ? "" : " (offline: as of the last fetch)"}`, "bash .ai/scripts/setup/upgrade.sh")
+    else add("OK", "ai-core version", `${lock.version} is the latest${up.ok ? "" : " (local clone, no remote)"}`)
+  } else if (cfg().aiCoreRepo) add("INFO", "ai-core version", `no ai-core clone on this machine — upgrade.sh clones it from ${cfg().aiCoreRepo} when needed`)
+}
+
+function parts(): void {
+  const dir = join(AI, "project", "parts")
+  const starters = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".md") && read(join(dir, f)).includes("<!-- STARTER")) : []
+  if (starters.length) add("WARN", "project parts", `${starters.join(", ")} still the generated starter — the agents know little about this project`,
+    "complete them (what the system is, conventions), delete the STARTER comment, then install.sh <project> --update")
 }
 
 function hooks(): void {
@@ -157,7 +169,7 @@ function claudeCode(): void {
 export function main(_argv: string[]): number {
   node()
   const { stacks } = project()
-  managed(); hooks(); exclude(); opencode(); claudeCode(); fresh(stacks); execEnv(stacks); remote()
+  managed(); parts(); hooks(); exclude(); opencode(); claudeCode(); fresh(stacks); execEnv(stacks); remote()
   console.log(`DOCTOR — ${ROOT}\n\n| status | check | detail |\n|---|---|---|`)
   for (const [s, c, d] of rows) console.log(`| ${s} | ${c} | ${d} |`)
   const fixes = rows.filter((r) => (r[0] === "FAIL" || r[0] === "WARN") && r[3])
