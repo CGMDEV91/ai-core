@@ -47,7 +47,7 @@ if ! $is_knowledge_repo; then
 fi
 
 # ── Knowledge repo: structural consistency (ids, links, statuses) ─────────────
-if $is_knowledge_repo && [ -x "$root/scripts/knowledge/scan-references.sh" ] && command -v python3 >/dev/null 2>&1; then
+if $is_knowledge_repo && [ -x "$root/scripts/knowledge/scan-references.sh" ] && command -v node >/dev/null 2>&1; then
     if ! refs=$(bash "$root/scripts/knowledge/scan-references.sh" --commit-gate 2>&1); then
         echo "$refs" | grep -E '^ERROR' | sed 's/^/🚨 /'
         echo "Commit BLOCKED: broken references in the knowledge base (bash .ai/scripts/knowledge/scan-references.sh, or /audit)."

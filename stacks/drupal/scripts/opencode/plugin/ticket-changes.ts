@@ -53,7 +53,7 @@ export const TicketChanges = async ({ directory, worktree }: { directory?: strin
       else if (r.ok) output.output += `\n\n[phpcs on ${rel}] clean`
       else if (/not running|could not find|not found/i.test(r.out)) output.output += `\n\n[phpcs skipped: ddev not running]`
       if (/\.(module|inc|theme|install|profile)$/.test(rel)) {
-        const a = await runInProject(root, `python3 -I .ai/scripts/lib/apiindex.py --check ${rel}`, 30000)
+        const a = await runInProject(root, `node --experimental-strip-types --no-warnings .ai/scripts/cli.ts apiindex --check ${rel}`, 30000)
         if (/^ERROR /m.test(a.out)) output.output += `\n\n[api-signatures on ${rel}] hook signature does not match the installed Drupal — fix it now:\n${a.out.split("\n").filter((l) => /^ERROR |^  (expected|source):/.test(l)).slice(0, 9).join("\n")}`
       }
     } catch { /* never break the session */ }

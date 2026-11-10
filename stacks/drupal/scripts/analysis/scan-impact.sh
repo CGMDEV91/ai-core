@@ -10,7 +10,7 @@
 #   bash .ai/scripts/analysis/scan-impact.sh --commit <sha>             # one existing commit
 #   bash .ai/scripts/analysis/scan-impact.sh --check                  # skills citing paths / Class::method() that no longer exist
 #
-# Logic and options: .ai/scripts/lib/impact.py (python3, standard library only). Read-only except --write-ticket.
+# Logic: .ai/scripts/lib/impact.ts (Node ≥ 22.6, no dependencies) — also: node .ai/scripts/cli.ts impact [args…]
 set -euo pipefail
-LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")/../lib" && pwd)"
-exec python3 -I "$LIB/impact.py" "$@"
+CLI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/cli.ts"
+exec node --experimental-strip-types --no-warnings "$CLI" impact "$@"

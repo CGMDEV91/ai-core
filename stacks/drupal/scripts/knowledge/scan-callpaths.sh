@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
-# scan-callpaths.sh — generated "stack trace" of every business skill + related skills.
-#
-#   bash .ai/scripts/knowledge/scan-callpaths.sh            # report skills whose ## Call path / related_skills are out of date
-#   bash .ai/scripts/knowledge/scan-callpaths.sh --update   # (re)write them into skills/*/SKILL.md
-#   bash .ai/scripts/knowledge/scan-callpaths.sh --show 12-amendment-lifecycle   # preview one skill
-#
-# Seeds = the methods a skill cites (Key files + `Class::method()`); callees resolved in lib/, 2 levels deep.
-# Logic: .ai/scripts/lib/callpaths.py (python3, standard library only).
+# scan-callpaths.sh — generated call path + related skills of every skill, and .ai/context/callgraph.json.
+#   bash .ai/scripts/knowledge/scan-callpaths.sh                 # report what would change
+#   bash .ai/scripts/knowledge/scan-callpaths.sh --update        # write it
+#   bash .ai/scripts/knowledge/scan-callpaths.sh --show <skill>  # print one skill's call path
+# Logic: .ai/scripts/lib/callpaths.ts (Node ≥ 22.6, no dependencies) — also: node .ai/scripts/cli.ts callpaths [args…]
 set -euo pipefail
-LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")/../lib" && pwd)"
-exec python3 -I "$LIB/callpaths.py" "$@"
+CLI="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/cli.ts"
+exec node --experimental-strip-types --no-warnings "$CLI" callpaths "$@"

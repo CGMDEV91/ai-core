@@ -15,6 +15,7 @@ PROJECT_DIR="$(cd "$AI_DIR/.." && pwd)"
 
 [ -d "$AI_DIR/.git" ]       || { echo "ERROR: $AI_DIR is not a git clone of the knowledge repo" >&2; exit 1; }
 [ -d "$PROJECT_DIR/.git" ]  || { echo "ERROR: $PROJECT_DIR is not a git checkout" >&2; exit 1; }
+command -v node >/dev/null 2>&1 || { echo "ERROR: Node ≥ 22.6 is required (node.js.org; on Windows the opencode desktop app bundles its own, the CLI tools need one in PATH)" >&2; exit 1; }
 [ -d "$PROJECT_DIR/lib/modules" ] || { echo "ERROR: $PROJECT_DIR has no lib/modules — not the Drupal checkout this .ai belongs to" >&2; exit 1; }
 
 bash "$AI_DIR/scripts/setup/hooks.sh" install
@@ -56,13 +57,13 @@ done
 
 # opencode's own package.json in <project>/.opencode: declare ES modules so Node-based runtimes (the desktop app)
 # do not re-parse every stub (the versioned code has its own package.json in .ai/scripts/opencode/).
-if [ -f "$PROJECT_DIR/.opencode/package.json" ] && command -v python3 >/dev/null 2>&1; then
-    python3 -I -c 'import json,sys; p=sys.argv[1]; d=json.load(open(p)); d.setdefault("type","module"); open(p,"w").write(json.dumps(d,indent=2)+"\n")' "$PROJECT_DIR/.opencode/package.json"
+if [ -f "$PROJECT_DIR/.opencode/package.json" ]; then
+    node -e 'const f=process.argv[1],fs=require("fs"),d=JSON.parse(fs.readFileSync(f,"utf8"));d.type??="module";fs.writeFileSync(f,JSON.stringify(d,null,2)+"\n")' "$PROJECT_DIR/.opencode/package.json"
 fi
 
 # generated indexes the tools read
 bash "$AI_DIR/scripts/knowledge/scan-index.sh" --update >/dev/null && echo "✔ code index"
-python3 -I "$AI_DIR/scripts/lib/apiindex.py" --update && echo "✔ API index (hook signatures of the installed Drupal)"
+node --experimental-strip-types --no-warnings "$AI_DIR/scripts/cli.ts" apiindex --update && echo "✔ API index (hook signatures of the installed Drupal)"
 
 [ -f "$PROJECT_DIR/AGENTS.md" ] || { cp "$AI_DIR/example.AGENTS.md" "$PROJECT_DIR/AGENTS.md"; echo "✔ AGENTS.md"; }
 [ -f "$PROJECT_DIR/CLAUDE.md" ] || { cp "$AI_DIR/example.CLAUDE.md" "$PROJECT_DIR/CLAUDE.md"; echo "✔ CLAUDE.md"; }

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0 — 2026-11-10
+
+- **Runtime in TypeScript** (phase 2): `node .ai/scripts/cli.ts <command>` — gate, apiindex, impact, callpaths,
+  codeindex, references, touchpoints, review, knownissues, md2html. Node ≥ 22.6, no npm dependency, no Python, no
+  awk. The `.sh` wrappers stay (same commands, same flags) and only call the CLI.
+- Same output as the Python version: 17 golden cases byte-identical, plus the real project (code-index.json,
+  callgraph.json, skills after `callpaths --update`, api-index.json, INDEX.md, every doc through md2html, the impact
+  backtest). One deliberate change: touchpoints walks folders in sorted order (Python used the file system's order,
+  which differs between ext4 and NTFS); the review digest names its wrapper instead of the .py file.
+- Windows native (node.exe): same output as Linux for impact, callpaths, codeindex, apiindex, touchpoints, knownissues.
+  Fixed on the way: path filters received `\` separators on Windows.
+- `install.py` is still Python: it becomes `install.ps1` / `install.sh` → `node … install` in phase 3.
+
 ## 0.1.1 — 2026-11-10
 
 - `install.py --promote [--add PATH --layer core|stacks/<s>]`: the way back — managed files edited in a project's

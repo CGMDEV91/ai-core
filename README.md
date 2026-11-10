@@ -9,7 +9,8 @@ core/compose/    files composed from parts: core rules, orchestrator, architect 
 core/parts/      default parts (used only when neither the stack nor the project has one)
 stacks/<name>/   what a stack adds — gate, indexes, lint, opencode.json, wiring; adapter.json = its vars and defaults
 stacks/<name>/parts/   the stack's parts for core/compose
-install.py       install · --adopt · --update · --status (standard-library Python for now)
+core/scripts/cli.ts    the runtime: node .ai/scripts/cli.ts <command> — TypeScript, Node ≥ 22.6, no dependencies; Linux, WSL, Windows
+install.py       install · --adopt · --update · --status · --promote (standard-library Python until phase 3)
 ```
 
 ## Install into a project

@@ -1,0 +1,6 @@
+{
+  "name": "ai-core-scripts",
+  "private": true,
+  "type": "module",
+  "description": "ai-core deterministic tools (node .ai/scripts/cli.ts <command>); Node >= 22.6, no dependencies"
+}

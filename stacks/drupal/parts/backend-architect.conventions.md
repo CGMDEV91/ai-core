@@ -1,3 +1,3 @@
-- Every hook, interface or event the plan names carries its real signature: the hook signature comes from `where` kind `hook` (or `python3 -I .ai/scripts/lib/apiindex.py --show <hook>`): copy it and cite its `*.api.php` line — never from memory, the plan or another module
+- Every hook, interface or event the plan names carries its real signature: the hook signature comes from `where` kind `hook` (or `node .ai/scripts/cli.ts apiindex --show <hook>`): copy it and cite its `*.api.php` line — never from memory, the plan or another module
 - All services injected via constructor, registered in `module.services.yml`
 - After any structural change: `{{drush}} cr` and `bash .ai/scripts/knowledge/scan-index.sh --update` so `where` sees new services

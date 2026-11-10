@@ -234,7 +234,7 @@ def main(argv: list[str]) -> int:
     if not lock["files"] and not a.adopt and any((ai / r).exists() and (ai / r).read_bytes() != b for r, b in want.items()):
         print("NOTE: .ai already has files at managed paths with different content — they are kept; the new versions go to"
               " *.ai-core-new. Re-run with --adopt to take ai-core's versions (migration).")
-    written, kept, removed, same = [], [], [], 0
+    written, kept, removed, gone, same = [], [], [], [], 0
     for rel, data in sorted(want.items()):
         p = ai / rel
         if p.exists():
@@ -262,10 +262,11 @@ def main(argv: list[str]) -> int:
                 if not a.dry_run:
                     p.unlink()
             else:
-                kept.append(rel + " (no longer in ai-core, edited by hand — left)")
+                gone.append(rel)
     if not a.dry_run:
         new_lock = {"version": version, "stacks": [s["name"] for s in cfg["stacks"]],
-                    "files": {r: sha((ai / r).read_bytes()) if r in kept else sha(b) for r, b in want.items()}}
+                    "files": {**{r: lock["files"][r] for r in gone},
+                              **{r: sha((ai / r).read_bytes()) if r in kept else sha(b) for r, b in want.items()}}}
         lock_file.write_text(json.dumps(new_lock, indent=1, sort_keys=True) + "\n")
         cfg["aiCore"] = version
         cfg_file.write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n")
@@ -276,7 +277,9 @@ def main(argv: list[str]) -> int:
     for r in removed:
         print(f"  - {r}")
     for r in kept:
-        print(f"  ! {r} — edited by hand: new version in {r.split(' ')[0]}.ai-core-new, merge it by hand")
+        print(f"  ! {r} — edited by hand: new version in {r}.ai-core-new, merge it by hand")
+    for r in gone:
+        print(f"  ! {r} — no longer in ai-core but edited by hand: left in place, delete it when it is not needed")
     wiring = ai / "scripts" / "setup" / "install.sh"
     if not a.dry_run and not a.no_wiring and wiring.exists():
         print("\n→ wiring the checkout (scripts/setup/install.sh)")
