@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.7.0 — 2026-11-10
+
+Architecture and integrations, generated and watched (phase 4b, Drupal stack):
+- `node .ai/scripts/cli.ts integrations --update` (`bash .ai/scripts/analysis/scan-integrations.sh`) writes
+  `context/integrations.md`: inbound REST resources (annotation + rest.resource config: paths, formats, auth), outbound
+  HTTP clients (calls and the config they read), OpenID Connect clients, mail policies and transports, hook_mail,
+  hook_cron, QueueWorkers and ultimate_cron jobs — each with file:line and config, a mermaid diagram module ↔
+  integration, and a `notes` block per integration (why · how it fails · how to test) that regeneration keeps.
+- One card per module in `context/modules/<module>.md` (services, routes, hooks, events, integrations + a kept
+  purpose note), from the code index.
+- Drift: without `--update` it compares with the snapshot `context/integrations.json` (ADDED / CHANGED config /
+  REMOVED) — part of `/scan` and of `/doctor`'s index check. `where <text> --kind integration` searches it.
+- On GI Portal: 5 REST resources, the web-services HTTP client, the OpenID client, 7 mail policies + 2 transports,
+  4 queue workers, 15 cron jobs; 26 module cards.
+
 ## 0.6.0 — 2026-11-10
 
 Stacks beyond Drupal (phase 4):

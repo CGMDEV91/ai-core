@@ -12,6 +12,10 @@
     [
       "callpaths",
       "--update"
+    ],
+    [
+      "integrations",
+      "--update"
     ]
   ],
   "fresh": [
@@ -20,6 +24,9 @@
     ],
     [
       "callpaths"
+    ],
+    [
+      "integrations"
     ]
   ],
   "tools": [
@@ -28,6 +35,7 @@
     "vendor/bin/drush"
   ],
   "onlyIfMissing": {
-    "callpaths": "context/callgraph.json"
+    "callpaths": "context/callgraph.json",
+    "integrations": "context/integrations.json"
   }
 }

@@ -9,6 +9,7 @@ bash .ai/scripts/knowledge/scan-callpaths.sh
 bash .ai/scripts/knowledge/scan-known-issues.sh
 bash .ai/scripts/analysis/scan-impact.sh --check
 bash .ai/scripts/knowledge/scan-references.sh
+bash .ai/scripts/analysis/scan-integrations.sh
 ```
 
 What to do with each drift:
@@ -16,6 +17,9 @@ What to do with each drift:
   `fields/<type>/<bundle>.md` FIRST (`.ai/context/content-model-scanner.md`), then `--update`.
 - **code index, call paths, known-issues index** → generated: just run the script with `--update`
   (services, routes, hooks, event subscribers need no doc).
+- **integrations** (ADDED / CHANGED / REMOVED: a REST resource, an HTTP client's config, OpenID, a mail policy, a cron
+  job or a queue) → read that entry's notes in `.ai/context/integrations.md` (how it fails, how to test it) and tell the
+  human what may need re-testing; then `--update` (the notes are kept; module cards in `.ai/context/modules/` too).
 - **skills citing code that no longer exists** (`scan-impact --check`) → propose the skill fix.
 - **references** → `/audit`.
 

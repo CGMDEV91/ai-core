@@ -29,6 +29,8 @@ export function loadIndex(worktree: string): any {
   const data = JSON.parse(readFileSync(path, "utf-8"))
   const api = join(worktree, ".ai", "context", "api-index.json")
   if (existsSync(api)) data.__api = JSON.parse(readFileSync(api, "utf-8"))
+  const ints = join(worktree, ".ai", "context", "integrations.json")
+  if (existsSync(ints)) data.__int = JSON.parse(readFileSync(ints, "utf-8")).integrations ?? {}
   cache = { path, data }
   return cache.data
 }
@@ -97,6 +99,12 @@ export function where(idx: any, query: string, kind = "any", limit = 12): string
       const n = hook.toLowerCase().replace(/^hook_/, "")
       if (q2.length >= 4 && (n === q2 || n.includes(q2)))
         hits.push({ score: n === q2 ? 97 : 62, text: `api  ${h.sig}\n  ${h.file}:${h.line}  (Drupal ${idx.__api.version}) — copy this signature` })
+    }
+  }
+  if (want("integration")) {
+    for (const [id, i] of Object.entries<any>(idx.__int ?? {})) {
+      if (`${id} ${i.kind} ${i.file}`.toLowerCase().includes(ql))
+        hits.push({ score: id.toLowerCase().endsWith(ql) ? 92 : 58, text: `integration  ${id} (${i.kind})  ${i.file}${Object.keys(i.config ?? {}).length ? `\n  config: ${Object.keys(i.config).slice(0, 4).join(", ")}` : ""}\n  notes: .ai/context/integrations.md` })
     }
   }
   if (want("field")) {
