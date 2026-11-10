@@ -113,6 +113,11 @@ function opencode(): void {
   const load = spawnSync(process.execPath, [...process.execArgv, fileURLToPath(new URL("../cli.ts", import.meta.url)), "ocload"], { encoding: "utf-8", cwd: ROOT, timeout: 60_000 })
   if (load.status === 0) add("OK", "opencode load", "plugins and tools load as opencode loads them")
   else add("FAIL", "opencode load", `${(load.stdout ?? "").trim().split("\n").slice(0, 3).join(" · ") || "error"} — opencode will fail to reload the project (no models)`, "install.sh <project> --update (or upgrade.sh); if it persists, report it to the ai-core maintainer")
+  const pc = spawnSync(process.execPath, [...process.execArgv, fileURLToPath(new URL("../cli.ts", import.meta.url)), "promptcheck", "--cached"], { encoding: "utf-8", cwd: ROOT, timeout: 30000 })
+  const pcOut = (pc.stdout ?? "").trim().split("\n"), [, nb, nu] = (pcOut.at(-1) ?? "").match(/^(\d+) blocked · (\d+) not checked/) ?? []
+  if (Number(nb)) add("FAIL", "prompts", `${nb} blocked by the gateway's injection detector (${pcOut.slice(0, -1).map((l) => l.replace(/^BLOCKED /, "")).join(", ")}) — the command fails with "Request blocked"`, "node .ai/scripts/cli.ts promptcheck (shows the lines to reword)")
+  else if (Number(nu)) add("INFO", "prompts", `${nu} not checked against the model gateway yet`, "node .ai/scripts/cli.ts promptcheck")
+  else if (nb !== undefined) add("OK", "prompts", "every command, agent, rule and skill passes the gateway's guardrail")
   const missing: string[] = []
   for (const kind of ["tool", "plugin"]) {
     const from = join(AI, "scripts", "opencode", kind)

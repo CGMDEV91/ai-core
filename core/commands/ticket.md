@@ -8,7 +8,7 @@ Options anywhere in the arguments (remove them from the request text):
 
 This command is the whole procedure (no other process file to load):
 
-1. **Environment.** You are in the `{{repo}}` root and `.ai/` exists — if not, say so and stop.
+1. **Workspace check.** Run `ls .ai/project.json` from the `{{repo}}` root; when it is missing, report it and end here.
    Get the date (`date`). Decide once whether you need the `wsl.exe` wrapper (`.ai/core-rules.md` rule 6).
    **Team knowledge up to date:** `bash .ai/scripts/setup/ai-status.sh`. `BEHIND n` → tell the human and propose
    `git -C .ai pull` before starting (other devs' skills, known issues and tickets are missing; the git hooks rebuild

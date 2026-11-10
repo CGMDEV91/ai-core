@@ -11,6 +11,9 @@
 //                                                   (a migration of an existing .ai, or local edits that were only tests)
 //   install <project> --uninstall                   remove the wiring (hooks, opencode.json, stubs); knowledge stays
 //   --no-wiring: write .ai only (no hooks / opencode / indexes) · --no-doctor
+//   Tools (git, ddev, docker, php, java, npm… — what the stacks / exec / agents need): checked on a first install or
+//   --reconfigure; each missing one is offered with its install command (asks y/N). --install-deps installs without
+//   asking (also on --update) · --no-deps skips the check. Later, from the project: node .ai/scripts/cli.ts deps --install
 //
 // Layers, copied into <project>/.ai/ at the same relative path: core/ (the workflow) · stacks/<name>/ (gate, indexes,
 // lint, opencode.json, wiring; adapter.json = its vars and defaults) · core/compose/<path> = templates COMPOSED with
@@ -24,6 +27,7 @@ import { chmodSync, existsSync, mkdirSync, readdirSync, readFileSync, statSync, 
 import { basename, dirname, join, relative, resolve } from "node:path"
 import { createInterface } from "node:readline/promises"
 import { fileURLToPath } from "node:url"
+import { ensure, needed } from "./core/scripts/lib/deps.ts"
 import { cmp, comparePaths, walk } from "./core/scripts/lib/util.ts"
 
 const CORE = dirname(fileURLToPath(import.meta.url))
@@ -36,7 +40,7 @@ const say = (s = "") => console.log(s)
 const COLOR = process.stdout.isTTY && !process.env.NO_COLOR
 const paint = (code: string) => (t: string) => (COLOR ? `\x1b[${code}m${t}\x1b[0m` : t)
 const bold = paint("1"), dim = paint("2"), green = paint("32"), yellow = paint("33"), cyan = paint("36")
-const STEPS = 5
+const STEPS = 6
 const step = (n: number, title: string) => say(`\n${cyan(bold(`[${n}/${STEPS}]`))} ${bold(title)}`)
 const homeRel = (p: string) => (process.env.HOME && p.startsWith(process.env.HOME) ? "~" + p.slice(process.env.HOME.length) : p)
 const git = (dir: string, ...a: string[]) => { const r = spawnSync("git", ["-C", dir, ...a], { encoding: "utf-8" }); return r.status === 0 ? (r.stdout ?? "").trim() : "" }
@@ -236,10 +240,10 @@ const sortKeys = (o: any): any => (o && typeof o === "object" && !Array.isArray(
 // ── main ─────────────────────────────────────────────────────────────────────
 type Args = { project: string; stack: string[]; name?: string; exec?: string; lang?: string; agents?: string; yes: boolean; update: boolean;
   adopt: boolean; status: boolean; promote: boolean; add: string[]; layer?: string; dry: boolean; wiring: boolean; doctor: boolean;
-  reconfigure: boolean; uninstall: boolean; verbose?: boolean }
+  reconfigure: boolean; uninstall: boolean; verbose?: boolean; deps: "check" | "install" | "skip" }
 function parse(argv: string[]): Args {
   const a: Args = { project: "", stack: [], yes: false, update: false, adopt: false, status: false, promote: false, add: [], dry: false,
-    wiring: true, doctor: true, reconfigure: false, uninstall: false }
+    wiring: true, doctor: true, reconfigure: false, uninstall: false, deps: "check" }
   for (let i = 0; i < argv.length; i++) {
     const o = argv[i], v = () => argv[++i] ?? die(`${o} needs a value`)
     if (o === "--stack") a.stack.push(...v().split(","))
@@ -260,6 +264,8 @@ function parse(argv: string[]): Args {
     else if (o === "--reconfigure") a.reconfigure = true
     else if (o === "--uninstall") a.uninstall = true
     else if (o === "--verbose") a.verbose = true
+    else if (o === "--install-deps") a.deps = "install"
+    else if (o === "--no-deps") a.deps = "skip"
     else if (o === "-h" || o === "--help") { say(readFileSync(fileURLToPath(import.meta.url), "utf-8").split("\nimport ")[0].replace(/^\/\/ ?/gm, "")); process.exit(0) }
     else if (o.startsWith("--")) die(`unknown option ${o}`)
     else a.project = o
@@ -282,6 +288,11 @@ async function main(argv: string[]): Promise<number> {
   let conf: any = existsSync(cfgFile) ? readJson(cfgFile) : null
   const first = !conf
   if (!conf || a.reconfigure) conf = await configure(project, a, conf)
+  if (!a.promote && !a.status && !a.dry && a.deps !== "skip" && (first || a.reconfigure || a.deps === "install")) {
+    step(3, `Tools this project needs ${dim("— from its stacks, where they run and its agents")}`)
+    const left = await ensure(needed(conf, project), { interactive: !a.yes, auto: a.deps === "install", out: { say, ok: green, warn: yellow, dim, bold } })
+    if (left.length) say(`  ${yellow("⚠")} still missing: ${left.map((t) => t.id).join(", ")} ${dim("— the install goes on; the gate reports what cannot run. Later: node .ai/scripts/cli.ts deps --install")}`)
+  }
   const lockFile = join(ai, LOCK)
   const lock = existsSync(lockFile) ? readJson(lockFile) : { files: {} }
   const { want, sources } = plan(project, conf)
@@ -333,7 +344,7 @@ async function main(argv: string[]): Promise<number> {
     if (origin && !conf.aiCoreRepo) conf.aiCoreRepo = origin   // where upgrade.sh clones ai-core from on another machine
     writeFileSync(cfgFile, JSON.stringify(conf, null, 2) + "\n")
   }
-  if (!a.dry && !a.update && !a.status) step(3, "Installing the workflow into .ai/")
+  if (!a.dry && !a.update && !a.status) step(4, "Installing the workflow into .ai/")
   say(`  ${a.dry ? "(dry run) " : ""}ai-core ${VERSION} → ${homeRel(ai)}: ${green(`${written.length} written`)}, ${same} unchanged, ${removed.length} removed, ${kept.length ? yellow(`${kept.length} kept`) : "0 kept"}`)
   if (written.length > 15 && !a.verbose) {
     const groups = new Map<string, number>()
@@ -359,7 +370,7 @@ async function main(argv: string[]): Promise<number> {
   if (newRepo) { spawnSync("git", ["init", "-q", "-b", "main", ai]); say(`  ${green("✔")} .ai is a new git repository ${dim("— it is the team's knowledge: it needs its own remote (see Next)")}`) }
   if (!existsSync(join(project, ".git"))) { say(`  ${yellow("⚠")} ${project} is not a git checkout: hooks and exclude are skipped`); return 0 }
   if (a.wiring) {
-    step(4, "Wiring the checkout (hooks, exclude, opencode / Claude Code, indexes)")
+    step(5, "Wiring the checkout (hooks, exclude, opencode / Claude Code, indexes)")
     const r = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(ai, "scripts", "cli.ts"), "setup"], { cwd: project, encoding: "utf-8" })
     for (const l of ((r.stdout ?? "") + (r.stderr ?? "")).split("\n"))
       if (l.trim() && !/^Done\. Open a NEW/.test(l) && !/^✔ (tool|plugin|exclude \+=) /.test(l)) say(`  ${l.split(project).join(".").split(homeRel(project)).join(".")}`)
@@ -367,7 +378,11 @@ async function main(argv: string[]): Promise<number> {
     if (tools) say(`  ✔ ${tools} opencode tool/plugin stubs in .opencode/ · AI files excluded from the project's git`)
     if (r.status !== 0) return 1
   }
-  if (a.wiring && a.doctor) { step(5, "Checking (doctor)"); runCli(ai, "doctor") }
+  if (a.wiring && a.doctor) {
+    step(6, `Checking ${dim("— the prompts against the model gateway, then the doctor")}`)
+    if (a.deps !== "skip") runCli(ai, "promptcheck")   // a guardrail that blocks /ticket is found now, not in the first session
+    runCli(ai, "doctor")
+  }
   summary(project, conf, Object.keys(readJson(lockFile).files ?? {}).length, starters)
   return 0
 }

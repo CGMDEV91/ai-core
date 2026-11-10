@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.11.0 — 2026-11-10
+
+- **Installer: tools step.** From the stacks, where the tools run and the agents it works out what this machine needs
+  (git, ddev + docker, php + composer, java + mvn/gradle without a wrapper, npm), shows version or "missing" and offers to
+  install each missing one with its command for this system (apt, dnf, brew, winget, or the official ddev / docker / nvm
+  scripts) — it asks y/N. `--install-deps` installs without asking, `--no-deps` skips it. `install.sh` / `install.ps1`
+  do the same for Node ≥ 22.6 (nvm, no sudo / winget) and git before the installer starts. Later: `cli deps [--install]`.
+- **Fix: `/ticket` failed with "Request blocked: prompt injection attempt detected"** on a model gateway with an
+  injection guardrail. Its ML detector read "You are in the `actg` root…" (and "how the agent should behave" in
+  /learn) as an attempt to change the assistant's role. Both lines reworded.
+- **`cli promptcheck`**: sends every command, agent, rule and skill to the gateway opencode uses (the build agent's
+  provider; `{env:…}` keys, Windows variables from WSL) and names the exact lines it blocks (bisection, a few calls per
+  file); results cached per content in `.ai/promptcheck.local.json`. The installer runs it, `/doctor` shows a
+  **prompts** row from the cache. Found one more in giportal: a skill line "…overrides all rules".
+- Tests: `tests/deps.test.mts` (tools per configuration; promptcheck against a fake gateway).
+
 ## 0.10.3 — 2026-11-10
 
 - `cli ocload` loads the opencode plugins and tools the way opencode does (every plugin export called, every tool
