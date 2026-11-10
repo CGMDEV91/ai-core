@@ -110,6 +110,7 @@ A blocked line in a skill or a project part: reword it there (same meaning, no "
 | "Request blocked: prompt injection attempt detected" | the gateway's detector blocked a line of a prompt | `node .ai/scripts/cli.ts promptcheck` → reword the line |
 | `/doctor` from opencode for Windows: hooks, exclude, ddev FAIL | Windows has no git / ddev for a WSL project (before 0.10.3) | update; commands re-run inside WSL |
 | `.claude/skills missing` on Windows | a WSL symlink is not visible from Windows | run the doctor from WSL, or update (≥ 0.10.3) |
+| `code checks` WARN: phpcs / phpstan not set up | composer.json never required them, or no config file | `node .ai/scripts/cli.ts qa --setup` (asks each step) — or `qa --off` if the project goes without them |
 | the gate says NOT RUN for a check | a tool is missing in the exec environment | `node .ai/scripts/cli.ts deps --install`, `composer install` / `npm ci` |
 | hooks do not run on Windows | Git for Windows without `usr\bin\sh.exe` | reinstall Git for Windows (complete) |
 | `upgrade.sh: No such file` | `.ai` from before 0.9 | `~/devel/ai-core/install.sh <project> --update` once |

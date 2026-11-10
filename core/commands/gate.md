@@ -8,4 +8,4 @@ run as passed.
 
 ## Next
 
-End your reply with one `▶ Next:` line for the human, chosen by the result: FAIL → fix the NEW errors, then `/gate` again · PASS with blocks left → "go" with the next block · PASS, last block → `/impact <key>` · config of this ticket not imported → `ddev drush cim` first.
+End your reply with one `▶ Next:` line for the human, chosen by the result: FAIL → fix the NEW errors, then `/gate` again · PASS with blocks left → "go" with the next block · PASS, last block → `/impact <key>` · config of this ticket not imported → `ddev drush cim` first. · phpcs / phpstan NOT RUN because they are not set up (no config, not in composer.json) → do not call the gate passed: ask once whether to set them up now (`node .ai/scripts/cli.ts qa`, then on yes `qa --setup --yes`) or whether the project goes without them (`qa --off`).

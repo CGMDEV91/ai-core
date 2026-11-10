@@ -19,6 +19,8 @@ import { basename, extname } from "node:path"
 import { build, checkFile, moduleOf } from "./apiindex.ts"
 import { AI, ROOT, codePaths, drushPrefix, runPrefix, stack } from "./project.ts"
 import { cut, dumps, mtime, plen, read, sh, splitlines, today } from "./util.ts"
+import { configOf } from "./qa.ts"
+
 
 const STACK = stack("drupal")
 const RUN = runPrefix(STACK), DRUSH = drushPrefix(STACK), CODE = codePaths(STACK)
@@ -122,9 +124,14 @@ export function main(argv: string[]): number {
   const isNew = (f: string, line: number) => { const t = touched.get(f); return t === null || t === undefined || t.has(line) }
   const rows: Row[] = [], newErrs: string[] = [], oldErrs: string[] = [], evidence: string[] = []
 
+  // phpcs / phpstan: off by project decision (project.json gateSkip → SKIPPED, never NOT RUN), or no config file
+  const skip = (STACK.gateSkip as string[] | undefined) ?? [], OFF = "off — project decision (project.json gateSkip; node .ai/scripts/cli.ts qa --on)"
+  const PHPCS = configOf(ROOT, "phpcs"), PHPSTAN = configOf(ROOT, "phpstan")
   // phpcs
-  if (php.length) {
-    const [rc, out] = sh([...RUN, "./vendor/bin/phpcs", "--standard=phpcs.xml", "--report=emacs", "-q", ...php])
+  if (skip.includes("phpcs")) rows.push(["phpcs", "SKIPPED", OFF])
+  else if (php.length && !PHPCS) rows.push(["phpcs", "NOT RUN", "no phpcs.xml — node .ai/scripts/cli.ts qa (or qa --off)"])
+  else if (php.length) {
+    const [rc, out] = sh([...RUN, "./vendor/bin/phpcs", `--standard=${PHPCS}`, "--report=emacs", "-q", ...php])
     const hits = splitlines(out).map((l) => l.match(/^(?:\/var\/www\/html\/)?(\S+?):(\d+):\d+: (error|warning) - (.*)$/)).filter(Boolean) as RegExpMatchArray[]
     if (![0, 1, 2].includes(rc) && !hits.length) rows.push(["phpcs", "NOT RUN", clean(last(out, rc))])
     else {
@@ -136,8 +143,10 @@ export function main(argv: string[]): number {
   } else rows.push(["phpcs", "SKIPPED", "no PHP files"])
 
   // phpstan (JSON: no human/agent prose in the output)
-  if (php.length) {
-    const [rc, out] = sh([...RUN, "./vendor/bin/phpstan", "analyse", "--memory-limit=-1", "--configuration=phpstan.neon",
+  if (skip.includes("phpstan")) rows.push(["phpstan", "SKIPPED", OFF])
+  else if (php.length && !PHPSTAN) rows.push(["phpstan", "NOT RUN", "no phpstan.neon — node .ai/scripts/cli.ts qa (or qa --off)"])
+  else if (php.length) {
+    const [rc, out] = sh([...RUN, "./vendor/bin/phpstan", "analyse", "--memory-limit=-1", `--configuration=${PHPSTAN}`,
       "--no-progress", "--error-format=json", ...php])
     const start = out.indexOf('{"totals"')
     let data: any = null

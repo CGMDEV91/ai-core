@@ -28,6 +28,7 @@ import { basename, dirname, join, relative, resolve } from "node:path"
 import { createInterface } from "node:readline/promises"
 import { fileURLToPath } from "node:url"
 import { ensure, needed } from "./core/scripts/lib/deps.ts"
+import * as qa from "./core/scripts/lib/qa.ts"
 import { cmp, comparePaths, walk } from "./core/scripts/lib/util.ts"
 
 const CORE = dirname(fileURLToPath(import.meta.url))
@@ -71,6 +72,33 @@ function detect(project: string): { stacks: Detected[]; exec: string; execWhy: s
     defaults: { paths: has("src") ? ["src"] : ["app"].filter(has), test: /"vitest"\s*:/.test(pkg) ? "vitest" : /"jest"\s*:/.test(pkg) ? "jest" : "none" } })
   const exec = has(".ddev/config.yaml") ? "ddev" : has("docker-compose.yml") || has("compose.yaml") || has("docker-compose.yaml") ? "docker" : "local"
   return { stacks: out, exec, execWhy: exec === "ddev" ? ".ddev/config.yaml" : exec === "docker" ? "a compose file" : "no ddev / compose file" }
+}
+
+/** Drupal: phpcs + phpstan set up for the gate? Set them up now (asking each step), off by project decision, or later
+ *  (then the summary's Next steps carry the commands). */
+async function codeChecks(project: string, conf: any, a: Args): Promise<void> {
+  const q = qa.state(conf, project)
+  if (!q.applies) return
+  if (qa.ok(q)) { if (q.off.length < qa.CHECKS.length) say(`  ${green("✔")} ${"checks".padEnd(9)} ${"phpcs".padEnd(10)} ${dim(`${q.phpcs ?? "off"} · phpstan ${q.phpstan ?? "off"} — the gate runs them`)}`); return }
+  say(`  ${yellow("✖")} ${"checks".padEnd(9)} ${yellow("phpcs/phpstan".padEnd(10))} ${dim(q.missing.join(" · "))}`)
+  const interactive = !a.yes && process.stdin.isTTY
+  let choice = a.deps === "install" ? "s" : "l"
+  if (interactive) {
+    say(`  ${dim("The gate runs phpcs and phpstan on every change. Without them each gate ends INCOMPLETE — unless the project decides to go without them.")}`)
+    const rl = createInterface({ input: process.stdin, output: process.stdout })
+    try { choice = ((await rl.question(`  ${cyan("?")} Code checks: ${bold("s")}et them up now (asks before each step) · ${bold("o")}ff for this project · ${bold("l")}ater ${dim("[l]")}: `)).trim().toLowerCase() || "l")[0] }
+    finally { rl.close() }
+  }
+  if (choice === "o") {
+    const s = conf.stacks.find((x: any) => x.name === "drupal")
+    s.gateSkip = [...new Set([...(s.gateSkip ?? []), ...qa.CHECKS])]
+    say(`  ${green("✔")} phpcs and phpstan off for this project ${dim("(project.json gateSkip — the gate marks them SKIPPED; undo: node .ai/scripts/cli.ts qa --on)")}`)
+  } else if (choice === "s") {
+    await qa.setup(project, q, a.deps === "install", (s) => say(s))
+    const after = qa.state(conf, project)
+    if (qa.ok(after)) say(`  ${green("✔")} phpcs and phpstan ready ${dim("— commit composer.json, composer.lock and the config files in the project")}`)
+    else say(`  ${yellow("⚠")} still to do: ${after.missing.join(" · ")} ${dim("— in Next steps")}`)
+  } else say(`  ${dim("→ later: the commands are in Next steps")}`)
 }
 
 async function ask(rl: ReturnType<typeof createInterface> | null, q: string, def: string, help = ""): Promise<string> {
@@ -292,6 +320,7 @@ async function main(argv: string[]): Promise<number> {
     step(3, `Tools this project needs ${dim("— from its stacks, where they run and its agents")}`)
     const left = await ensure(needed(conf, project), { interactive: !a.yes, auto: a.deps === "install", out: { say, ok: green, warn: yellow, dim, bold } })
     if (left.length) say(`  ${yellow("⚠")} still missing: ${left.map((t) => t.id).join(", ")} ${dim("— the install goes on; the gate reports what cannot run. Later: node .ai/scripts/cli.ts deps --install")}`)
+    await codeChecks(project, conf, a)
   }
   const lockFile = join(ai, LOCK)
   const lock = existsSync(lockFile) ? readJson(lockFile) : { files: {} }
@@ -450,7 +479,7 @@ function summary(project: string, conf: any, managed: number, starters: string[]
   row(".ai", `${managed} managed files · ${remote ? `remote ${remote}` : yellow("no remote yet")}`)
   row("Your parts", `${homeRel(join(ai, "project", "parts"))}${starters.length ? yellow(`  (${starters.join(", ")}: starter — improve)`) : ""}`)
   say(`${line}\n  ${bold("Next steps")}\n`)
-  const num = ["①", "②", "③", "④"]
+  const num = ["①", "②", "③", "④", "⑤"]
   let n = 0
   const head = (title: string, why: string) => say(`  ${cyan(bold(num[n++]))}  ${bold(title)}  ${dim("— " + why)}`)
   const shell = (cmd: string) => say(`        ${dim("$")} ${green(cmd)}`)
@@ -461,6 +490,17 @@ function summary(project: string, conf: any, managed: number, starters: string[]
     text(`edit ${bold(starters.join(" and "))} in ${bold(".ai/project/parts/")}`)
     text(dim("what it is, for whom, its conventions — then delete the STARTER line"))
     shell(`${homeRel(join(CORE, "install.sh"))} ${homeRel(project)} --update`)
+    say("")
+  }
+  const checks = qa.state(conf, project)
+  if (!qa.ok(checks)) {
+    head("Turn on the code checks", "without phpcs and phpstan every gate ends INCOMPLETE")
+    text(dim(checks.missing.join(" · ")))
+    text(`let it do it ${dim("(asks before each step)")}:`)
+    shell(`cd ${homeRel(project)} && node .ai/scripts/cli.ts qa --setup`)
+    text(dim("or by hand:"))
+    for (const st of checks.steps) st.cmd ? shell(st.cmd) : text(`${dim("write")} ${bold(st.file!)} ${dim("— node .ai/scripts/cli.ts qa shows a base to start from")}`)
+    text(`${dim("the project goes without them:")} ${green("node .ai/scripts/cli.ts qa --off")}`)
     say("")
   }
   if (!remote) {

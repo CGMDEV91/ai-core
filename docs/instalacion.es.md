@@ -111,6 +111,7 @@ as…», «behave…», «overrides all rules»). En un fichero gestionado por a
 | «Request blocked: prompt injection attempt detected» | el detector del gateway bloqueó una línea de un prompt | `node .ai/scripts/cli.ts promptcheck` → reescribe la línea |
 | `/doctor` desde opencode para Windows: FAIL en hooks, exclude, ddev | Windows no tiene git / ddev para un proyecto en WSL (antes de 0.10.3) | actualiza; los comandos se re-ejecutan en WSL |
 | `.claude/skills missing` en Windows | un symlink de WSL no se ve desde Windows | ejecuta el doctor desde WSL o actualiza (≥ 0.10.3) |
+| `code checks` WARN: phpcs / phpstan sin montar | el composer.json nunca los pidió, o falta el fichero de config | `node .ai/scripts/cli.ts qa --setup` (pregunta cada paso) — o `qa --off` si el proyecto prescinde de ellos |
 | el gate dice NOT RUN en una comprobación | falta una herramienta en el entorno de ejecución | `node .ai/scripts/cli.ts deps --install`, `composer install` / `npm ci` |
 | los hooks no corren en Windows | Git for Windows sin `usr\bin\sh.exe` | reinstala Git for Windows (completo) |
 | `upgrade.sh: No such file` | `.ai` anterior a 0.9 | `~/devel/ai-core/install.sh <proyecto> --update` una vez |

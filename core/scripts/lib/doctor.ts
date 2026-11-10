@@ -12,6 +12,7 @@ import * as claude from "./claude.ts"
 import { composedText } from "./opencode.ts"
 import { AI, ROOT, cfg, runPrefix, stack } from "./project.ts"
 import { read } from "./util.ts"
+import * as qa from "./qa.ts"
 
 type Row = [status: "OK" | "WARN" | "FAIL" | "INFO", check: string, detail: string, fix?: string]
 const rows: Row[] = []
@@ -152,10 +153,23 @@ function execEnv(stacks: string[]): void {
       if (!up.ok) { add("FAIL", `exec ${s.exec}`, `${s.exec} is not reachable — the gate cannot run`, s.exec === "ddev" ? "ddev start" : `start the ${s.exec} environment`); continue }
       add("OK", `exec ${s.exec}`, "reachable")
     } else add("INFO", "exec local", "tools run on this machine")
-    const missing = (m.tools ?? []).filter((t: string) => !run([...pre, "test", "-e", t]).ok && !(pre.length === 0 && existsSync(join(ROOT, t))))
+    // phpcs / phpstan have their own row (code checks): set up, missing (with the exact step) or off by decision
+    const tools = ((m.tools ?? []) as string[]).filter((t) => !(name === "drupal" && /vendor\/bin\/(phpcs|phpstan)$/.test(t)))
+    const missing = tools.filter((t: string) => !run([...pre, "test", "-e", t]).ok && !(pre.length === 0 && existsSync(join(ROOT, t))))
     if (missing.length) add("WARN", `${name} tools`, `missing: ${missing.join(", ")} — those gate checks will be NOT RUN`, "composer install (in the exec environment)")
-    else if ((m.tools ?? []).length) add("OK", `${name} tools`, (m.tools as string[]).join(", "))
+    else if (tools.length) add("OK", `${name} tools`, tools.join(", "))
   }
+  if (stacks.includes("drupal")) codeChecks()   // also when the exec environment is down: it reads files only
+}
+
+function codeChecks(): void {
+  const q = qa.state(cfg(), ROOT), on = qa.CHECKS.filter((c) => !q.off.includes(c))
+  if (!q.applies) return
+  if (!on.length) { add("INFO", "code checks", "phpcs, phpstan off — project decision (project.json gateSkip); the gate marks them SKIPPED"); return }
+  if (qa.ok(q)) { add("OK", "code checks", `${on.map((c) => `${c} (${q[c as "phpcs"]})`).join(", ")} ready for the gate${q.off.length ? ` · ${q.off.join(", ")} off by decision` : ""}`); return }
+  const first = q.steps[0]
+  add("WARN", "code checks", `${q.missing.join(" · ")} — the gate cannot run ${on.join(" / ")} (INCOMPLETE)`,
+    `node .ai/scripts/cli.ts qa --setup (asks before each step; first: ${first.cmd ?? `write ${first.file}`}) — or qa --off if the project goes without them`)
 }
 
 function remote(): void {

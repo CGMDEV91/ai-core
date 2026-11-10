@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.12.0 — 2026-11-11
+
+- **Code checks (Drupal: phpcs + phpstan) detected and set up, or turned off by decision.** `cli qa` says what is
+  missing and the exact step for it: the packages are not in composer.json → `composer config allow-plugins… &&
+  composer require --dev drupal/coder phpstan/phpstan mglaman/phpstan-drupal phpstan/extension-installer`; required
+  but not installed → `composer install`; no config → a base `phpcs.xml` (Drupal + DrupalPractice on the code paths)
+  and `phpstan.neon` (level 1). `qa --setup` asks before each step; `qa --off` / `--on` records that the project goes
+  without them (`project.json` stacks[].gateSkip → the gate marks them SKIPPED, not NOT RUN).
+- Installer: in the Tools step it asks *set them up now · off for this project · later*; pending → a Next step with
+  the commands. Doctor: row **code checks** (OK · WARN with the step · INFO off by decision) — before, it always said
+  "composer install", which does nothing when composer.json never required them. `/doctor` and `/gate` ask the human
+  the same question and run `qa --setup --yes` on a yes.
+- The gate and the lint after an edit use `phpcs.xml` / `phpcs.xml.dist` / `.phpcs.xml` and `phpstan.neon` /
+  `phpstan.neon.dist`, whichever exists.
+
 ## 0.11.0 — 2026-11-10
 
 - **Installer: tools step.** From the stacks, where the tools run and the agents it works out what this machine needs

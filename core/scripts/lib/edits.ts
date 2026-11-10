@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs"
 import { join, relative, isAbsolute } from "node:path"
 import { currentKey, ensureDiary, ticketFile } from "./knowledge.ts"
 import { runPrefix, stack } from "./project.ts"
+import { configOf } from "./qa.ts"
 import { runInProject } from "../opencode/tool/_lib.ts"
 
 export const EDIT_TOOLS = new Set(["edit", "write", "multiedit", "patch"])
@@ -40,11 +41,14 @@ export async function afterEdit(root: string, path: string): Promise<string> {
     if (!/^lib\/.*\.(php|module|inc|theme|install)$/.test(rel) && !/\/(modules|themes)\/custom\/.*\.(php|module|inc|theme|install)$/.test(rel)) return out
     if (process.env.AI_PHPCS_ON_EDIT === "0") return out
     const run = runPrefix(stack("drupal")).join(" ")   // ddev exec · docker compose exec -T <service> · (local)
-    const r = await runInProject(root, `${run ? run + " " : ""}./vendor/bin/phpcs --standard=phpcs.xml --report=emacs -q ${rel}`, 60000)
+    const standard = configOf(root, "phpcs")
+    if (!((stack("drupal").gateSkip as string[] | undefined) ?? []).includes("phpcs") && standard) {
+    const r = await runInProject(root, `${run ? run + " " : ""}./vendor/bin/phpcs --standard=${standard} --report=emacs -q ${rel}`, 60000)
     const lines = r.out.split("\n").filter((l) => /: (error|warning) - /.test(l))
     if (lines.length) out += `\n\n[phpcs on ${rel}] ${lines.length} issue(s):\n${lines.slice(0, 12).join("\n")}${lines.length > 12 ? "\n…" : ""}`
     else if (r.ok) out += `\n\n[phpcs on ${rel}] clean`
     else if (/not running|could not find|not found|No such file/i.test(r.out)) out += `\n\n[phpcs skipped: ${run ? `${stack("drupal").exec} not running` : "vendor/bin/phpcs not installed"}]`
+    }
     if (/\.(module|inc|theme|install|profile)$/.test(rel)) {
       const a = await runInProject(root, `node --experimental-strip-types --no-warnings .ai/scripts/cli.ts apiindex --check ${rel}`, 30000)
       if (/^ERROR /m.test(a.out)) out += `\n\n[api-signatures on ${rel}] hook signature does not match the installed Drupal — fix it now:\n${a.out.split("\n").filter((l) => /^ERROR |^  (expected|source):/.test(l)).slice(0, 9).join("\n")}`

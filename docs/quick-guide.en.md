@@ -101,6 +101,7 @@ numbered next steps. Then: a **new** opencode session in the project and `/docto
 |---|---|
 | opencode: no models, "Failed to reload" | `/doctor` from a terminal (`node .ai/scripts/cli.ts doctor`) — row **opencode load**; `upgrade.sh`, new session |
 | "Request blocked: prompt injection attempt detected" | `node .ai/scripts/cli.ts promptcheck` — names the line your gateway blocks; reword it |
+| the gate says phpcs / phpstan NOT RUN | `node .ai/scripts/cli.ts qa --setup` — or `qa --off` if the project goes without them |
 | a tool is missing (ddev, php, java…) | `node .ai/scripts/cli.ts deps --install` |
 | doctor FAIL on hooks / ddev from opencode for Windows on a WSL project | update to ≥ 0.10.3: commands re-run inside WSL |
 
