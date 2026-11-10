@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url"
 
 const lib = join(dirname(fileURLToPath(import.meta.url)), "lib")
 const [cmd, ...args] = process.argv.slice(2)
-const commands = readdirSync(lib).filter((f) => f.endsWith(".ts") && !["util.ts", "project.ts", "claude.ts"].includes(f)).map((f) => f.slice(0, -3))
+const commands = readdirSync(lib).filter((f) => f.endsWith(".ts") && !["util.ts", "project.ts", "claude.ts", "opencode.ts", "gatelib.ts"].includes(f) && !/^(gate|codeindex)-/.test(f)).map((f) => f.slice(0, -3))
 if (!cmd || !commands.includes(cmd)) {
   console.error(`usage: node .ai/scripts/cli.ts <command> [args…]\ncommands: ${commands.sort().join(", ")}`)
   process.exit(cmd ? 2 : 0)

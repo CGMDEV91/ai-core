@@ -5,7 +5,7 @@ import { ROOT } from "./project.ts"
 
 export function main(argv: string[]): number {
   const k = argv.indexOf("--kind"), kind = k >= 0 ? argv[k + 1] : "any"
-  const query = argv.filter((_, i) => i !== k && i !== k + 1).join(" ")
+  const query = argv.filter((_, i) => !(k >= 0 && (i === k || i === k + 1))).join(" ")
   if (!query) { console.error("usage: node .ai/scripts/cli.ts where <query> [--kind …]"); return 2 }
   console.log(where(loadIndex(ROOT), query, kind))
   return 0

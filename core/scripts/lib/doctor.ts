@@ -9,6 +9,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { isAbsolute, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import * as claude from "./claude.ts"
+import { composedText } from "./opencode.ts"
 import { AI, ROOT, cfg, runPrefix, stack } from "./project.ts"
 import { read } from "./util.ts"
 
@@ -86,10 +87,11 @@ function exclude(): void {
 }
 
 function opencode(): void {
-  const src = join(AI, "scripts", "setup", "opencode.json"), dst = join(ROOT, "opencode.json")
-  if (!existsSync(src)) { add("INFO", "opencode", "this stack ships no opencode.json"); return }
+  if (!(cfg().agents ?? ["opencode"]).includes("opencode")) return
+  const want = composedText(), dst = join(ROOT, "opencode.json")
+  if (!want) { add("INFO", "opencode", "no .ai/scripts/setup/opencode.json"); return }
   if (!existsSync(dst)) { add("FAIL", "opencode.json", "missing in the project root", SETUP); return }
-  if (read(dst) !== read(src)) add("WARN", "opencode.json", "differs from .ai/scripts/setup/opencode.json (edited by hand, or not re-installed after a pull)", SETUP)
+  if (read(dst) !== want) add("WARN", "opencode.json", "differs from .ai/scripts/setup/opencode*.json (edited by hand, or not re-installed after a pull)", SETUP)
   else {
     const refs = [...read(dst).matchAll(/\{file:([^}]+)\}/g)].map((m) => m[1])
     const bad = refs.filter((r) => !existsSync(join(ROOT, r)))

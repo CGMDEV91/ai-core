@@ -1,4 +1,4 @@
-// gate.ts — the Drupal stack's gate as one deterministic run: phpcs, phpstan, api-signatures, drush cr, smoke, config:status.
+// gate-drupal.ts — the Drupal stack's gate as one deterministic run: phpcs, phpstan, api-signatures, drush cr, smoke, config:status.
 //
 // Why a script and not the raw commands: PHPStan 2.x detects AI agents and prints an "Instructions for interpreting
 // errors" block (fetch this URL, do not add…). Security rules rightly treat instructions inside tool output as prompt
@@ -7,7 +7,7 @@
 // Errors are split into NEW (on a line this change added or modified, or in a new file) and PRE-EXISTING (untouched
 // line): only NEW ones fail the gate; pre-existing ones are listed so nobody hides or "fixes" them by accident.
 //
-// Usage (project root): node .ai/scripts/cli.ts gate [--base REF] [--skip-drush] [files…]
+// Usage (project root): node .ai/scripts/cli.ts gate [--base REF] [--skip-drush] [files…]   (core gate.ts dispatches here)
 // Without files: the changed + untracked files under the stack's paths and configSync (git diff against REF, default HEAD).
 // Exit: 0 pass · 1 fail · 2 not run (exec environment down).
 //

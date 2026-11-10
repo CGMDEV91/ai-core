@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.6.0 — 2026-11-10
+
+Stacks beyond Drupal (phase 4):
+- **`react-ts`**: gate = eslint (JSON) + `tsc --noEmit` + vitest/jest (JSON) with NEW vs PRE-EXISTING (a failing test
+  always fails); tools run as `node <pkg>/bin/<x>.js` from the package's node_modules (no npx: same on Windows), or
+  through docker; the package folder is the nearest package.json above the paths (monorepos) or `"root"`. Code index of
+  components, functions, custom hooks, class methods, calls / JSX usage, react-router routes and i18n strings — `where`
+  and `callers` work as in Drupal. Rules and agents get React parts (reviewer checklist, architect, developer, gate).
+- **`generic`**: any project — the gate runs the commands in project.json (`"gate": [{ name, run, parser }]`; parser
+  `file-line` → NEW vs PRE-EXISTING, `exit` → exit code). Installer default when no stack is detected.
+- **Several stacks in one project**: core `gate.ts` / `codeindex.ts` dispatch to `gate-<stack>.ts` /
+  `codeindex-<stack>.ts` (each on its own paths; one section per stack + a combined RESULT); `opencode.json` is the
+  core one deep-merged with each stack's `opencode.<stack>.json` (bash rules ordered * → allow → ask → deny).
+  One stack → exactly the previous output (giportal's golden files unchanged).
+- Core `gatelib.ts` (changed files, touched lines, NEW/PRE, one output format) and default parts for agents of stacks
+  that bring none. `where` / `callers` argument parsing fixed.
+- ai-core's own tests: `node --experimental-strip-types --test tests/stacks.test.mts` (react-ts with fake tools, generic).
+- Not yet for react-ts / generic: `impact`, `touchpoints`, `callpaths`, `references` (they are Drupal's) — next.
+
 ## 0.5.0 — 2026-11-10
 
 Claude Code as a second target (phase 3b, option A: tools through the CLI). With `"agents": ["opencode", "claude-code"]`

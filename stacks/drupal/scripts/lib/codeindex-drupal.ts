@@ -1,18 +1,16 @@
-// codeindex.ts — the code index the opencode tools (`where`, `callers`) query. Writes .ai/context/code-index.json with,
+// codeindex-drupal.ts — the Drupal part of the code index the opencode tools (`where`, `callers`) query. Writes .ai/context/code-index.json with,
 // for the stack's code paths (custom modules + themes; project.json):
 //   methods   "Class::method()" / "function()" → file, start-end lines, callees, callers
 //   classes   Class → file · services  id → class (*.services.yml) · routes  name → path + handler (*.routing.yml)
 //   events    event name → handlers (getSubscribedEvents()) · hooks  hook name → implementations (.module/.inc/.theme)
 //   fields    field_* → where it is used (code, Twig, config/sync) · strings  t('…') literal → where it is written
 //   mentions  "Class::method()" → skills and known issues that cite it
-//   node .ai/scripts/cli.ts codeindex [--update]          (wrapper: bash .ai/scripts/knowledge/scan-index.sh)
-import { statSync, writeFileSync } from "node:fs"
+//   built through node .ai/scripts/cli.ts codeindex [--update] (core: merges every stack's build())
 import { callees, indexCode } from "./callpaths.ts"
 import * as impact from "./impact.ts"
 import { ROOT, walkCode } from "./project.ts"
-import { dumps, isFile, read, splitlines, walk } from "./util.ts"
+import { isFile, read, splitlines, walk } from "./util.ts"
 
-const OUT = `${impact.AI_DIR}/context/code-index.json`
 const MAX_LOCS = 8
 const YML_SERVICE = /^  ([a-z_][\w.]*):\s*$/
 const YML_CLASS = /^\s+class:\s*'?\\?([\w\\]+)'?/
@@ -156,18 +154,4 @@ export function build(): any {
   return { generated_by: "bash .ai/scripts/knowledge/scan-index.sh --update", methods: obj(methods), classes: obj(classes),
     services: obj(services), routes: obj(routes), events: obj(events), hooks: obj(hooks), fields: obj(fields),
     strings: obj(strings), mentions: obj(mentions) }
-}
-
-export function main(argv: string[]): number {
-  const data = build()
-  const text = dumps(data, undefined, true, false, [",", ":"]) + "\n"
-  const stats = Object.entries(data).filter(([, v]) => v && typeof v === "object").map(([k, v]) => `${Object.keys(v as object).length} ${k}`)
-  if (argv.includes("--update")) {
-    writeFileSync(OUT, text)
-    console.log(`code-index.json written (${Math.floor(statSync(OUT).size / 1024)} KB): ` + stats.join(", "))
-    return 0
-  }
-  console.log(isFile(OUT) && read(OUT) === text ? "NO CHANGES — code index is up to date."
-    : "code-index.json is out of date — run: bash .ai/scripts/knowledge/scan-index.sh --update")
-  return 0
 }

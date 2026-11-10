@@ -1,0 +1,27 @@
+{
+  "agent": {
+    "debugger": {
+      "permission": {
+        "bash": {
+          "ddev drush watchdog*": "allow",
+          "wsl.exe *ddev drush watchdog*": "allow"
+        }
+      }
+    },
+    "gate-runner": {
+      "description": "Runs the gate (phpcs, phpstan, drush cr, config status) on the changed files and returns pass/fail with only the error lines and the [VERIFIED] evidence strings. Use via /gate or after each implementation block."
+    }
+  },
+  "command": {
+    "gate": {
+      "description": "Run the gate (phpcs, phpstan, drush cr, config status) and get only pass/fail + error lines (gate-runner). Usage: /gate [paths]"
+    }
+  },
+  "permission": {
+    "bash": {
+      "ddev *": "allow",
+      "*drush cim*": "ask",
+      "*drush sql*": "ask"
+    }
+  }
+}

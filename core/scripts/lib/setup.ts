@@ -10,6 +10,7 @@ import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync, renameSync
 import { dirname, isAbsolute, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import * as claude from "./claude.ts"
+import { composedText } from "./opencode.ts"
 import { AI, ROOT, cfg, stack } from "./project.ts"
 import { read } from "./util.ts"
 
@@ -140,10 +141,10 @@ function install(indexes: boolean): number {
   for (const e of EXCLUDE) if (!lines.has(e)) { ex = ex.replace(/\n?$/, "\n") + e + "\n"; if (e !== "opencode.json.bak") say(`✔ exclude += ${e}`) }
   writeFileSync(exclude, ex)
 
-  const src = join(AI, "scripts", "setup", "opencode.json"), dst = join(ROOT, "opencode.json")
-  if (existsSync(src)) {
-    if (existsSync(dst) && read(dst) !== read(src)) { copyFileSync(dst, dst + ".bak"); say("✔ previous opencode.json saved as opencode.json.bak") }
-    copyFileSync(src, dst)
+  const oc = composedText(), dst = join(ROOT, "opencode.json")   // core opencode.json + each stack's opencode.<stack>.json
+  if (oc && (cfg().agents ?? ["opencode"]).includes("opencode")) {
+    if (existsSync(dst) && read(dst) !== oc) { copyFileSync(dst, dst + ".bak"); say("✔ previous opencode.json saved as opencode.json.bak") }
+    writeFileSync(dst, oc)
     say(`✔ opencode.json → ${dst}`)
   }
   // opencode tools and plugins: one-line stubs in <project>/.opencode/ (git-excluded) that load the versioned code.

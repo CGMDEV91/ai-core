@@ -1,0 +1,6 @@
+{
+  "name": "react-ts",
+  "indexes": [["codeindex", "--update"]],
+  "fresh": [["codeindex"]],
+  "tools": ["node_modules/typescript/bin/tsc", "node_modules/eslint/bin/eslint.js"]
+}

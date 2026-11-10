@@ -55,7 +55,8 @@ function detect(project: string): { stacks: Detected[]; exec: string; execWhy: s
   }
   if (has("pom.xml") || has("build.gradle") || has("build.gradle.kts")) out.push({ stack: "java", why: has("pom.xml") ? "pom.xml" : "build.gradle", defaults: {} })
   const pkg = text("package.json")
-  if (/"react"\s*:/.test(pkg) && has("tsconfig.json")) out.push({ stack: "react-ts", why: "package.json with react + tsconfig.json", defaults: {} })
+  if (/"react"\s*:/.test(pkg) && has("tsconfig.json")) out.push({ stack: "react-ts", why: "package.json with react + tsconfig.json",
+    defaults: { paths: has("src") ? ["src"] : ["app"].filter(has), test: /"vitest"\s*:/.test(pkg) ? "vitest" : /"jest"\s*:/.test(pkg) ? "jest" : "none" } })
   const exec = has(".ddev/config.yaml") ? "ddev" : has("docker-compose.yml") || has("compose.yaml") || has("docker-compose.yaml") ? "docker" : "local"
   return { stacks: out, exec, execWhy: exec === "ddev" ? ".ddev/config.yaml" : exec === "docker" ? "a compose file" : "no ddev / compose file" }
 }
@@ -75,7 +76,8 @@ async function configure(project: string, a: Args, current: any | null): Promise
   say(`  exec: ${d.exec} (${d.execWhy})`)
   const rl = a.yes || !process.stdin.isTTY ? null : createInterface({ input: process.stdin, output: process.stdout })
   try {
-    const detectedUsable = d.stacks.map((s) => s.stack).filter((s) => avail.includes(s))
+    let detectedUsable = d.stacks.map((s) => s.stack).filter((s) => avail.includes(s))
+    if (!detectedUsable.length && avail.includes("generic")) detectedUsable = ["generic"]   // nothing known: configured commands
     const defStacks = a.stack.length ? a.stack : current ? current.stacks.map((s: any) => s.name) : detectedUsable
     if (!defStacks.length && !rl) die(`no stack detected and none given — use --stack ${avail.join("|")}`)
     const stacks = (await ask(rl, `Stacks (${avail.join(", ")})`, defStacks.join(","))).split(",").map((s) => s.trim()).filter(Boolean)

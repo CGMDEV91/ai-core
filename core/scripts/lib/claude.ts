@@ -9,6 +9,7 @@
 // Used by setup (when project.json "agents" has "claude-code"), doctor (check) and setup --uninstall.
 import { cpSync, existsSync, lstatSync, mkdirSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
+import { composed } from "./opencode.ts"
 import { AI, ROOT } from "./project.ts"
 import { read } from "./util.ts"
 
@@ -19,8 +20,7 @@ export const CLAUDE_MD = "@.ai/core-rules.md\n@.ai/orchestrator.md\n@.ai/claude-
 const say = (s: string) => console.log(s)
 
 function opencodeJson(): any {
-  const f = join(AI, "scripts", "setup", "opencode.json")
-  return existsSync(f) ? JSON.parse(read(f)) : { agent: {}, command: {}, permission: {} }
+  return composed() ?? { agent: {}, command: {}, permission: {} }
 }
 
 /** opencode bash glob → Claude Code rules (prefix matches): "git diff*" → Bash(git diff:*). A leading * means

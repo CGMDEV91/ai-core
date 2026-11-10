@@ -1,0 +1,6 @@
+{
+  "name": "generic",
+  "description": "Any project: the gate runs the commands listed in project.json (stacks[].gate), NEW vs PRE-EXISTING for file:line output",
+  "vars": { "framework": "its own stack", "gateChecks": "the project's configured" },
+  "defaults": { "paths": ["src"], "exec": "local", "gate": [] }
+}

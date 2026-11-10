@@ -1,0 +1,6 @@
+{
+  "name": "react-ts",
+  "description": "React + TypeScript front end; gate = eslint (JSON) + tsc --noEmit + vitest/jest (JSON), NEW vs PRE-EXISTING",
+  "vars": { "framework": "React + TypeScript", "gateChecks": "eslint / tsc / tests" },
+  "defaults": { "paths": ["src"], "exec": "local", "test": "vitest" }
+}

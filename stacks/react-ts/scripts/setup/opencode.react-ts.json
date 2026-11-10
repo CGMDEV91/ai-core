@@ -1,0 +1,14 @@
+{
+  "permission": {
+    "bash": {
+      "npm run *": "allow",
+      "npm test*": "allow",
+      "npx eslint*": "allow",
+      "npx tsc*": "allow",
+      "npx vitest*": "allow",
+      "npx jest*": "allow",
+      "*npm install*": "ask",
+      "*npm publish*": "deny"
+    }
+  }
+}

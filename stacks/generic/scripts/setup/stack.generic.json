@@ -1,0 +1,5 @@
+{
+  "name": "generic",
+  "indexes": [["codeindex", "--update"]],
+  "tools": []
+}

@@ -1,0 +1,3 @@
+- Component tree with file locations and props
+- State: where it lives, who reads and writes it
+- API calls and their types; loading / error states
