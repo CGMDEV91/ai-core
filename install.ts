@@ -76,38 +76,35 @@ function detect(project: string): { stacks: Detected[]; exec: string; execWhy: s
 
 /** Drupal: phpcs + phpstan set up for the gate? Set them up now (asking each step), off by project decision, or later
  *  (then the summary's Next steps carry the commands). */
+/** Drupal: phpcs + phpstan set up for the gate? One question, yes by default: yes → every step now (composer
+ *  require, phpcs.xml, phpstan.neon); no → the project goes without them (gateSkip), said clearly. Without a terminal
+ *  (--yes, CI) nothing is changed in the project: the steps go to Next steps (--install-deps runs them). */
 async function codeChecks(project: string, conf: any, a: Args): Promise<void> {
   const q = qa.state(conf, project)
   if (!q.applies) return
   if (qa.ok(q)) { if (q.off.length < qa.CHECKS.length) say(`  ${green("✔")} ${"checks".padEnd(9)} ${"phpcs".padEnd(10)} ${dim(`${q.phpcs ?? "off"} · phpstan ${q.phpstan ?? "off"} — the gate runs them`)}`); return }
   say(`  ${yellow("✖")} ${"checks".padEnd(9)} ${yellow("phpcs/phpstan".padEnd(10))} ${dim(q.missing.join(" · "))}`)
   const interactive = !a.yes && process.stdin.isTTY
-  let choice = a.deps === "install" ? "s" : "l"
+  let yes = a.deps === "install"
   if (interactive) {
-    say(`  ${dim("The gate runs phpcs and phpstan on every change. Without them each gate ends INCOMPLETE — unless the project decides to go without them.")}`)
+    say(`  ${dim("The gate runs phpcs and phpstan on every change. Installing them:")}`)
+    for (const st of q.steps) say(`    ${dim("·")} ${st.cmd ? green(st.cmd) : `${bold(st.file!)} ${dim("— a base to adapt")}`}`)
     const rl = createInterface({ input: process.stdin, output: process.stdout })
-    say(`    ${bold("s")}  set them up now ${dim("— asks y/N before each step: composer require, phpcs.xml, phpstan.neon")}`)
-    say(`    ${bold("o")}  off for this project ${dim("— the gate marks them SKIPPED (undo: node .ai/scripts/cli.ts qa --on)")}`)
-    say(`    ${bold("l")}  later ${dim("— nothing now; the commands go to Next steps")}`)
-    try {
-      for (;;) {
-        const r = (await rl.question(`  ${cyan("?")} Code checks — type s, o or l ${dim("[l]")}: `)).trim().toLowerCase() || "l"
-        if (["s", "o", "l"].includes(r[0])) { choice = r[0]; break }
-        say(`  ${yellow("·")} s, o or l`)
-      }
-    }
+    try { yes = !/^(n|no)$/i.test((await rl.question(`  ${cyan("?")} Install them now? ${dim("[Y/n]")}: `)).trim()) }
+    catch { say(`\n  ${dim("→ no answer: nothing changed, the commands are in Next steps")}`); return }   // Ctrl+D / closed input
     finally { rl.close() }
-  }
-  if (choice === "o") {
-    const s = conf.stacks.find((x: any) => x.name === "drupal")
-    s.gateSkip = [...new Set([...(s.gateSkip ?? []), ...qa.CHECKS])]
-    say(`  ${green("✔")} phpcs and phpstan off for this project ${dim("(project.json gateSkip — the gate marks them SKIPPED; undo: node .ai/scripts/cli.ts qa --on)")}`)
-  } else if (choice === "s") {
-    await qa.setup(project, q, a.deps === "install", (s) => say(s))
+  } else if (!yes) { say(`  ${dim("→ not changed without a terminal: the commands are in Next steps (or --install-deps)")}`); return }
+  if (yes) {
+    await qa.setup(project, q, true, (s) => say(s))
     const after = qa.state(conf, project)
-    if (qa.ok(after)) say(`  ${green("✔")} phpcs and phpstan ready ${dim("— commit composer.json, composer.lock and the config files in the project")}`)
-    else say(`  ${yellow("⚠")} still to do: ${after.missing.join(" · ")} ${dim("— in Next steps")}`)
-  } else say(`  ${dim("→ later: the commands are in Next steps")}`)
+    if (qa.ok(after)) say(`  ${green("✔")} phpcs and phpstan ready ${dim("— commit composer.json, composer.lock, phpcs.xml and phpstan.neon in the project")}`)
+    else say(`  ${yellow("⚠")} not finished: ${after.missing.join(" · ")} ${dim("— the commands are in Next steps")}`)
+    return
+  }
+  const s = conf.stacks.find((x: any) => x.name === "drupal")
+  s.gateSkip = [...new Set([...(s.gateSkip ?? []), ...qa.CHECKS])]
+  say(`  ${yellow("·")} This project goes ${bold("without phpcs and phpstan")}: the gate marks them SKIPPED and only runs the rest`)
+  say(`    ${dim("(hook signatures, cache rebuild, smoke, config status). To use them later:")} ${green("node .ai/scripts/cli.ts qa --on && node .ai/scripts/cli.ts qa --setup")}`)
 }
 
 async function ask(rl: ReturnType<typeof createInterface> | null, q: string, def: string, help = ""): Promise<string> {

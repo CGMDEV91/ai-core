@@ -8,7 +8,8 @@
   but not installed → `composer install`; no config → a base `phpcs.xml` (Drupal + DrupalPractice on the code paths)
   and `phpstan.neon` (level 1). `qa --setup` asks before each step; `qa --off` / `--on` records that the project goes
   without them (`project.json` stacks[].gateSkip → the gate marks them SKIPPED, not NOT RUN).
-- Installer: in the Tools step it asks *set them up now · off for this project · later*; pending → a Next step with
+- Installer: in the Tools step it lists the steps and asks *Install them now? [Y/n]* — yes runs them all; no records
+  that the project goes without them (and says how to turn them on later); without a terminal → a Next step with
   the commands. Doctor: row **code checks** (OK · WARN with the step · INFO off by decision) — before, it always said
   "composer install", which does nothing when composer.json never required them. `/doctor` and `/gate` ask the human
   the same question and run `qa --setup --yes` on a yes.
