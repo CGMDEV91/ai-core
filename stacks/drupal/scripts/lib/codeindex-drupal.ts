@@ -6,7 +6,7 @@
 //   fields    field_* → where it is used (code, Twig, config/sync) · strings  t('…') literal → where it is written
 //   mentions  "Class::method()" → skills and known issues that cite it
 //   built through node .ai/scripts/cli.ts codeindex [--update] (core: merges every stack's build())
-import { callees, indexCode } from "./callpaths.ts"
+import { callees, indexCode } from "./callpaths-drupal.ts"
 import * as impact from "./impact.ts"
 import { ROOT, walkCode } from "./project.ts"
 import { isFile, read, splitlines, walk } from "./util.ts"

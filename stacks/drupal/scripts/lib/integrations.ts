@@ -10,10 +10,11 @@
 // Human notes survive regeneration: in integrations.md between <!-- notes:<id> --> … <!-- /notes -->, in a module card
 // between <!-- notes --> … <!-- /notes -->. `where <text> --kind integration` searches the snapshot.
 import { createHash } from "node:crypto"
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, statSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import { AI, ROOT, stack, walkCode } from "./project.ts"
 import { cmp, dumps, isFile, lineAt, read } from "./util.ts"
+const isDir = (p: string) => { try { return statSync(p).isDirectory() } catch { return false } }
 
 type Int = { id: string; kind: string; direction: string; module: string; title: string; file: string; line: number; config: string[]; detail: string[] }
 const S = stack("drupal"), CFG = `${ROOT}/${S.configSync}`
@@ -115,7 +116,7 @@ function writeModuleCards(ints: Int[]): number {
   const idx = JSON.parse(read(idxFile)), dir = `${AI}/context/modules`
   mkdirSync(dir, { recursive: true })
   const mods = new Set<string>()
-  for (const p of S.paths) { const d = `${ROOT}/${p}`; if (existsSync(d)) for (const m of readdirSync(d)) if (existsSync(`${d}/${m}`) && !m.startsWith(".")) mods.add(m) }
+  for (const p of S.paths) { const d = `${ROOT}/${p}`; if (existsSync(d)) for (const m of readdirSync(d)) if (isDir(`${d}/${m}`) && !m.startsWith(".")) mods.add(m) }
   const inMod = (file: string, m: string) => moduleOf(file) === m
   let n = 0
   for (const m of [...mods].sort(cmp)) {

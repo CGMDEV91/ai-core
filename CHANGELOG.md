@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.20.1 — 2026-11-11
+
+- **The tools work inside another methodology's knowledge base** (the generic-guidelines workspace, 3.3): skills as
+  flat files (`skills/<NN>-<name>.md`, an index in `skills/README.md`) besides `skills/<name>/SKILL.md`; known
+  issues with `## Files` / `## Pattern to watch` sections besides the bold paragraphs; a skill's `## Verification`
+  as its re-test list; a ticket's `baseline:` per service (`{svc-a: sha, svc-b: sha}`, also `--base a=sha,b=sha`);
+  `impact --write-ticket` writes inside a hand-written `## Impact analysis` between markers and keeps the rest; a
+  diary from `templates/ticket-diary.template.md` when the knowledge base ships one; who you are from the
+  `owner:` of `MEMORY.local.md`; `budget` counts the instructions of the user's global opencode config;
+  `promptcheck` also checks `procedures/`, `rules/` (and `rules/stacks/`), `non-negotiables.md` and
+  `install/opencode/`.
+- Drupal's `touchpoints` and `callpaths` are `touchpoints-drupal.ts` / `callpaths-drupal.ts`; the core ones run them
+  when a Drupal stack is configured (for the service a command runs in), so every stack's files can sit together.
+- An edit inside a service of a workspace is recorded in the diary (any file of the service repo). Drupal
+  `integrations`: only folders are modules (a README in `lib/modules` no longer gets a card).
+
 ## 0.20.0 — 2026-11-12
 
 - **Native Windows** (the project on C:\, no WSL). The opencode tools and the lint after an edit run locally (node,

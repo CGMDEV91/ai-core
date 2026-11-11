@@ -1,4 +1,4 @@
-// callpaths.ts — generated call paths and related skills for every business skill.
+// callpaths-drupal.ts — generated call paths and related skills for every business skill.
 // 1. Indexes the PHP code of lib/ (classes, methods, procedural functions, declared return types) and the calls inside
 //    each function body, resolved by receiver when possible ($this->x(), ->getX()->x(), $this->prop->x(), Class::x(),
 //    or the only class / procedural function defining x).

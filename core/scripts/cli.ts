@@ -35,7 +35,7 @@ if (si > 1 && process.argv[si + 1]) {
 const lib = join(dirname(fileURLToPath(import.meta.url)), "lib")
 const [cmd, ...args] = process.argv.slice(2)
 const NOT_COMMANDS = ["util.ts", "project.ts", "claude.ts", "opencode.ts", "gatelib.ts", "ticketctx.ts", "edits.ts"]   // libraries, no main()
-const commands = readdirSync(lib).filter((f) => f.endsWith(".ts") && !NOT_COMMANDS.includes(f) && !/^(gate|codeindex)-/.test(f)).map((f) => f.slice(0, -3))
+const commands = readdirSync(lib).filter((f) => f.endsWith(".ts") && !NOT_COMMANDS.includes(f) && !/^(gate|codeindex|touchpoints|callpaths)-/.test(f)).map((f) => f.slice(0, -3))
 if (!cmd || !commands.includes(cmd)) {
   console.error(`usage: node .ai/scripts/cli.ts <command> [args…]\ncommands: ${commands.sort().join(", ")}`)
   process.exit(cmd ? 2 : 0)

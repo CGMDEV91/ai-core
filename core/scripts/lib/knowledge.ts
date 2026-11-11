@@ -28,13 +28,17 @@ function gitGlobalName(): string {
   const r = spawnSync("wsl.exe", ["-d", m[1], "--", "git", "config", "--global", "user.name"], { encoding: "utf-8", timeout: 15000 })
   return r.status === 0 ? (r.stdout ?? "").trim() : ""
 }
-/** who "I" am in file names, as a slug: $AI_DEV · .ai/user.local.json (setup writes it) · git config --global user.name
+/** the `owner:` line of .ai/MEMORY.local.md (the personal journal of a methodology that keeps one) */
+function memoryOwner(): string {
+  try { const o = (readFileSync(`${AI}/MEMORY.local.md`, "utf-8").match(/^owner:\s*`?([^\s`]+)/m) ?? [])[1] ?? ""; return o.startsWith("<") ? "" : o } catch { return "" }
+}
+/** who "I" am in file names, as a slug: $AI_DEV · .ai/user.local.json (setup writes it) · MEMORY.local.md owner: · git config --global user.name
  *  (in WSL when this is opencode on Windows) · the repo's user.name — never the OS login, unless nothing else exists */
 export function devUser(): string {
   if (cachedUser) return cachedUser
   let saved = ""
   try { saved = existsSync(USER_FILE) ? String(JSON.parse(readFileSync(USER_FILE, "utf-8")).user ?? "") : "" } catch { /* unreadable: ask git */ }
-  const u = process.env.AI_DEV || saved || gitGlobalName() || git("config", "user.name") || process.env.USER || process.env.USERNAME || "dev"
+  const u = process.env.AI_DEV || saved || memoryOwner() || gitGlobalName() || git("config", "user.name") || process.env.USER || process.env.USERNAME || "dev"
   return (cachedUser = slug(u) || "dev")
 }
 /** setup: remember who I am, so every process (the Windows plugin too) names my diary the same way */
@@ -79,6 +83,19 @@ export function mergeUser(from: string, to: string): string[] {
 }
 
 const SPECIAL = new Set(["README.md", "INDEX.md"])
+export const SKILLS = `${AI}/skills`
+/** every skill: [name, file] — .ai/skills/<name>/SKILL.md (opencode / Claude Code format) or a flat .ai/skills/<name>.md
+ *  (a methodology that indexes its skills in skills/README.md); sorted by path */
+export function skillFiles(): [string, string][] {
+  if (!existsSync(SKILLS)) return []
+  const out: [string, string][] = []
+  for (const e of readdirSync(SKILLS)) {
+    const p = `${SKILLS}/${e}`
+    if (statSync(p).isDirectory()) { if (existsSync(`${p}/SKILL.md`)) out.push([e, `${p}/SKILL.md`]) }
+    else if (e.endsWith(".md") && !SPECIAL.has(e)) out.push([e.slice(0, -3), p])
+  }
+  return out.sort((a, b) => (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0))
+}
 /** the main file of a ticket / known issue: folder layout first, legacy flat file second */
 export function mainFile(base: string, id: string): string | null {
   for (const f of [`${base}/${id}/${id}.md`, `${base}/${id}.md`]) if (existsSync(f)) return f
@@ -152,7 +169,10 @@ export function ensureDiary(key: string, user = devUser()): string {
   const f = diaryFile(key, user)
   if (!existsSync(f)) {
     const today = new Date().toISOString().slice(0, 10)
-    const body = `---\nticket: ${key}\nuser: ${user}\ncreated: ${today}\n---\n\n# ${key} — ${user}'s diary\n\n` +
+    const tpl = `${AI}/templates/ticket-diary.template.md`   // a methodology that ships its own diary template
+    const body = existsSync(tpl) ? readFileSync(tpl, "utf-8").replace(/^ticket:[^\S\n]*\S+/m, `ticket: ${key}`)
+      .replace(/^user:[^\S\n]*""/m, `user: ${user}`).replace(/^created:[^\S\n]*\S+/m, `created: ${today}`)
+      .replace(/^# \S+ — <user>'s diary/m, `# ${key} — ${user}'s diary`).replaceAll("<user>", user) : `---\nticket: ${key}\nuser: ${user}\ncreated: ${today}\n---\n\n# ${key} — ${user}'s diary\n\n` +
       `<!-- Only ${user} writes this file (the agent, in ${user}'s sessions). Shared decisions, plan and verification go in ${key}.md. -->\n\n` +
       `## Current state\n\n<!-- The truth NOW for ${user}'s part, ≤10 lines. OVERWRITTEN at /end. Ends with: Next: <one action>. -->\n\n` +
       `## Changes\n\n<!-- One line per file this dev edited (auto-recorded). -->\n\n## Session log\n\n`

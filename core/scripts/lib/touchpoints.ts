@@ -1,10 +1,11 @@
 // touchpoints.ts — every place a concept lives (a status, a field, a role, a route, a string…), for any stack: the
 // checklist of a change. Before adding a status, a role or a field, list where the existing ones are wired, grouped by
-// the kind of place. Literal search, case-insensitive unless --case. The Drupal stack replaces this file with its own
-// grouping (option maps, permissions, form alters, config sync, Twig, .po).
+// the kind of place. Literal search, case-insensitive unless --case. A stack with lib/touchpoints-<stack>.ts runs that instead (Drupal: its own
+// grouping (option maps, permissions, form alters, config sync, Twig, .po)).
 //   node .ai/scripts/cli.ts touchpoints <term> [--case] [--max N]      (wrapper: bash .ai/scripts/analysis/scan-touchpoints.sh)
 import { existsSync } from "node:fs"
 import { basename, extname } from "node:path"
+import { fileURLToPath, pathToFileURL } from "node:url"
 import { AI, ROOT, cfg } from "./project.ts"
 import { cut, escapeRe, read, splitlines, walk } from "./util.ts"
 
@@ -45,7 +46,22 @@ function groupFor(abs: string, stackName: string): string {
   return `code (${ext || "no extension"})`
 }
 
-export function main(argv: string[]): number {
+/** a stack with its own touchpoints (lib/touchpoints-<stack>.ts, e.g. Drupal's PHP resolver) runs it instead of this one */
+async function stackOwn(argv: string[]): Promise<number | null> {
+  for (const s of ((cfg().stacks ?? []) as any[]).filter((x) => !process.env.AI_SERVICE || x.repo === process.env.AI_SERVICE)) {
+    const f = fileURLToPath(new URL(`./touchpoints-${s.name}.ts`, import.meta.url))
+    if (existsSync(f)) return (await import(pathToFileURL(f).href)).main(argv)
+  }
+  return null
+}
+
+export async function main(argv: string[]): Promise<number> {
+  const own = await stackOwn(argv)
+  if (own !== null) return own
+  return generic(argv)
+}
+
+function generic(argv: string[]): number {
   let term = "", caseSensitive = false, max = 4
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--case") caseSensitive = true

@@ -82,3 +82,23 @@ test("▶ Next: a verified ticket whose change touched a skill asks for that ski
   assert.match(suggest({ key: "T-5", text: text("Decision: NOTHING — small") }), /^\/skill T-5 — this ticket changed code that 01-counter describes/)
   assert.match(suggest({ key: "T-5", text: text("Decision: EDIT skills/01-counter — counter starts at 2") }), /^\/close T-5$/)
 })
+
+test("flat skills and ## sections (a methodology with its own templates): matched, stale, written inside ## Impact analysis", () => {
+  const d = project("react", "react-ts")
+  doc(d, "skills/README.md", "# index\n")
+  doc(d, "skills/01-counter.md", "---\ntickets: []\n---\n\n# SKILL-01 — Counter\n\n## Business rules\n- goes up by one\n\n## Key files\n- `src/useCounter.ts` — `useCounter()`\n\n## Verification\n- click and see 1\n")
+  doc(d, "known-issues/KI-9.md", "---\nid: KI-9\ntitle: \"double count\"\nstatus: fixed\nskills: []\n---\n\n## Pattern to watch\n\nstate updates in a loop\n\n## Files\n\n- `src/useCounter.ts` — `useCounter()`\n")
+  doc(d, "tickets/T-9/T-9.md", "---\njira_key: T-9\ntype: adaptive\nstatus: active\n---\n\n## Impact analysis\n\nScope: the counter (hand-written).\n\n## Changes\n\n## Notes\n\n")
+  assert.equal(cli(d, "codeindex", "--update").code, 0)
+  writeFileSync(join(d, "src", "useCounter.ts"), readFileSync(join(d, "src", "useCounter.ts"), "utf-8").replace("const [count, set]", "// changed\n  const [count, set]"))
+  const out = cli(d, "impact").out
+  assert.match(out, /⚠ \*\*01-counter\*\*/, out)
+  assert.match(out, /click and see 1/, out)
+  assert.match(out, /KI-9/, out)
+  assert.match(cli(d, "impact", "--stale-skills").out, /^01-counter\t/m)
+  assert.equal(cli(d, "impact", "--write-ticket", "T-9").code, 0)
+  const t = readFileSync(join(d, ".ai", "tickets", "T-9", "T-9.md"), "utf-8")
+  assert.match(t, /Scope: the counter \(hand-written\)\.[\s\S]*<!-- impact:begin[\s\S]*01-counter[\s\S]*<!-- impact:end -->\n\n## Changes/)
+  assert.equal(cli(d, "impact", "--write-ticket", "T-9").code, 0)   // a second run replaces the block, keeps the rest
+  assert.equal((readFileSync(join(d, ".ai", "tickets", "T-9", "T-9.md"), "utf-8").match(/impact:begin/g) ?? []).length, 1)
+})

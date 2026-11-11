@@ -1,4 +1,4 @@
-// touchpoints.ts — every place a concept lives (status, field, role, document type, route, string…).
+// touchpoints-drupal.ts — every place a concept lives (status, field, role, document type, route, string…).
 // The checklist of a feature: before adding a status, a role or a field, list where the existing ones are wired,
 // grouped by what kind of place it is (option maps, permissions, form alters, config, templates, translations,
 // knowledge). Literal search, case-insensitive unless --case.

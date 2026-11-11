@@ -17,6 +17,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 import { AI, ROOT } from "./project.ts"
+import { skillFiles } from "./knowledge.ts"
 
 const CACHE = join(AI, "promptcheck.local.json"), BATCH = 16000
 type Entry = { ok: boolean; lines?: [number, string][] }
@@ -72,14 +73,13 @@ async function blocked(g: Gate, text: string, retry = 2): Promise<boolean> {
 export function prompts(): [string, string][] {
   const out: [string, string][] = []
   const md = (dir: string) => (existsSync(join(AI, dir)) ? readdirSync(join(AI, dir)).filter((f) => f.endsWith(".md")).sort().map((f) => `${dir}/${f}`) : [])
-  for (const rel of [...md("commands"), ...md("agents"), "core-rules.md", "orchestrator.md"]) {
+  // ai-core's layout, and a methodology that keeps its procedures, rules and per-machine wiring in .ai/ as well
+  for (const rel of [...md("commands"), ...md("agents"), ...md("procedures"), ...md("rules"), ...md("rules/stacks"), ...md("install/opencode/commands"), ...md("install/opencode/agents"),
+    "core-rules.md", "orchestrator.md", "non-negotiables.md"]) {
     if (!existsSync(join(AI, rel))) continue
     out.push([rel, readFileSync(join(AI, rel), "utf-8").replaceAll("$ARGUMENTS", "ABC-123 check the module list")])
   }
-  if (existsSync(join(AI, "skills"))) for (const s of readdirSync(join(AI, "skills")).sort()) {
-    const f = join(AI, "skills", s, "SKILL.md")
-    if (existsSync(f)) out.push([`skills/${s}/SKILL.md`, readFileSync(f, "utf-8")])
-  }
+  for (const [, f] of skillFiles()) out.push([f.slice(AI.length + 1), readFileSync(f, "utf-8")])
   return out
 }
 

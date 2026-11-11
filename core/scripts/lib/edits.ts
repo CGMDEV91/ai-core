@@ -16,7 +16,8 @@ function recordChange(worktree: string, filePath: string, today = new Date().toI
   const key = currentKey()
   if (!key || !filePath) return null
   const rel = (isAbsolute(filePath) || /^\\\\/.test(filePath) ? relative(worktree, filePath) : filePath).replace(/\\/g, "/")
-  if (!TRACKED.test(rel)) return null
+  // a workspace: anything inside a service repo is that service's code (recorded with the service in front)
+  if (!services().some((s) => rel.startsWith(`${s.repo}/`)) && !TRACKED.test(rel)) return null
   const shared = ticketFile(key)
   if (!shared) return null
   const ticket = shared.endsWith(`/${key}/${key}.md`) ? ensureDiary(key) : shared

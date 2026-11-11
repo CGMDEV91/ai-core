@@ -2,9 +2,11 @@
 // A weak or self-hosted model degrades as its context fills, so what loads always is capped on purpose:
 // if you add to it, take something out (a fact the agent needs only sometimes goes to a skill or to .ai/context/).
 //   node .ai/scripts/cli.ts budget          the files loaded on every message, their size, the total, the verdict
-// Counted: opencode.json "instructions" and CLAUDE.md "@" imports (each file once), and the ticket header the plugin /
-// hook adds to every message while a ticket is active. Tokens ≈ characters / 4.
-import { existsSync, readFileSync } from "node:fs"
+// Counted: the "instructions" of the project's opencode.json and of the user's global opencode config (the ones that
+// resolve in this project: a methodology installed once per machine points them at .ai/…), CLAUDE.md "@" imports (each
+// file once), and the ticket header the plugin / hook adds to every message while a ticket is active. Tokens ≈ chars / 4.
+import { existsSync, readdirSync, readFileSync } from "node:fs"
+import { homedir } from "node:os"
 import { join } from "node:path"
 import { ROOT } from "./project.ts"
 
@@ -13,10 +15,19 @@ const tok = (s: string) => Math.round(s.length / 4)
 
 export function measure(root = ROOT): { files: [string, number, number][]; rules: number; header: number } {
   const names = new Set<string>()
-  try {
-    const oc = JSON.parse(readFileSync(join(root, "opencode.json"), "utf-8").replace(/^\s*\/\/.*$/gm, ""))
-    for (const f of oc.instructions ?? []) names.add(String(f).replace(/^\.\//, ""))
-  } catch { /* no opencode */ }
+  const globalDir = process.env.OPENCODE_CFG_DIR ?? join(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "opencode")
+  for (const cfgFile of [join(root, "opencode.json"), join(globalDir, "opencode.json")]) {
+    try {
+      const oc = JSON.parse(readFileSync(cfgFile, "utf-8").replace(/^\s*\/\/.*$/gm, ""))
+      for (const f of oc.instructions ?? []) {
+        const rel = String(f).replace(/^\.\//, "")
+        if (/^(\/|~|[A-Za-z]:|\{)/.test(rel)) continue   // absolute / home / {file:} paths are not this project's
+        const star = rel.match(/^(.*)\/\*(\.\w+)$/)   // dir/*.md
+        if (star) { const d = join(root, star[1]); if (existsSync(d)) for (const e of readdirSync(d).sort()) if (e.endsWith(star[2])) names.add(`${star[1]}/${e}`) }
+        else names.add(rel)
+      }
+    } catch { /* no opencode config there */ }
+  }
   if (existsSync(join(root, "CLAUDE.md"))) {
     names.add("CLAUDE.md")
     for (const m of readFileSync(join(root, "CLAUDE.md"), "utf-8").matchAll(/^@(\S+)/gm)) names.add(m[1].replace(/^\.\//, ""))

@@ -9,12 +9,12 @@
 //   … --stale-skills   the skills this change touches at method level: they must be updated (or justified) by /skill
 import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
-import { combined, list, ticketFile } from "./knowledge.ts"
+import { combined, list, skillFiles, ticketFile } from "./knowledge.ts"
 import { AI, ROOT, cfg, isWorkspace, services, stack, walkCode } from "./project.ts"
 import { cmp, comparePaths, cut, escapeRe, isFile, read, splitlines, walk } from "./util.ts"
 
 export const AI_DIR = AI
-const SKILLS_DIR = `${AI}/skills`, KI_DIR = `${AI}/known-issues`, TICKETS_DIR = `${AI}/tickets`
+const KI_DIR = `${AI}/known-issues`, TICKETS_DIR = `${AI}/tickets`
 
 // ── Stack profile ─────────────────────────────────────────────────────────────
 const STACKS: any[] = (cfg().stacks ?? [{ name: "drupal" }])
@@ -144,12 +144,10 @@ const HUB_THRESHOLD = 5
 export const HUBS = new Set<string>()
 const LEVEL: Record<number, string> = { [STRONG]: "method", [MEDIUM]: "file/class", [WEAK]: "same module / other methods" }
 
-const globSorted = (dir: string, re: RegExp) => walk(dir, (p) => re.test(p.slice(dir.length + 1))).sort(comparePaths)
 
 export function loadSkills(): Doc[] {
   const docs: Doc[] = []
-  for (const f of globSorted(SKILLS_DIR, /^[^/]+\/SKILL\.md$/)) {
-    const dir = f.split("/").slice(-2)[0]
+  for (const [dir, f] of skillFiles()) {
     if (dir.startsWith("00-")) continue   // meta skill (agent behaviour), not a business flow
     const text = read(f), fm = frontMatter(text)
     const name = fm.name ?? dir
@@ -158,7 +156,7 @@ export function loadSkills(): Doc[] {
     d.tickets = [...fmList(fm.tickets ?? "")]   // the tickets that wrote or changed this skill: its history
     const keyfiles = section(text, "Key files", "Call path", "Call paths")
     harvestCodeRefs(d, text, keyfiles + "\n" + section(text, "Call path", "Call paths"))
-    const how = section(text, "How to test")
+    const how = section(text, "How to test", "Verification")
     d.retest = how ? splitlines(how).filter((l) => /^[-*]/.test(l.trim())).map((l) => pstrip(l, "-* ").trim()).slice(0, 6)
       : findall(/^###\s+(.+)$/gm, section(text, "Business rules")).map((m) => m[1].trim()).slice(0, 6)
     docs.push(d)
@@ -194,10 +192,11 @@ export function loadKnownIssues(): Doc[] {
     const d = new Doc("known-issue", fm.id ?? pstem(f), fm.title ?? pstem(f), f, fm.status ?? "")
     for (const x of fmList(fm.modules ?? "")) d.modules.add(x)
     for (const x of fmList(fm.skills ?? "")) d.skills.add(x)
-    const filesPart = text.match(/\*\*Files:\*\*([\s\S]*?)(?=\n\*\*[A-Z]|(?![\s\S]))/)
-    harvestCodeRefs(d, text, filesPart ? filesPart[1] : "")
-    const pat = text.match(/\*\*Pattern to watch:\*\*\s*([\s\S]+?)(?=\n\s*\n\*\*|\n\*\*[A-Z]|(?![\s\S]))/)
-    d.pattern = pat ? pat[1].replace(/\s+/g, " ").trim() : ""
+    // the parts as **Files:** / **Pattern to watch:** paragraphs, or as ## Files / ## Pattern to watch sections
+    const filesPart = text.match(/\*\*Files:\*\*([\s\S]*?)(?=\n\*\*[A-Z]|(?![\s\S]))/)?.[1] ?? section(text, "Files")
+    harvestCodeRefs(d, text, filesPart.replace(/<!--[\s\S]*?-->/g, ""))
+    const pat = text.match(/\*\*Pattern to watch:\*\*\s*([\s\S]+?)(?=\n\s*\n\*\*|\n\*\*[A-Z]|(?![\s\S]))/)?.[1] ?? section(text, "Pattern to watch")
+    d.pattern = pat.replace(/<!--[\s\S]*?-->/g, "").replace(/\s+/g, " ").trim()
     docs.push(d)
   }
   return docs
@@ -258,17 +257,32 @@ function enclosingMethods(path: string, lines: number[], rev: string | null = nu
   return found
 }
 
-export function changeFromDiff(base: string | null, commit: string | null): Change {
+/** A base for the diff: one ref (`origin/main`, a sha) — or, in a workspace, one per service: `{svc-a: 3f2a9c1, svc-b: 9e8d7c6}`
+ *  (a ticket's `baseline:` map) or `svc-a=3f2a9c1,svc-b=9e8d7c6`. A service without an entry is diffed against HEAD. */
+export type Base = string | Record<string, string> | null
+export function parseBase(v: string | undefined | null): Base {
+  const t = pstrip((v ?? "").trim(), '"\'')
+  if (!t || t === "{}") return null
+  const pairs = t.startsWith("{") ? pstrip(t, "{}").split(",").map((x) => x.split(":")) : t.includes("=") ? t.split(",").map((x) => x.split("=")) : null
+  if (!pairs) return t
+  const out: Record<string, string> = {}
+  for (const [k, sha] of pairs) if (k?.trim() && sha?.trim()) out[k.trim()] = pstrip(sha.trim(), '"\'')
+  return Object.keys(out).length ? out : null
+}
+const baseFor = (base: Base, repo: string) => (base && typeof base === "object" ? base[repo] ?? null : base)
+const baseLabel = (base: Base) => (!base ? "" : typeof base === "object" ? Object.entries(base).map(([k, v]) => `${k}@${v}`).join(", ") : base)
+
+export function changeFromDiff(base: Base, commit: string | null): Change {
   if (isWorkspace() && !commit) {   // a workspace: the diff of every service repo, paths prefixed with its folder
-    const all = new Change(`git diff of every service ${base ? `(${base}...HEAD) ` : ""}+ working tree`)
+    const all = new Change(`git diff of every service ${base ? `(${baseLabel(base)}...HEAD) ` : ""}+ working tree`)
     for (const s of services()) {
-      const one = diffIn(String(s.repo), base)
+      const one = diffIn(String(s.repo), baseFor(base, String(s.repo)))
       for (const f of one.files) all.files.add(f)
       for (const [f, ms] of one.methods) all.addMethods(f, ms)
     }
     return all
   }
-  return diffIn("", base, commit)
+  return diffIn("", typeof base === "object" && base ? Object.values(base)[0] ?? null : base, commit)
 }
 
 function diffIn(repo: string, base: string | null, commit: string | null = null): Change {
@@ -402,7 +416,7 @@ export function analyse(ch: Change, exclude: string | null): [Hit[], Hit[], Hit[
 
 // ── Output ────────────────────────────────────────────────────────────────────
 function render(ch: Change, skills: Hit[], kis: Hit[], tickets: Hit[], minLevel: number): string {
-  const out = ["## Impact", "", `_Generated by \`bash .ai/scripts/analysis/scan-impact.sh\` from ${ch.source} — ${ch.files.size} file(s)._`, ""]
+  const out = ["## Impact", "", `_Generated by \`node .ai/scripts/ai.mjs impact\` from ${ch.source} — ${ch.files.size} file(s)._`, ""]
   const methList = [...ch.methods].sort((a, b) => cmp(a[0], b[0])).flatMap(([f, ms]) => [...ms].sort(cmp).map((m) => `\`${pstem(f)}::${m}()\``))
   if (methList.length) out.push("Changed methods: " + methList.slice(0, 15).join(", ") + (methList.length > 15 ? " …" : ""), "")
   skills = skills.filter((s) => s[1] >= minLevel)
@@ -425,7 +439,7 @@ function render(ch: Change, skills: Hit[], kis: Hit[], tickets: Hit[], minLevel:
   out.push("", "### Past tickets on the same path")
   if (!tickets.length) out.push("- none")
   for (const [d, lvl, why] of tickets) out.push(`- **${d.key}** (${d.status || "?"}, ${LEVEL[lvl]}: ${why.join(", ")}) — ${d.title}`)
-  out.push("", "Every ⚠ flow is re-tested or marked `checked, not affected — <why>` before /close.")
+  out.push("", "Every ⚠ flow is re-tested or marked `checked, not affected — <why>` before the ticket closes.")
   return out.join("\n") + "\n"
 }
 
@@ -468,6 +482,14 @@ function writeTicket(key: string, block: string): void {
   const f = ticketFile(key)   // ## Impact is shared: it goes in the ticket's shared file
   if (!f) { console.error(`ticket not found: ${TICKETS_DIR}/${key}/${key}.md`); process.exit(1) }
   let text = read(f)
+  if (/^## Impact analysis\b/m.test(text)) {   // a hand-written impact analysis (scope, risks, order): the generated part goes inside it, between markers
+    const BEGIN = "<!-- impact:begin — generated by node .ai/scripts/ai.mjs impact --write-ticket; rewritten on each run -->", END = "<!-- impact:end -->"
+    const gen = `${BEGIN}\n${block.replace(/^## Impact\b.*$/m, "### Flows, known issues and tickets this change takes part in (generated)")}\n${END}`
+    if (text.includes(BEGIN)) text = text.replace(new RegExp(`${escapeRe(BEGIN)}[\\s\\S]*?${escapeRe(END)}`), () => gen)
+    else text = text.replace(/^## Impact analysis\b[\s\S]*?(?=^## (?!#)|(?![\s\S]))/m, (sec) => sec.replace(/\s*$/, "") + "\n\n" + gen + "\n\n")
+    writeFileSync(f, text)
+    return
+  }
   if (/^## Impact\b/m.test(text)) text = text.replace(/^## Impact\b[\s\S]*?(?=^## (?!#)|(?![\s\S]))/m, () => block + "\n")
   else if (/^## Verification\b/m.test(text)) text = text.replace(/^## Verification\b/m, () => block + "\n## Verification")
   else text = text.replace(/\s+$/, "") + "\n\n" + block
@@ -512,8 +534,9 @@ const BEGIN_CT = "<!-- code-touched:begin — generated by node .ai/scripts/cli.
 function record(key: string): number {
   const f = ticketFile(key)
   if (!f) { console.error(`ticket not found: ${TICKETS_DIR}/${key}/${key}.md`); return 1 }
-  const text = read(f), base = (frontMatter(text).baseline ?? "").trim() || null
-  const ch = changeFromDiff(base && /^[0-9a-f]{6,40}$/.test(base) ? base : null, null)
+  const text = read(f), base = parseBase(frontMatter(text).baseline)
+  const sha = (x: string) => /^[0-9a-f]{6,40}$/.test(x)
+  const ch = changeFromDiff(typeof base === "string" ? (sha(base) ? base : null) : base && Object.fromEntries(Object.entries(base).filter(([, v]) => sha(v))), null)
   const lines = [...ch.files].sort(cmp).map((p) => {
     const ms = [...(ch.methods.get(p) ?? [])].sort(cmp).map((m) => `\`${pstem(p)}::${m}()\``)
     return `- \`${p}\`${ms.length ? " — " + ms.join(", ") : ""}`
@@ -539,7 +562,7 @@ export function main(argv: string[]): number {
     else if (o === "--files") { const [xs, j] = many(i); a.files = xs; i = j }
     else if (o === "--commit") a.commit = argv[++i]
     else if (o === "--methods") { const [xs, j] = many(i); a.methods = xs; i = j }
-    else if (o === "--base") a.base = argv[++i]
+    else if (o === "--base") a.base = parseBase(argv[++i])
     else if (o === "--exclude-ticket" || o === "--key") a.exclude = argv[++i]
     else if (o === "--min") a.min = argv[++i]
     else if (o === "--write-ticket") a.writeTicket = argv[++i]
@@ -564,6 +587,6 @@ export function main(argv: string[]): number {
   }
   const block = render(ch, skills, kis, tickets, minLevel)
   console.log(block)
-  if (a.writeTicket) { writeTicket(a.writeTicket, block); console.log(`(written to ${(ticketFile(a.writeTicket) ?? "").replace(/^.*\/\.ai\//, ".ai/")} → ## Impact)`) }
+  if (a.writeTicket) { writeTicket(a.writeTicket, block); console.log(`(written to ${(ticketFile(a.writeTicket) ?? "").replace(/^.*\/\.ai\//, ".ai/")} → ## Impact${/^## Impact analysis\b/m.test(read(ticketFile(a.writeTicket) ?? "")) ? " analysis, between the impact markers" : ""})`) }
   return 0
 }

@@ -46,7 +46,9 @@ function openBlocking(text: string): { ids: string[]; rounds: number; section: s
 export function staleSkills(key: string, baseline = ""): string[] {
   if ((process.versions as any).bun || !/node(\.exe)?$/i.test(process.execPath)) return []   // inside opencode's runtime: /close checks it
   const cli = fileURLToPath(new URL("../cli.ts", import.meta.url))
-  const args = ["impact", "--stale-skills", "--key", key, ...(/^[0-9a-f]{6,40}$/.test(baseline.trim()) ? ["--base", baseline.trim()] : [])]
+  // baseline: one sha, or a workspace map {svc: sha, …} — impact reads both (parseBase)
+  const b = baseline.trim(), ok = /^[0-9a-f]{6,40}$/.test(b) || /^\{.*:\s*[0-9a-f]{6,40}.*\}$/.test(b)
+  const args = ["impact", "--stale-skills", "--key", key, ...(ok ? ["--base", b] : [])]
   const r = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", cli, ...args], { encoding: "utf-8", timeout: 30000, cwd: dirname(dirname(dirname(cli))) })
   return r.status === 0 ? (r.stdout ?? "").split("\n").filter((l) => l.includes("\t")).map((l) => l.split("\t")[0].trim()).filter(Boolean) : []   // "skill<TAB>why" lines only
 }

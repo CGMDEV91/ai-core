@@ -10,7 +10,7 @@ import { spawnSync } from "node:child_process"
 import { existsSync, readdirSync, statSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import * as impact from "./impact.ts"
-import { KNOWN, TICKETS, list } from "./knowledge.ts"
+import { KNOWN, TICKETS, list, skillFiles } from "./knowledge.ts"
 import { ROOT, cfg, stack } from "./project.ts"
 import { cmp, comparePaths, dumps, read, splitlines, walk } from "./util.ts"
 
@@ -48,12 +48,13 @@ function cli(...args: string[]): string {
 
 export function main(argv: string[]): number {
   const json = argv.includes("--json"), commitGate = argv.includes("--commit-gate"), quick = commitGate || argv.includes("--quick")
-  const skillNames = new Set(glob(`${AI}/skills`, /^[^/]+\/SKILL\.md$/).map((f) => f.split("/").slice(-2)[0]))
+  const skillNames = new Set(skillFiles().map(([n]) => n))
   const mods = modulesExist()
 
   // ── skills ──
-  for (const f of glob(`${AI}/skills`, /^[^/]+\/SKILL\.md$/)) {
-    const dir = f.split("/").slice(-2)[0], fm = impact.frontMatter(read(f))
+  for (const [dir, f] of skillFiles()) {
+    const fm = impact.frontMatter(read(f))
+    if (!f.endsWith("/SKILL.md")) { for (const r of impact.fmList(fm.related_skills ?? "")) if (!skillNames.has(r)) add("ERROR", "skill", f, `related_skills names unknown skill '${r}'`); continue }   // flat: no opencode front matter to check
     if (fm.name !== dir) add("ERROR", "skill", f, `front matter name '${pyRepr(fm.name)}' != folder '${dir}' (opencode will not load it)`)
     if (!fm.description) add("ERROR", "skill", f, "missing description (opencode needs it to offer the skill)")
     for (const r of impact.fmList(fm.related_skills ?? "")) if (!skillNames.has(r)) add("ERROR", "skill", f, `related_skills names unknown skill '${r}'`)
@@ -69,7 +70,7 @@ export function main(argv: string[]): number {
   let cur: string | null = null
   for (const line of splitlines(cli("impact", "--check"))) {
     if (line.startsWith("STALE ")) cur = impact.prstrip(line.slice(6), ":")
-    else if (cur && line.includes("not found")) add("ERROR", "skill", `.ai/skills/${cur}/SKILL.md`, `cites ${impact.pstrip(line, "- ").trim()}`)
+    else if (cur && line.includes("not found")) add("ERROR", "skill", (skillFiles().find(([n]) => n === cur)?.[1] ?? `skills/${cur}`).replace(/^.*\/\.ai\//, ".ai/"), `cites ${impact.pstrip(line, "- ").trim()}`)
   }
 
   // ── tickets ──

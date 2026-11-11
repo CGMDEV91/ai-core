@@ -98,8 +98,8 @@ function changedFiles(text: string): string[] {
 export function digest(key: string): string {
   const t = ticket(key), fm = front(t), notes = section(t, "Notes")
   const decisions = splitlines(notes).filter((l) => /^\s*-?\s*(Decision|Open question|Review|Security)/.test(l)).map((l) => l.trim())
-  const impact = splitlines(section(t, "Impact")).filter((l) => l.startsWith("- ⚠") || l.startsWith("### "))
-  const out = [`# ${key} — digest for the reviewer (bash .ai/scripts/review/review.sh digest ${key})`,
+  const impact = splitlines(section(t, "Impact") || section(t, "Impact analysis")).filter((l) => l.startsWith("- ⚠") || l.startsWith("### "))
+  const out = [`# ${key} — digest for the reviewer (node .ai/scripts/ai.mjs review digest ${key})`,
     ["type", "status", "modules", "skills", "known_issues", "baseline"].map((k) => `${k}: ${fm[k] ?? ""}`).join(" · "),
     "", "## Intent", section(t, "Intent"), "", "## Boundaries", section(t, "Boundaries"), "", "## Current state", section(t, "Current state")]
   const plan = section(t, "Plan")

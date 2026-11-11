@@ -2,12 +2,13 @@
 // For each skill: the methods it cites (Key files + Class::method() / name() in its text) are the seeds; their callees,
 // two levels deep, are the flow's call path. Written as a short `## Call path` block in the SKILL.md (one line per
 // entry point), the full tree in .ai/context/callgraph.json (what /impact reads), and `related_skills` in the front
-// matter (skills sharing a distinctive method or file). The Drupal stack replaces this file with its own PHP resolver.
+// matter (skills sharing a distinctive method or file). A stack with lib/callpaths-<stack>.ts runs that instead (Drupal: its own PHP resolver).
 //   node .ai/scripts/cli.ts callpaths [--update] [--show SKILL]      (wrapper: bash .ai/scripts/knowledge/scan-callpaths.sh)
 import { createHash } from "node:crypto"
-import { writeFileSync } from "node:fs"
+import { existsSync, writeFileSync } from "node:fs"
+import { fileURLToPath, pathToFileURL } from "node:url"
 import * as impact from "./impact.ts"
-import { AI } from "./project.ts"
+import { AI, cfg } from "./project.ts"
 import { cmp, dumps, escapeRe, isFile, read } from "./util.ts"
 
 const DEPTH = 2, MAX_CHILDREN = 6, MAX_LINES = 70, SEEDS_PER_FILE = 3, MAX_RELATED = 8, SHORT_HOPS = 3, SHORT_MAX = 10, COMMON = 5
@@ -57,7 +58,22 @@ function setFrontMatter(text: string, k: string, value: string): string {
   return `---\n${fm}\n---\n` + text.slice(m[0].length)
 }
 
-export function main(argv: string[]): number {
+/** a stack with its own callpaths (lib/callpaths-<stack>.ts, e.g. Drupal's PHP resolver) runs it instead of this one */
+async function stackOwn(argv: string[]): Promise<number | null> {
+  for (const s of ((cfg().stacks ?? []) as any[]).filter((x) => !process.env.AI_SERVICE || x.repo === process.env.AI_SERVICE)) {
+    const f = fileURLToPath(new URL(`./callpaths-${s.name}.ts`, import.meta.url))
+    if (existsSync(f)) return (await import(pathToFileURL(f).href)).main(argv)
+  }
+  return null
+}
+
+export async function main(argv: string[]): Promise<number> {
+  const own = await stackOwn(argv)
+  if (own !== null) return own
+  return generic(argv)
+}
+
+function generic(argv: string[]): number {
   const update = argv.includes("--update"), show = argv.includes("--show") ? argv[argv.indexOf("--show") + 1] : ""
   const [fns, byKey, byFile] = functions()
   const resolve = (label: string) => fns.find((f) => f.label === label)
