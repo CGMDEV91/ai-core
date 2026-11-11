@@ -3,18 +3,36 @@
 //   … --base origin/<branch> · --ticket <key> · --files <path>… [--methods Class::method …] · --commit <sha>
 //   … --write-ticket <key> · --skills-only · --check · --skill-signals · --key <current ticket> · --min module|file|method
 // Read-only on the project; never writes unless --write-ticket is given. Wrapper: bash .ai/scripts/analysis/scan-impact.sh
+// Every stack: a profile per stack below (extensions, the path prefixes knowledge cites, how a method is written in a
+// skill, what a "module" is, which files carry business rules). Drupal maps a changed line to its PHP function; the
+// other stacks use the method ranges of .ai/context/code-index.json. In a workspace the diff of every service is read.
+//   … --stale-skills   the skills this change touches at method level: they must be updated (or justified) by /skill
 import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { combined, list, ticketFile } from "./knowledge.ts"
-import { AI, ROOT, stack, walkCode } from "./project.ts"
+import { AI, ROOT, cfg, isWorkspace, services, stack, walkCode } from "./project.ts"
 import { cmp, comparePaths, cut, escapeRe, isFile, read, splitlines, walk } from "./util.ts"
 
 export const AI_DIR = AI
 const SKILLS_DIR = `${AI}/skills`, KI_DIR = `${AI}/known-issues`, TICKETS_DIR = `${AI}/tickets`
 
-export const CODE_EXT = [".php", ".module", ".inc", ".install", ".theme", ".twig", ".yml", ".js", ".scss"]
-export const PATH_RE = /(?<![\w/.-])(?:lib|config|web)\/[A-Za-z0-9_./*-]+[A-Za-z0-9_*/]/g
-export const CLASS_METHOD_RE = /\b([A-Z][A-Za-z0-9_]+)::([a-zA-Z_][A-Za-z0-9_]*)\s*\(/g
+// ── Stack profile ─────────────────────────────────────────────────────────────
+const STACKS: any[] = (cfg().stacks ?? [{ name: "drupal" }])
+const NAMES = new Set(STACKS.map((s) => s.name))
+const DRUPAL = NAMES.has("drupal"), OTHERS = [...NAMES].some((n) => n !== "drupal")
+const PHP_EXT = [".php", ".module", ".inc", ".install", ".theme"]
+const EXT: Record<string, string[]> = {
+  drupal: [...PHP_EXT, ".twig", ".yml", ".js", ".scss"],
+  "react-ts": [".ts", ".tsx", ".js", ".jsx", ".mjs", ".css", ".scss", ".json"],
+  java: [".java", ".kt", ".xml", ".yml", ".yaml", ".properties", ".sql"],
+  generic: [".ts", ".js", ".py", ".go", ".rb", ".cs", ".java", ".php", ".yml", ".yaml", ".json"] }
+export const CODE_EXT = [...new Set([...(DRUPAL ? EXT.drupal : []), ...[...NAMES].flatMap((n) => EXT[n] ?? [])])]
+// the first folder of every path knowledge can cite: lib|config|web for Drupal, the stacks' own (src, app…), the services
+const PREFIXES = [...new Set([...(DRUPAL ? ["lib", "config", "web"] : []), ...STACKS.flatMap((s: any) => [...(s.paths ?? []), s.configSync, s.root].filter(Boolean)
+  .map((p: string) => (s.repo && !process.env.AI_ROOT ? `${s.repo}/${p}` : p).split("/")[0]))])].filter(Boolean)
+export const PATH_RE = new RegExp(`(?<![\\w/.-])(?:${PREFIXES.map(escapeRe).join("|")})\\/[A-Za-z0-9_./*-]+[A-Za-z0-9_*/]`, "g")
+// Drupal writes Class::method(); Java and TypeScript also Class.method()
+export const CLASS_METHOD_RE = OTHERS ? /\b([A-Z][A-Za-z0-9_]+)(?:::|\.)([a-zA-Z_][A-Za-z0-9_]*)\s*\(/g : /\b([A-Z][A-Za-z0-9_]+)::([a-zA-Z_][A-Za-z0-9_]*)\s*\(/g
 export const BACKTICK_RE = /`([^`\n]+)`/g
 export const METHOD_TOKEN_RE = /^([a-z_][A-Za-z0-9_]*)(?:\(\))?$/
 const CLASS_TOKEN_RE = /\b([A-Z][a-z0-9]+(?:[A-Z][A-Za-z0-9]*)+)\b/g
@@ -69,12 +87,22 @@ export function section(text: string, ...names: string[]): string {
   return ""
 }
 
-const CODE = stack("drupal").paths.map((p) => p.replace(/\/+$/, ""))
-const TRACKED = ["lib/", "config/", ...CODE.map((p) => p + "/"), stack("drupal").configSync.replace(/\/+$/, "") + "/"]
-/** The module (or theme) a path belongs to: the folder right under one of the stack's code paths. */
+// every stack's code paths (seen from the workspace when there is one), with how a "module" is read under them:
+// drupal / react-ts / generic → the folder right under the code path (the module, the feature); java → the package
+const AREAS: [string, string][] = STACKS.flatMap((s: any) => {
+  const st = s.name === "drupal" ? stack("drupal") : s.repo && !process.env.AI_ROOT ? { ...s, paths: (s.paths ?? []).map((p: string) => `${s.repo}/${p}`) } : s
+  return (st.paths ?? []).map((p: string) => [p.replace(/\/+$/, ""), s.name === "java" ? "package" : "first"] as [string, string])
+})
+const CODE = AREAS.map(([p]) => p)
+const TRACKED = [...(DRUPAL ? ["lib/", "config/", stack("drupal").configSync.replace(/\/+$/, "") + "/"] : []), ...CODE.map((p) => p + "/"),
+  ...STACKS.filter((s: any) => s.name !== "drupal" && s.configSync).map((s: any) => s.configSync.replace(/\/+$/, "") + "/")]
+/** The module (or theme, feature, package) a path belongs to. */
 export function moduleOf(path: string): string | null {
-  for (const c of CODE) if (path.startsWith(c + "/")) return path.slice(c.length + 1).split("/")[0] || null
-  return (path.match(/^lib\/(?:modules|themes)\/([^/]+)/) ?? [])[1] ?? null
+  for (const [c, rule] of AREAS) if (path.startsWith(c + "/")) {
+    const rest = path.slice(c.length + 1).split("/")
+    return (rule === "package" ? rest.slice(0, -1).pop() : rest[0]) || null
+  }
+  return DRUPAL ? (path.match(/^lib\/(?:modules|themes)\/([^/]+)/) ?? [])[1] ?? null : null
 }
 
 /** Paths, classes and methods cited in a text. Methods on a Key-files line bind to that file's class. */
@@ -199,6 +227,18 @@ function gitOut(...args: string[]): string {
   return r.status === 0 ? r.stdout : ""
 }
 
+// the code index (every stack): label → file + [start, end]; "Class::method()" → method, "name()" → name
+let INDEX: [string, string, number, number][] | null = null
+function indexMethods(path: string, lines: number[]): Set<string> {
+  if (!INDEX) {
+    INDEX = []
+    try { for (const [label, m] of Object.entries<any>(JSON.parse(read(`${AI}/context/code-index.json`)).methods ?? {})) INDEX.push([String(m.file), prstrip(label.split("::").pop()!, "()"), m.lines?.[0] ?? 0, m.lines?.[1] ?? 0]) } catch { /* no index yet */ }
+  }
+  const found = new Set<string>()
+  for (const [file, name, a, b] of INDEX) if (file === path && lines.some((l) => l >= a && l <= b)) found.add(name)
+  return found
+}
+
 function enclosingMethods(path: string, lines: number[], rev: string | null = null): Set<string> {
   if (!lines.length) return new Set()
   let src: string[]
@@ -215,30 +255,47 @@ function enclosingMethods(path: string, lines: number[], rev: string | null = nu
 }
 
 export function changeFromDiff(base: string | null, commit: string | null): Change {
+  if (isWorkspace() && !commit) {   // a workspace: the diff of every service repo, paths prefixed with its folder
+    const all = new Change(`git diff of every service ${base ? `(${base}...HEAD) ` : ""}+ working tree`)
+    for (const s of services()) {
+      const one = diffIn(String(s.repo), base)
+      for (const f of one.files) all.files.add(f)
+      for (const [f, ms] of one.methods) all.addMethods(f, ms)
+    }
+    return all
+  }
+  return diffIn("", base, commit)
+}
+
+function diffIn(repo: string, base: string | null, commit: string | null = null): Change {
+  const git = (...a: string[]) => repo ? (spawnSync("git", ["-C", `${ROOT}/${repo}`, ...a], { encoding: "utf-8", maxBuffer: 256 * 1024 * 1024 }).stdout ?? "") : gitOut(...a)
+  const pre = repo ? `${repo}/` : ""
   let ch: Change, diff: string
   if (commit) {
-    ch = new Change(`commit ${commit} (${cut(gitOut("log", "-1", "--format=%s", commit).trim(), 80)})`)
-    diff = gitOut("diff", "-U0", "--no-color", `${commit}~1`, commit)
+    ch = new Change(`commit ${commit} (${cut(git("log", "-1", "--format=%s", commit).trim(), 80)})`)
+    diff = git("diff", "-U0", "--no-color", `${commit}~1`, commit)
   } else {
     ch = new Change(`git diff ${base ? base + "..." : ""}HEAD + working tree`)
-    diff = (base ? gitOut("diff", "-U0", "--no-color", `${base}...HEAD`) : "") + gitOut("diff", "-U0", "--no-color", "HEAD")
+    diff = (base ? git("diff", "-U0", "--no-color", `${base}...HEAD`) : "") + git("diff", "-U0", "--no-color", "HEAD")
   }
   let current: string | null = null
   const lines = new Map<string, number[]>()
   const push = (f: string, xs: number[]) => { if (!lines.has(f)) lines.set(f, []); lines.get(f)!.push(...xs) }
   for (const line of splitlines(diff)) {
-    if (line.startsWith("+++ ")) { current = line.startsWith("+++ b/") ? line.slice(6) : null; if (current) ch.files.add(current) }
+    if (line.startsWith("+++ ")) { current = line.startsWith("+++ b/") ? pre + line.slice(6) : null; if (current) ch.files.add(current) }
     else if (current) {
       const m = line.match(HUNK_RE)
       if (m) { const start = Math.max(Number(m[3]), 1), count = Math.max(Number(m[4] ?? "1"), 1); push(current, Array.from({ length: count }, (_, i) => start + i)) }
     }
   }
-  if (!commit) for (const f of splitlines(gitOut("ls-files", "--others", "--exclude-standard"))) {
+  if (!commit) for (const f0 of splitlines(git("ls-files", "--others", "--exclude-standard"))) {
+    const f = pre + f0
     ch.files.add(f); push(f, Array.from({ length: Math.ceil(99999 / 25) }, (_, i) => 1 + i * 25))
   }
   for (const [f, lns] of lines)
-    if (CODE_EXT.slice(0, 5).some((e) => f.endsWith(e))) ch.addMethods(f, enclosingMethods(f, [...new Set(lns)].sort((a, b) => a - b), commit))
-  ch.files = new Set([...ch.files].filter((f) => ![".ai/", "vendor/", "web/core/"].some((p) => f.startsWith(p))))
+    if (PHP_EXT.some((e) => f.endsWith(e))) ch.addMethods(f, enclosingMethods(f, [...new Set(lns)].sort((a, b) => a - b), commit))
+    else if (CODE_EXT.some((e) => f.endsWith(e))) ch.addMethods(f, indexMethods(f, [...new Set(lns)]))
+  ch.files = new Set([...ch.files].filter((f) => ![".ai/", "vendor/", "web/core/", "node_modules/", "target/", "build/", "dist/"].some((p) => f.slice(pre.length).startsWith(p))))
   return ch
 }
 
@@ -361,7 +418,11 @@ function render(ch: Change, skills: Hit[], kis: Hit[], tickets: Hit[], minLevel:
   return out.join("\n") + "\n"
 }
 
-const RULE_FILES = /(ConfigurationHelper|PermissionHelper|FieldAccess|AccessSubscriber|FlowService|StatusTransition|Workflow|FormAlter)/
+// files that carry business rules (statuses, permissions, access, workflow, validation) — per stack
+const RULE_FILES = new RegExp([...(DRUPAL ? ["ConfigurationHelper|PermissionHelper|FieldAccess|AccessSubscriber|FlowService|StatusTransition|Workflow|FormAlter"] : []),
+  ...(NAMES.has("react-ts") ? ["[Rr]outes?\\.|[Aa]uth|[Pp]ermission|[Gg]uard|[Pp]olicy|[Ss]tatus|[Ww]orkflow|[Ss]tore|[Rr]educer|[Vv]alidat"] : []),
+  ...(NAMES.has("java") ? ["Security|Policy|Permission|Workflow|Status|StateMachine|Validator|Rule"] : []),
+  ...(NAMES.has("generic") ? ["[Pp]ermission|[Ww]orkflow|[Ss]tatus|[Pp]olicy|[Rr]ule"] : [])].map((x) => `(${x})`).join("|") || "(?!)")
 
 /** Objective inputs for the skill-curator: coverage of the change by skills, recurrence, rule-bearing files. */
 function skillSignals(ch: Change): string {
@@ -411,7 +472,10 @@ function checkSkills(): number {
     return cache.get(p)!
   }
   const classFiles = new Map<string, string[]>()
-  for (const p of walkCode((x) => x.endsWith(".php"))) { const s = pstem(p); classFiles.set(s, [...(classFiles.get(s) ?? []), p]) }
+  if (DRUPAL) for (const p of walkCode((x) => x.endsWith(".php"))) { const s = pstem(p); classFiles.set(s, [...(classFiles.get(s) ?? []), p]) }
+  // other stacks: the code index says which Class::method() exist
+  const indexed = new Map<string, Set<string>>()
+  try { for (const label of Object.keys(JSON.parse(read(`${AI}/context/code-index.json`)).methods ?? {})) { if (!label.includes("::")) continue; const [c, m] = prstrip(label, "()").split("::"); if (!indexed.has(c)) indexed.set(c, new Set()); indexed.get(c)!.add(m.toLowerCase()) } } catch { /* no index */ }
   for (const s of loadSkills()) {
     const issues: string[] = []
     for (const f of [...s.files].sort(cmp)) {
@@ -420,7 +484,7 @@ function checkSkills(): number {
     }
     for (const [cls, meth] of sortTuples([...s.classMethods.values()])) {
       const files = classFiles.get(cls)
-      if (!files) continue   // not a class of lib/ (core, contrib, or prose) — not checkable
+      if (!files) { if (indexed.has(cls) && !indexed.get(cls)!.has(meth)) issues.push(`${cls}::${meth}() not found`); continue }   // not a class of the code — not checkable
       if (!files.some((p) => methodsIn(p).has(meth))) issues.push(`${cls}::${meth}() not found`)
     }
     if (issues.length) { problems += issues.length; console.log(`STALE ${s.key}:`); for (const i of issues) console.log(`  - ${i}`) }
@@ -450,7 +514,7 @@ export function main(argv: string[]): number {
   }
   if (a.check) return checkSkills()
   const ch = a.ticket ? changeFromTicket(a.ticket) : a.files ? changeFromArgs(a.files, a.methods) : changeFromDiff(a.base ?? null, a.commit ?? null)
-  if (!ch.files.size) { console.log("No changed files in giportal."); return 0 }
+  if (!ch.files.size) { console.log(`No changed files in ${cfg().repo ?? "the project"}.`); return 0 }
   const exclude = a.exclude || a.ticket || a.writeTicket || null   // the current ticket gives context (declared skills)
   const [skills, kis, tickets] = analyse(ch, exclude)
   const minLevel = ({ module: WEAK, file: MEDIUM, method: STRONG } as Record<string, number>)[a.min]
