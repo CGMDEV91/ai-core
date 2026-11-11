@@ -34,6 +34,7 @@ const rel = (p: string) => {
 
 /** how to start a tool: [cmd…] or null when it is not installed (local exec) */
 function tool(name: string): string[] | null {
+  if (!BIN[name]) return null   // "none" or an unknown runner
   const pre = runPrefix(S)
   if (pre.length) return [...pre, "npx", "--no-install", name === "tsc" ? "tsc" : name]
   const js = join(PKG, "node_modules", BIN[name])
@@ -70,7 +71,9 @@ export function main(argv: string[]): number {
   else if (!existsSync(join(PKG, "tsconfig.json"))) g.row("tsc", "SKIPPED", `no tsconfig.json in ${PKG_REL || "the project root"}`, false)
   else if (!tsc) g.row("tsc", "NOT RUN", "typescript is not installed — node .ai/scripts/cli.ts qa (or qa --off)", false)
   else {
-    const [rc, out] = sh([...tsc, "--noEmit", "--pretty", "false"], 900, PKG)
+    // a solution tsconfig ("files": [] + "references", e.g. Vite's template) checks nothing with plain --noEmit: -b builds the references
+    const refs = /"references"\s*:/.test(readFileSync(join(PKG, "tsconfig.json"), "utf-8"))
+    const [rc, out] = sh([...tsc, ...(refs ? ["-b"] : []), "--noEmit", "--pretty", "false"], 900, PKG)
     let n = 0, all = 0
     for (const l of splitlines(out)) {
       const m = l.match(/^(.+?)\((\d+),\d+\): error (TS\d+): (.*)$/)

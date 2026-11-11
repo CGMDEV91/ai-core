@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.17.0 — 2026-11-11
+
+- **`/bootstrap`** — the project's first knowledge from its code: the agent surveys with the indexes and drafts
+  `facts.md` (≤ 40 lines, each fact with where it was seen), `intro.md` and the integration notes; what only the team
+  knows becomes `[QUESTION]`. Asks once before writing. The installer's Next steps and the doctor propose it while
+  the parts are the starter.
+- **`install.sh <folder> --all`** — `--update` every project with an ai-core `.ai` under a folder, one table at the
+  end. (A per-machine opencode wiring was evaluated and left out: opencode resolves `{file:}` against the config
+  file, and each project's agents and tools are composed for its own stack and version.)
+- **`./selftest.sh --real`** — the stacks on real public projects, pinned (Vite's react-ts template, spring-petclinic;
+  Java only where a JDK exists). It found and this version fixes:
+  - react-ts gate: **`tsc` checked nothing** on a solution tsconfig (`"files": []` + `references`, Vite's default) —
+    now `tsc -b --noEmit`, so type errors fail the gate;
+  - react-ts gate: crashed when no test runner was configured;
+  - the installer wrote `"test": "none"` when no runner was found, which `qa` read as the project's decision — now
+    the tests are pending and `qa` offers vitest.
+
 ## 0.16.0 — 2026-11-11
 
 - **SonarQube at the end of a ticket**: `cli sonar` (and `gate --sonar`) posts the analysis of the branch (Maven:

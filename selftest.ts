@@ -2,6 +2,7 @@
 // none of it). Run it before a commit or a push of ai-core, or let the pre-push hook do it.
 //   ./selftest.sh                 every test (node --test) + the Windows checks when run from WSL with Windows' node
 //   ./selftest.sh --quick         the tests only
+//   ./selftest.sh --real          + the stacks on real public projects (Vite react-ts template, spring-petclinic) — network
 //   ./selftest.sh --install-hook  pre-push hook in this repo: a push of ai-core runs the selftest first (--no-verify skips)
 // Windows checks (WSL + powershell.exe + node on Windows' PATH): a sample project installed under $HOME, then Windows'
 // node runs its doctor on the \\wsl.localhost path (cli.ts must re-run itself in WSL: hooks and exclude OK), loads its
@@ -69,6 +70,50 @@ console.log(JSON.stringify(await runInProject(root, "node -v")))
   const r = (run.stdout ?? "").trim()
   check("windows: tools reach WSL's node (nvm)", /"ok":true/.test(r) && /v\d+\./.test(r), r.slice(0, 80))
   rmSync(dir, { recursive: true, force: true })
+}
+
+// 3. --real: the stacks on real public projects (network; pinned versions), cached in ~/.cache/ai-core-selftest/real
+if (argv.includes("--real")) {
+  const base = join(homedir(), ".cache", "ai-core-selftest", "real"); mkdirSync(base, { recursive: true })
+  const sh = (cmd: string, cwd: string, timeout = 900000) => spawnSync("bash", ["-c", cmd], { cwd, encoding: "utf-8", timeout, env: { ...process.env, AI_SKIP_NPM: "1" } })
+  const cli = (dir: string, ...a: string[]) => spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", ".ai/scripts/cli.ts", ...a], { cwd: dir, encoding: "utf-8", timeout: 900000 })
+  const fresh = (dir: string, stack: string) => {
+    rmSync(join(dir, ".ai"), { recursive: true, force: true })
+    return spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(CORE, "install.ts"), dir, "--yes", "--no-doctor", "--no-deps",
+      "--stack", stack, "--exec", "local", "--name", `real-${stack}`], { encoding: "utf-8", env: { ...process.env, AI_SKIP_NPM: "1" } }).status === 0
+  }
+  // React + TypeScript: the Vite template (create-vite 6.5.0)
+  const app = join(base, "vite-react-ts")
+  if (!existsSync(join(app, "node_modules"))) {
+    rmSync(app, { recursive: true, force: true })
+    sh("npm create -y vite@6.5.0 vite-react-ts -- --template react-ts >/dev/null && cd vite-react-ts && npm install --no-audit --no-fund >/dev/null && git init -q && git add -A && git -c user.name=t -c user.email=t@t commit -qm init", base)
+  }
+  sh("git checkout -q -- . && git clean -qfdx -e node_modules", app)
+  check("real react-ts: installed", fresh(app, "react-ts"))
+  let q = cli(app, "qa").stdout ?? ""
+  check("real react-ts: eslint + tsc detected ready (template config)", /OK\s+react-ts\s+eslint/.test(q) && /OK\s+react-ts\s+tsc/.test(q), q.split("\n").filter((l) => /react-ts/.test(l)).join(" | "))
+  cli(app, "qa", "--setup", "--yes")
+  q = cli(app, "qa").stdout ?? ""
+  check("real react-ts: qa --setup → every check ready", /every code check is ready/.test(q), q.trim().split("\n").pop())
+  writeFileSync(join(app, "src", "unused.ts"), "export function f() {\n  const unused = 1\n  return 2\n}\n")
+  const g = cli(app, "gate").stdout ?? ""
+  writeFileSync(join(app, "src", "typeerr.ts"), "export const n: number = \"text\"\n")
+  const gt = cli(app, "gate").stdout ?? ""
+  check("real react-ts: gate finds the type error (tsconfig with references → tsc -b)", /\| tsc \| FAIL/.test(gt), (gt.match(/\| tsc \|[^\n]*/) ?? [""])[0])
+  rmSync(join(app, "src", "typeerr.ts"))
+  check("real react-ts: gate finds the NEW eslint issue", /\| eslint \| FAIL \| eslint: [1-9]\d* new issue/.test(g), (g.match(/\| (eslint|tsc|tests) \|[^\n]*/g) ?? []).join(" · ").slice(0, 200))
+  // Java: spring-petclinic at a pinned commit (needs a JDK)
+  if (spawnSync("java", ["-version"]).status !== 0) console.log(dim("· real java: skipped — no JDK here (install one: node .ai/scripts/cli.ts deps --install)"))
+  else {
+    const pc = join(base, "spring-petclinic")
+    if (!existsSync(join(pc, "pom.xml"))) sh("git init -q spring-petclinic && cd spring-petclinic && git fetch -q --depth 1 https://github.com/spring-projects/spring-petclinic.git 500158f732419217507c7656904b8e6aa1bcc0d6 && git checkout -q FETCH_HEAD", base)
+    sh("git checkout -q -- . && git clean -qfdx -e target", pc)
+    check("real java: installed", fresh(pc, "java"))
+    const jq = cli(pc, "qa").stdout ?? ""
+    check("real java: checkstyle and tests detected", /OK\s+java\s+checkstyle/.test(jq) && /OK\s+java\s+tests/.test(jq), jq.split("\n").filter((l) => /java/.test(l)).join(" | "))
+    const jg = cli(pc, "gate", "--skip-tests").stdout ?? ""
+    check("real java: gate compiles", /\| compile \| PASS/.test(jg), (jg.match(/\| (compile|checkstyle) \|[^\n]*/g) ?? []).join(" · ").slice(0, 200))
+  }
 }
 
 const bad = results.filter(([, ok]) => !ok)

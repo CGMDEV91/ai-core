@@ -74,7 +74,7 @@ function parts(): void {
   const dir = join(AI, "project", "parts")
   const starters = existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith(".md") && read(join(dir, f)).includes("<!-- STARTER")) : []
   if (starters.length) add("WARN", "project parts", `${starters.join(", ")} still the generated starter — the agents know little about this project`,
-    "complete them (what the system is, conventions), delete the STARTER comment, then install.sh <project> --update")
+    "/bootstrap in a new opencode session (drafts them from the code) — or complete them by hand; delete the STARTER comment, then install.sh <project> --update")
 }
 
 function hooks(): void {

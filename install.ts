@@ -10,6 +10,7 @@
 //   install <project> --adopt                       take ai-core's version of every managed file, even if edited here
 //                                                   (a migration of an existing .ai, or local edits that were only tests)
 //   install <project> --uninstall                   remove the wiring (hooks, opencode.json, stubs); knowledge stays
+//   install <folder> --all                          --update every project with an ai-core .ai under <folder> (2 levels)
 //   --no-wiring: write .ai only (no hooks / opencode / indexes) · --no-doctor
 //   Tools (git, ddev, docker, php, java, npm… — what the stacks / exec / agents need): checked on a first install or
 //   --reconfigure; each missing one is offered with its install command (asks y/N). --install-deps installs without
@@ -69,7 +70,7 @@ function detect(project: string): { stacks: Detected[]; exec: string; execWhy: s
     out.push({ stack: "java", why: has("pom.xml") ? "pom.xml + src/main/java" : "build.gradle", defaults: { paths: ["src/main/java", "src/test/java"].filter(has) } })
   const pkg = text("package.json")
   if (/"react"\s*:/.test(pkg) && has("tsconfig.json")) out.push({ stack: "react-ts", why: "package.json with react + tsconfig.json",
-    defaults: { paths: has("src") ? ["src"] : ["app"].filter(has), test: /"vitest"\s*:/.test(pkg) ? "vitest" : /"jest"\s*:/.test(pkg) ? "jest" : "none" } })
+    defaults: { paths: has("src") ? ["src"] : ["app"].filter(has), ...(/"vitest"\s*:/.test(pkg) ? { test: "vitest" } : /"jest"\s*:/.test(pkg) ? { test: "jest" } : {}) } })   // no runner yet: qa offers one
   const exec = has(".ddev/config.yaml") ? "ddev" : has("docker-compose.yml") || has("compose.yaml") || has("docker-compose.yaml") ? "docker" : "local"
   return { stacks: out, exec, execWhy: exec === "ddev" ? ".ddev/config.yaml" : exec === "docker" ? "a compose file" : "no ddev / compose file" }
 }
@@ -274,7 +275,7 @@ const sortKeys = (o: any): any => (o && typeof o === "object" && !Array.isArray(
 // ── main ─────────────────────────────────────────────────────────────────────
 type Args = { project: string; stack: string[]; name?: string; exec?: string; lang?: string; agents?: string; yes: boolean; update: boolean;
   adopt: boolean; status: boolean; promote: boolean; add: string[]; layer?: string; dry: boolean; wiring: boolean; doctor: boolean;
-  reconfigure: boolean; uninstall: boolean; verbose?: boolean; deps: "check" | "install" | "skip" }
+  reconfigure: boolean; uninstall: boolean; verbose?: boolean; all?: boolean; deps: "check" | "install" | "skip" }
 function parse(argv: string[]): Args {
   const a: Args = { project: "", stack: [], yes: false, update: false, adopt: false, status: false, promote: false, add: [], dry: false,
     wiring: true, doctor: true, reconfigure: false, uninstall: false, deps: "check" }
@@ -299,6 +300,7 @@ function parse(argv: string[]): Args {
     else if (o === "--uninstall") a.uninstall = true
     else if (o === "--verbose") a.verbose = true
     else if (o === "--install-deps") a.deps = "install"
+    else if (o === "--all") a.all = true
     else if (o === "--no-deps") a.deps = "skip"
     else if (o === "-h" || o === "--help") { say(readFileSync(fileURLToPath(import.meta.url), "utf-8").split("\nimport ")[0].replace(/^\/\/ ?/gm, "")); process.exit(0) }
     else if (o.startsWith("--")) die(`unknown option ${o}`)
@@ -312,8 +314,33 @@ function runCli(ai: string, ...args: string[]): number {
   return spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(ai, "scripts", "cli.ts"), ...args], { stdio: "inherit", cwd: dirname(ai) }).status ?? 1
 }
 
+/** --all <folder>: every project under it (two levels) that has an ai-core .ai → --update each, one table at the end */
+function updateAll(dir: string): number {
+  const found: string[] = []
+  const look = (d: string, depth: number) => {
+    if (existsSync(join(d, ".ai", LOCK))) { found.push(d); return }
+    if (depth === 0) return
+    for (const e of readdirSync(d)) { const p = join(d, e); try { if (!e.startsWith(".") && statSync(p).isDirectory()) look(p, depth - 1) } catch { /* unreadable */ } }
+  }
+  look(resolve(dir), 2)
+  if (!found.length) { say(`No project with an ai-core .ai under ${dir}`); return 0 }
+  say(bold(`ai-core ${VERSION} → ${found.length} project(s) under ${homeRel(resolve(dir))}`))
+  const rows: string[][] = []
+  for (const p of found.sort(cmp)) {
+    const before = readJson(join(p, ".ai", LOCK)).version ?? "?"
+    const r = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", fileURLToPath(import.meta.url), p, "--update", "--yes", "--no-doctor"], { encoding: "utf-8" })
+    const out = (r.stdout ?? "") + (r.stderr ?? ""), m = out.match(/(\d+) written, (\d+) unchanged, (\d+) removed, (\d+) kept/)
+    rows.push([basename(p), `${before} → ${VERSION}`, m ? `${m[1]} written · ${m[4]} kept` : "", r.status === 0 ? green("OK") : yellow(`FAIL (exit ${r.status})`)])
+  }
+  const w = [0, 1, 2].map((i) => Math.max(...rows.map((r) => r[i].length)))
+  for (const r of rows) say(`  ${r[0].padEnd(w[0])}  ${r[1].padEnd(w[1])}  ${r[2].padEnd(w[2])}  ${r[3]}`)
+  say(dim("\nThen in each: commit and push .ai (git -C <project>/.ai add -A && git -C <project>/.ai commit -m \"ai-core " + VERSION + "\"), and a NEW opencode session."))
+  return rows.some((r) => r[3].includes("FAIL")) ? 1 : 0
+}
+
 async function main(argv: string[]): Promise<number> {
   const a = parse(argv)
+  if (a.all) return updateAll(a.project)
   const project = resolve(a.project), ai = join(project, ".ai")
   if (!existsSync(project)) die(`${project} does not exist`)
   if (a.uninstall) return existsSync(join(ai, "scripts", "cli.ts")) ? runCli(ai, "setup", "--uninstall") : (say("nothing to uninstall"), 0)
@@ -493,7 +520,8 @@ function summary(project: string, conf: any, managed: number, starters: string[]
   const text = (t: string) => say(`        ${t}`)
   if (starters.length) {
     head("Describe the project", "the agents know little about it yet")
-    text(`edit ${bold(starters.join(" and "))} in ${bold(".ai/project/parts/")}`)
+    text(`in a new opencode session: ${yellow("› /bootstrap")} ${dim("— drafts them from the code, [QUESTION] for what only the team knows")}`)
+    text(`${dim("or by hand:")} edit ${bold(starters.join(" and "))} in ${bold(".ai/project/parts/")}`)
     text(dim("what it is, for whom, its conventions — then delete the STARTER line"))
     shell(`${homeRel(join(CORE, "install.sh"))} ${homeRel(project)} --update`)
     say("")
