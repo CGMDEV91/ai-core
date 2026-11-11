@@ -373,7 +373,7 @@ async function main(argv: string[]): Promise<number> {
   const a = parse(argv)
   if (a.all) return updateAll(a.project)
   const project = resolve(a.project), ai = join(project, ".ai")
-  if (!existsSync(project)) die(`${project} does not exist`)
+  if (!existsSync(project)) die(`${project} does not exist${basename(process.cwd()) === basename(project) ? ` — you are already in it: install.sh .` : ""}`)
   if (a.uninstall) return existsSync(join(ai, "scripts", "cli.ts")) ? runCli(ai, "setup", "--uninstall") : (say("nothing to uninstall"), 0)
   mkdirSync(ai, { recursive: true })
   const cfgFile = join(ai, "project.json")
