@@ -59,3 +59,19 @@ test("sonar: PASS, FAIL with the failed condition, NOT RUN without a token, SKIP
   assert.match(r.out, /## SonarQube/); assert.match(r.out, /RESULT \(with sonar\)/)
   srv.close()
 })
+
+test("sonar in a workspace: each service is its own SonarQube project (its key, or none)", async () => {
+  const { targets, detect } = await import("../core/scripts/lib/sonar.ts")
+  const { state } = await import("../core/scripts/lib/qa.ts")
+  const w = mkdtempSync(join(tmpdir(), "aicore-sonar-ws-"))
+  for (const r of ["site", "api", "web"]) mkdirSync(join(w, r))
+  writeFileSync(join(w, "site", "sonar-project.properties"), "sonar.projectKey=site-key\n")
+  const conf = { stacks: [{ name: "drupal", repo: "site", paths: ["lib/modules"] }, { name: "java", repo: "api", paths: ["src/main/java"] },
+    { name: "react-ts", repo: "web", paths: ["src"], sonar: { projectKey: "web-key" } }] }
+  const t = targets(w, conf)
+  assert.deepEqual(t.map((x) => x.label), ["site", "api", "web"])
+  assert.deepEqual(t.map((x) => detect(x.root, x.conf)?.key ?? null), ["site-key", null, "web-key"])
+  const q = state(conf as any, w)
+  assert.deepEqual(q.checks.filter((c) => c.check === "sonar").map((c) => c.stack), ["site", "web"])
+  assert.equal(targets(w, { stacks: [{ name: "generic", paths: ["."] }] })[0].label, "")
+})

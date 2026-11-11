@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.20.2 — 2026-11-11
+
+- **SonarQube per service in a workspace**: each service repo is its own SonarQube project (its
+  `sonar-project.properties` / `pom.xml`, or `"sonar"` in its stack entry); `qa` lists one `sonar` row per service
+  that has a key, and `gate --sonar` analyses the services the ticket changed (edited, or on a branch of their own).
+  Before, a workspace looked for the key in the workspace folder and never found it.
+
 ## 0.20.1 — 2026-11-11
 
 - **The tools work inside another methodology's knowledge base** (the generic-guidelines workspace, 3.3): skills as

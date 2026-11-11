@@ -7,6 +7,8 @@
 // The project key: project.json "sonar": { "projectKey": … }, else sonar-project.properties (sonar.projectKey),
 // else pom.xml (<sonar.projectKey>). Scanner: Maven → the sonar-maven-plugin (no install); otherwise `sonar` (npm
 // @sonar/scan) or `sonar-scanner`. The default branch (main / master / develop) is analysed without a branch name.
+// A workspace (several service repos): each service is its own SonarQube project — its sonar-project.properties /
+// pom.xml, or "sonar" in its stack entry of project.json; a service without a key is not on SonarQube.
 import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
@@ -28,6 +30,16 @@ export function detect(root: string, conf: any): SonarConf | null {
     ...(!url ? ["$SONAR_URL not set"] : []), ...(!process.env.SONAR_TOKEN ? ["$SONAR_TOKEN not set"] : []),
     ...(!scanner ? ["no scanner (npm install -g @sonar/scan)"] : [])]
   return { url: url.replace(/\/+$/, ""), token: process.env.SONAR_TOKEN ?? "", key: key ?? "", maven, scanner, reasons }
+}
+
+/** Where SonarQube runs: the project — or, in a workspace, every service repo (each one its own SonarQube project). */
+export function targets(root: string, conf: any): { root: string; label: string; conf: any }[] {
+  const stacks: any[] = conf?.stacks ?? [], repos = [...new Set(stacks.filter((s) => s.repo).map((s) => String(s.repo)))]
+  const own = (repo: string) => stacks.find((s) => s.repo === repo && s.sonar)?.sonar
+  if (!repos.length) return [{ root, label: "", conf }]
+  const svc = process.env.AI_SERVICE
+  if (process.env.AI_ROOT) return [{ root, label: svc ?? "", conf: { ...conf, stacks: stacks.filter((s) => !svc || s.repo === svc), sonar: svc ? own(svc) : conf?.sonar } }]
+  return repos.map((repo) => ({ root: join(root, repo), label: repo, conf: { ...conf, stacks: stacks.filter((s) => s.repo === repo), sonar: own(repo) } }))
 }
 
 const branchOf = (root: string) => spawnSync("git", ["-C", root, "rev-parse", "--abbrev-ref", "HEAD"], { encoding: "utf-8" }).stdout?.trim() ?? ""

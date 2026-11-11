@@ -18,7 +18,7 @@ import { spawnSync } from "node:child_process"
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
 import { dirname, join, relative } from "node:path"
 import { createInterface } from "node:readline/promises"
-import { detect as sonarDetect } from "./sonar.ts"
+import { detect as sonarDetect, targets as sonarTargets } from "./sonar.ts"
 
 type StackConf = { name: string; exec?: string; service?: string; paths?: string[]; apiRoot?: string; gateSkip?: string[]; root?: string; test?: string; build?: string; checkstyle?: string }
 type Conf = { name?: string; stacks?: StackConf[]; gateSkip?: string[]; sonar?: { projectKey?: string } }
@@ -198,19 +198,20 @@ export function state(conf: Conf, root: string): QA {
       for (const c of q.checks.slice(c0)) c.stack = `${repo}/${c.stack}`
     }
   }
-  // SonarQube: a check of the whole project (only when it is a SonarQube project: a projectKey somewhere)
-  const sc = sonarDetect(root, conf)
-  if (sc) {
+  // SonarQube: a check of the whole project — in a workspace, of each service that is a SonarQube project (its own key)
+  for (const t of sonarTargets(root, conf)) {
+    const sc = sonarDetect(t.root, t.conf)
+    if (!sc) continue
     q.applies = true
-    const off = (conf.gateSkip ?? []).includes("sonar")
+    const where = t.label || "project", off = (conf.gateSkip ?? []).includes("sonar")
     if (!off && sc.reasons.length) {
-      q.missing.push(`sonar: ${sc.reasons.join(" · ")}`)
-      if (sc.reasons.some((r) => r.startsWith("$SONAR")))
-        q.steps.push({ stack: "project", what: "SonarQube URL and your personal token (SonarQube → My Account → Security)", manual: "add to ~/.bashrc: export SONAR_URL=https://<sonar host> SONAR_TOKEN=<your token> — never in the repo" })
-      if (!sc.scanner) q.steps.push({ stack: "project", what: "the SonarQube scanner", cmd: "npm install -g @sonar/scan" })
-      if (!sc.key) q.steps.push({ stack: "project", what: "the SonarQube project key", manual: "add to .ai/project.json: \"sonar\": { \"projectKey\": \"<key>\" }" })
+      q.missing.push(`${t.label ? `${t.label}: ` : ""}sonar: ${sc.reasons.join(" · ")}`)
+      if (sc.reasons.some((r) => r.startsWith("$SONAR")) && !q.steps.some((x) => x.what.startsWith("SonarQube URL")))
+        q.steps.push({ stack: where, what: "SonarQube URL and your personal token (SonarQube → My Account → Security)", manual: "add to ~/.bashrc: export SONAR_URL=https://<sonar host> SONAR_TOKEN=<your token> — never in the repo" })
+      if (!sc.scanner && !q.steps.some((x) => x.what === "the SonarQube scanner")) q.steps.push({ stack: where, what: "the SonarQube scanner", cmd: "npm install -g @sonar/scan" })
+      if (!sc.key) q.steps.push({ stack: where, what: "the SonarQube project key", manual: t.label ? `add to the ${t.label} entry of .ai/project.json: "sonar": { "projectKey": "<key>" }` : "add to .ai/project.json: \"sonar\": { \"projectKey\": \"<key>\" }" })
     }
-    q.checks.push({ stack: "project", check: "sonar", off, ready: off || !sc.reasons.length, detail: sc.key ? `${sc.key}, at the end of a ticket (gate --sonar)` : "" })
+    q.checks.push({ stack: where, check: "sonar", off, ready: off || !sc.reasons.length, detail: sc.key ? `${sc.key}, at the end of a ticket (gate --sonar)` : "" })
   }
   return q
 }
@@ -254,8 +255,9 @@ export async function setup(root: string, q: QA, auto = false, out = (s: string)
 export function decideConf(conf: Conf, root: string, off: boolean): string[] {
   const changed: string[] = []
   const q = state(conf, root)
-  const sonar = q.checks.find((c) => c.stack === "project" && c.check === "sonar")
-  if (sonar) {
+  const sonars = q.checks.filter((c) => c.check === "sonar")
+  if (sonars.length) {
+    const sonar = { ready: sonars.every((c) => c.ready) }
     const rest = (conf.gateSkip ?? []).filter((x) => x !== "sonar")
     if (off && !sonar.ready) { conf.gateSkip = [...rest, "sonar"]; changed.push("sonar") }
     if (!off && (conf.gateSkip ?? []).includes("sonar")) { changed.push("sonar"); if (rest.length) conf.gateSkip = rest; else delete conf.gateSkip }

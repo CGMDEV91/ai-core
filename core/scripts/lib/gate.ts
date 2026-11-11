@@ -15,16 +15,34 @@ export async function main(all: string[]): Promise<number> {
   const withSonar = all.includes("--sonar"), argv = all.filter((a) => a !== "--sonar")
   const rc = await stacks(argv)
   if (!withSonar) return rc
-  const { run } = await import("./sonar.ts")
+  const { run, targets } = await import("./sonar.ts")
   const { ROOT } = await import("./project.ts")
-  const s = await run(ROOT, cfg())
   if ((cfg().gateSkip ?? []).includes("sonar")) { console.log("\n| sonar | SKIPPED | off — project decision (project.json gateSkip) |"); return rc }
-  console.log(`\n## SonarQube\n\n| check | result | evidence |\n|---|---|---|\n| ${s.row.join(" | ")} |`)
-  for (const l of s.lines) console.log(l)
-  if (s.row[1] === "PASS" || s.row[1] === "FAIL") console.log(`- [VERIFIED ${new Date().toISOString().slice(0, 10)} — "${s.row[2]}"]`)
-  const worst = rc === 1 || s.code === 1 ? 1 : Math.max(rc, s.code)
+  // a workspace: the SonarQube project of every service this branch changed (on a branch of its own, or edited)
+  const mine = targets(ROOT, cfg()).filter((t) => !t.label || process.env.AI_ROOT || changed(t.root))
+  let code = 0
+  console.log(`\n## SonarQube\n\n| check | result | evidence |\n|---|---|---|`)
+  const lines: string[] = [], verified: string[] = []
+  let rows = 0
+  for (const t of mine) {
+    const s = await run(t.root, t.conf)
+    if (t.label && s.row[2] === "not a SonarQube project") continue
+    console.log(`| ${t.label ? `${t.label} ` : ""}${s.row.join(" | ")} |`); rows++
+    lines.push(...s.lines.map((l) => (t.label ? l.replace("- sonar", `- ${t.label} sonar`) : l)))
+    if (s.row[1] === "PASS" || s.row[1] === "FAIL") verified.push(`- [VERIFIED ${new Date().toISOString().slice(0, 10)} — "${t.label ? `${t.label} ` : ""}${s.row[2]}"]`)
+    code = code === 1 || s.code === 1 ? 1 : Math.max(code, s.code)
+  }
+  if (!rows) console.log("| sonar | SKIPPED | no service with changes is a SonarQube project |")
+  for (const l of [...lines, ...verified]) console.log(l)
+  const worst = rc === 1 || code === 1 ? 1 : Math.max(rc, code)
   console.log(`\nRESULT (with sonar): ${worst === 1 ? "FAIL" : worst === 2 ? "INCOMPLETE (a check did not run — never report it as passed)" : "PASS"}`)
   return worst
+}
+
+/** a service repo with this ticket's work: uncommitted changes, or a branch that is not the default one */
+function changed(repo: string): boolean {
+  const git = (...a: string[]) => (spawnSync("git", ["-C", repo, ...a], { encoding: "utf-8" }).stdout ?? "").trim()
+  return !!git("status", "--porcelain") || !["main", "master", "develop", "HEAD", ""].includes(git("rev-parse", "--abbrev-ref", "HEAD"))
 }
 
 /** Workspace: each service's gate in its own repo (cli --service), then the contracts between services it touched */

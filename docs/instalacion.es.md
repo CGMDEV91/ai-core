@@ -112,8 +112,9 @@ servicio: `node .ai/scripts/cli.ts --service <repo> <herramienta>`.
 
 ## SonarQube
 
-Un proyecto con SonarQube (un `sonar.projectKey` en `sonar-project.properties` o `pom.xml`, o `"sonar"` en project.json)
-tiene una comprobación más al final del ticket: `node .ai/scripts/cli.ts gate --sonar` sube el análisis de la rama,
+Un proyecto con SonarQube (un `sonar.projectKey` en `sonar-project.properties` o `pom.xml`, o `"sonar"` en project.json;
+en un workspace, cada servicio con su clave, o `"sonar"` en su entrada de stacks) tiene una comprobación más al final
+del ticket (en un workspace, para cada servicio que el ticket cambió): `node .ai/scripts/cli.ts gate --sonar` sube el análisis de la rama,
 espera a que se procese y lee el quality gate, los issues nuevos y la cobertura del código nuevo. `/close` lo ejecuta.
 En tu máquina: `SONAR_URL` y tu `SONAR_TOKEN` personal en `~/.bashrc` (nunca en un repo); `cli qa` dice qué falta.
 

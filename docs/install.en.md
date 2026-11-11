@@ -109,8 +109,9 @@ side gets re-tested. Any tool inside one service: `node .ai/scripts/cli.ts --ser
 
 ## SonarQube
 
-A SonarQube project (a `sonar.projectKey` in `sonar-project.properties` or `pom.xml`, or `"sonar"` in project.json)
-gets one more check at the end of a ticket: `node .ai/scripts/cli.ts gate --sonar` posts the analysis of the branch,
+A SonarQube project (a `sonar.projectKey` in `sonar-project.properties` or `pom.xml`, or `"sonar"` in project.json —
+in a workspace, each service with its own key, or `"sonar"` in its stack entry) gets one more check at the end of a
+ticket (in a workspace, for every service the ticket changed): `node .ai/scripts/cli.ts gate --sonar` posts the analysis of the branch,
 waits for it and reads the quality gate, the new issues and the new coverage. `/close` runs it. On your machine:
 `SONAR_URL` and your personal `SONAR_TOKEN` in `~/.bashrc` (never in a repo); `cli qa` says what is missing.
 
