@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.18.0 — 2026-11-11
+
+- **Workspaces: several service repos, one `.ai`.** A plain folder (no repo) holding service repos is detected as a
+  workspace: each service is a stack entry with `"repo"` (its folder) and paths relative to it; the installer detects
+  every service's stack and exec, wires the commit guard and the sync hooks into **each** service repo, and the
+  doctor shows one hooks / exec row per service.
+  - `node .ai/scripts/cli.ts --service <repo> <tool>` runs any tool inside one service (its git, paths and tools).
+  - `gate` in a workspace runs the gate of every **changed** service in its own repo, then lists the **contracts**
+    the change touched and the services to re-test.
+  - **`cli contracts`** — who exposes each HTTP endpoint (Spring mappings, Drupal routes, Express) and who calls it
+    (fetch / axios, RestTemplate / WebClient / Feign, Guzzle), paths normalised and matched by their end →
+    `.ai/context/contracts.json` + `contracts.md`, rebuilt by setup.
+  - Tickets: `services:` (the repos a ticket may touch, with branch and baseline); `/close` hands over one commit per
+    service repo plus `.ai`. Review hashes, changed files and the lint after an edit follow the service of the file.
+  - Limits: two services of the same stack share one code-index builder; impact / touchpoints (drupal) run per service
+    with `--service`.
+
 ## 0.17.0 — 2026-11-11
 
 - **`/bootstrap`** — the project's first knowledge from its code: the agent surveys with the indexes and drafts

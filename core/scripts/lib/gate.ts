@@ -6,7 +6,8 @@
 import { existsSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
-import { cfg } from "./project.ts"
+import { spawnSync } from "node:child_process"
+import { WORKSPACE, cfg, isWorkspace, services } from "./project.ts"
 
 const LIB = dirname(fileURLToPath(import.meta.url))
 
@@ -26,8 +27,37 @@ export async function main(all: string[]): Promise<number> {
   return worst
 }
 
+/** Workspace: each service's gate in its own repo (cli --service), then the contracts between services it touched */
+async function workspace(argv: string[]): Promise<number> {
+  const given = argv.filter((a) => !a.startsWith("--") && argv[argv.indexOf(a) - 1] !== "--base")
+  const flags = argv.filter((a) => !given.includes(a))
+  let worst = 0
+  const touched: string[] = []
+  for (const s of services()) {
+    const repo = String(s.repo), mine = given.filter((f) => f.startsWith(`${repo}/`)).map((f) => f.slice(repo.length + 1))
+    if (given.length && !mine.length) continue
+    const bi = flags.indexOf("--base"), base = bi >= 0 ? flags[bi + 1] : "HEAD"
+    const dirty = (spawnSync("git", ["-C", join(WORKSPACE, repo), "status", "--porcelain"], { encoding: "utf-8" }).stdout ?? "").trim()
+      || (spawnSync("git", ["-C", join(WORKSPACE, repo), "diff", "--name-only", base], { encoding: "utf-8" }).stdout ?? "").trim()
+    if (!given.length && !dirty) { console.log(`\n## Service ${repo} (${s.name}) — no change, not run`); continue }
+    console.log(`\n## Service ${repo} (${s.name})\n`)
+    const r = spawnSync(process.execPath, [...process.execArgv, join(LIB, "..", "cli.ts"), "--service", repo, "gate", ...flags, ...mine], { encoding: "utf-8", cwd: join(WORKSPACE, repo), maxBuffer: 64 * 1024 * 1024 })
+    process.stdout.write(r.stdout ?? ""); process.stderr.write(r.stderr ?? "")
+    const rc = r.status ?? 2
+    worst = rc === 1 || worst === 1 ? 1 : Math.max(worst, rc)
+    const ch = spawnSync("git", ["-C", join(WORKSPACE, repo), "status", "--porcelain"], { encoding: "utf-8" }).stdout ?? ""
+    for (const l of ch.split("\n").filter(Boolean)) touched.push(`${repo}/${l.slice(3).trim()}`)
+  }
+  const { touchedContracts } = await import("./contracts.ts")
+  const lines = touchedContracts(touched)
+  if (lines.length) console.log(`\n## Contracts between services\n\nThis change touches a contract another service uses — run that service's gate and re-test the call:\n${lines.join("\n")}`)
+  console.log(`\n## All services\n\nRESULT: ${worst === 1 ? "FAIL" : worst === 2 ? "INCOMPLETE (a check did not run — never report it as passed)" : "PASS"}`)
+  return worst
+}
+
 async function stacks(argv: string[]): Promise<number> {
-  const gates = (cfg().stacks ?? [{ name: "drupal" }]).map((s: any) => s.name).filter((n: string) => existsSync(join(LIB, `gate-${n}.ts`)))
+  if (isWorkspace()) return workspace(argv)
+  const gates = (cfg().stacks ?? [{ name: "drupal" }]).filter((s: any) => !process.env.AI_SERVICE || s.repo === process.env.AI_SERVICE).map((s: any) => s.name).filter((n: string) => existsSync(join(LIB, `gate-${n}.ts`)))
   if (!gates.length) { console.log("No gate for the stacks of project.json — nothing checked.\n\nRESULT: INCOMPLETE (no gate configured)"); return 2 }
   if (gates.length === 1) return (await import(pathToFileURL(join(LIB, `gate-${gates[0]}.ts`)).href)).main(argv)
   let worst = 0

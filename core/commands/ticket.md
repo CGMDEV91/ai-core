@@ -47,7 +47,8 @@ This command is the whole procedure (no other process file to load):
    - **Plan blocks have an owner** (`- [ ] B (<user>)`). "go" → take your own open block, else the first free one and
      write your name on it in the shared file *before* coding; a block owned by somebody else → ask the human.
 4. **Code state.** `git status --short` and `git branch --show-current` in `{{repo}}`; record `branch` and
-   `baseline` (`git rev-parse --short HEAD`). Uncommitted work not of this ticket → `WIP-other:` note and ask.
+   `baseline` (`git rev-parse --short HEAD`). **Workspace** (project.json stacks with `repo`): the same in each service
+   the ticket may touch (`git -C <repo> …`), listed in `services:` with its branch and baseline in Notes. Uncommitted work not of this ticket → `WIP-other:` note and ask.
 5. **Prior art.** `.ai/known-issues/INDEX.md` → open only matching entries · `grep -ril "<keywords>" .ai/tickets/`
    · load the skills of the area (skill tool) and list them in `skills:`; related bugs found go to `known_issues:`.
    Write `## Prior art`.

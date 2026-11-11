@@ -56,6 +56,7 @@ Only the human can type a command. When they ask for something a command does, d
 | independent review · security pass | `/review <key>` (code-reviewer) · `/security <key>` (security-reviewer) |
 | what to re-test · Jira texts | `/tests <key>` (test-designer) · `/jira <key>` (jira-writer) |
 | stop for today · finished | `/end` · `/close <key>` |
+| a workspace service's tools (gate runs every changed service + the contracts between them) | `node .ai/scripts/cli.ts --service <repo> <tool>` |
 | skills · lessons · drift · references · first facts | `/skill` · `/learn` · `/scan` · `/audit` · `/bootstrap` |
 | is the AI set-up of this checkout OK | `/doctor` |
 

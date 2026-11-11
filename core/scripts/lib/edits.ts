@@ -3,9 +3,9 @@
 import { readFileSync, writeFileSync, existsSync } from "node:fs"
 import { join, relative, isAbsolute } from "node:path"
 import { currentKey, ensureDiary, ticketFile } from "./knowledge.ts"
-import { runPrefix, stack } from "./project.ts"
+import { runPrefix, services, stack } from "./project.ts"
 import { configOf } from "./qa.ts"
-import { runInProject } from "../opencode/tool/_lib.ts"
+import { linuxPath, runInProject } from "../opencode/tool/_lib.ts"
 
 export const EDIT_TOOLS = new Set(["edit", "write", "multiedit", "patch"])
 const TRACKED = /^(lib|config|web|src|app|frontend|docker|scripts|patches)\/|^(Dockerfile|composer\.json|phpstan\.neon|phpcs\.xml|\.eslintrc\.json)$/
@@ -37,10 +37,15 @@ export async function afterEdit(root: string, path: string): Promise<string> {
   let out = ""
   try { recordChange(root, path) } catch { /* never break the session for bookkeeping */ }
   try {
-    const rel = (isAbsolute(path) || /^\\\\/.test(path) ? relative(root, path) : String(path)).replace(/\\/g, "/")
+    let rel = (isAbsolute(path) || /^\\\\/.test(path) ? relative(root, path) : String(path)).replace(/\\/g, "/")
+    const top = root
     if (!/^lib\/.*\.(php|module|inc|theme|install)$/.test(rel) && !/\/(modules|themes)\/custom\/.*\.(php|module|inc|theme|install)$/.test(rel)) return out
     if (process.env.AI_PHPCS_ON_EDIT === "0") return out
-    const run = runPrefix(stack("drupal")).join(" ")   // ddev exec · docker compose exec -T <service> · (local)
+    // a workspace: the file belongs to one service repo — lint it there (its ddev, its phpcs.xml)
+    const svc = services().find((s) => rel.startsWith(`${s.repo}/`))
+    if (svc) { root = `${root}/${svc.repo}`; rel = rel.slice(String(svc.repo).length + 1) }
+    const apiCli = svc ? `node --experimental-strip-types --no-warnings ${linuxPath(top).path}/.ai/scripts/cli.ts --service ${svc.repo}` : "node --experimental-strip-types --no-warnings .ai/scripts/cli.ts"
+    const run = runPrefix(svc ?? stack("drupal")).join(" ")   // ddev exec · docker compose exec -T <service> · (local)
     const standard = configOf(root, "phpcs")
     if (!((stack("drupal").gateSkip as string[] | undefined) ?? []).includes("phpcs") && standard) {
     const r = await runInProject(root, `${run ? run + " " : ""}./vendor/bin/phpcs --standard=${standard} --report=emacs -q ${rel}`, 60000)
@@ -50,7 +55,7 @@ export async function afterEdit(root: string, path: string): Promise<string> {
     else if (/not running|could not find|not found|No such file/i.test(r.out)) out += `\n\n[phpcs skipped: ${run ? `${stack("drupal").exec} not running` : "vendor/bin/phpcs not installed"}]`
     }
     if (/\.(module|inc|theme|install|profile)$/.test(rel)) {
-      const a = await runInProject(root, `node --experimental-strip-types --no-warnings .ai/scripts/cli.ts apiindex --check ${rel}`, 30000)
+      const a = await runInProject(root, `${apiCli} apiindex --check ${rel}`, 30000)
       if (/^ERROR /m.test(a.out)) out += `\n\n[api-signatures on ${rel}] hook signature does not match the installed Drupal — fix it now:\n${a.out.split("\n").filter((l) => /^ERROR |^  (expected|source):/.test(l)).slice(0, 9).join("\n")}`
     }
   } catch { /* never break the session */ }

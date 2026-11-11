@@ -7,6 +7,7 @@ status: active                   # active | waiting-validation | done | abandone
 modules: []                      # custom modules / theme this work may touch (lib/modules/<x>, lib/themes/<x>).
                                  # Context AND permission: add a module here BEFORE touching its code
 skills: []                       # skills used to understand the flow (and its call path) — read before implementing; /impact adds the affected ones
+services: []                     # workspace only: the service repos this ticket may touch (branch and baseline of each in Notes)
 known_issues: []                 # bugs related to this work: found in Prior art, met during development, or created at /close
 branch: ""                       # project branch of this work
 baseline: ""                     # project HEAD (short sha) when the work started

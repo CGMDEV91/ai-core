@@ -27,7 +27,7 @@ Do these steps in order and stop to ask wherever it says "propose" or "ask":
    `.ai/MEMORY.local.md`.
 7. **Clear the active ticket:** delete `.ai/current-ticket.local.md` if it holds this key.
 8. **Jira drafts.** Offer `/jira <key>` (analysis comment, test instructions, worklog for the human to post).
-9. **Hand over.** Per repository, the list of changed files and one proposed commit message — and the **pull request
+9. **Hand over.** Per repository (in a workspace: each service of `services:` plus `.ai`), the list of changed files and one proposed commit message — and the **pull request
    description** for {{repo}}, shown in a ` ```text ` block ready to paste in Bitbucket / GitLab: title (key + summary),
    what changed and why (3–5 bullets), how it was tested (the `[VERIFIED…]` lines), the flows to re-test (`## Impact`),
    the skill / known issue links. A project template (`.gitlab/merge_request_templates/*.md`, or the one in

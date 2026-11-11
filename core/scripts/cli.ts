@@ -23,6 +23,15 @@ if (process.platform === "win32" && wsl.distro && !process.env.AI_IN_WSL) {
 // a reader that stops early (| head) is not an error
 process.stdout.on("error", (e: NodeJS.ErrnoException) => { if (e.code === "EPIPE") process.exit(0); throw e })
 
+// --service <repo>: run the command inside one service of a workspace (its git, its paths, its tools)
+const si = process.argv.indexOf("--service")
+if (si > 1 && process.argv[si + 1]) {
+  const repo = process.argv[si + 1]
+  process.env.AI_SERVICE = repo
+  process.env.AI_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", repo)
+  process.argv.splice(si, 2)
+}
+
 const lib = join(dirname(fileURLToPath(import.meta.url)), "lib")
 const [cmd, ...args] = process.argv.slice(2)
 const NOT_COMMANDS = ["util.ts", "project.ts", "claude.ts", "opencode.ts", "gatelib.ts", "ticketctx.ts", "edits.ts"]   // libraries, no main()

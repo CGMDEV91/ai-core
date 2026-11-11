@@ -10,7 +10,7 @@ import { isAbsolute, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import * as claude from "./claude.ts"
 import { composedText } from "./opencode.ts"
-import { AI, ROOT, cfg, runPrefix, stack } from "./project.ts"
+import { AI, ROOT, WORKSPACE, cfg, isWorkspace, runPrefix, services, stack } from "./project.ts"
 import { read } from "./util.ts"
 import * as qa from "./qa.ts"
 import { MAX_HEADER, MAX_RULES, measure } from "./budget.ts"
@@ -78,7 +78,8 @@ function parts(): void {
 }
 
 function hooks(): void {
-  for (const [label, repo] of [["hooks .ai", AI], ["hooks project", ROOT]] as const) {
+  const repos: [string, string][] = isWorkspace() ? [["hooks .ai", AI], ...services().map((s) => [`hooks ${s.repo}`, join(WORKSPACE, String(s.repo))] as [string, string])] : [["hooks .ai", AI], ["hooks project", ROOT]]
+  for (const [label, repo] of repos) {
     const gd0 = git(repo, "rev-parse", "--git-dir").out, gd = isAbsolute(gd0) ? gd0 : join(repo, gd0)
     const hp = git(repo, "config", "--local", "core.hooksPath").out
     const ours = (f: string) => existsSync(f) && /^# (ai-core|giportal-ai) hook wrapper/m.test(read(f))
@@ -94,6 +95,7 @@ function hooks(): void {
 }
 
 function exclude(): void {
+  if (isWorkspace()) { add("INFO", "exclude", "workspace: the AI files sit beside the service repos, in none of them"); return }
   const gd0 = git(ROOT, "rev-parse", "--git-dir").out, f = join(isAbsolute(gd0) ? gd0 : join(ROOT, gd0), "info", "exclude")
   const have = new Set((existsSync(f) ? read(f) : "").split(/\r?\n/))
   const missing = [".ai", "AGENTS.md", "CLAUDE.md", "opencode.json", ".opencode", ".claude"].filter((e) => !have.has(e))
@@ -146,6 +148,17 @@ function fresh(stacks: string[]): void {
 }
 
 function execEnv(stacks: string[]): void {
+  if (isWorkspace()) {   // each service: its exec environment, from its own folder
+    for (const s of services()) {
+      const pre = runPrefix(s), dir = join(WORKSPACE, String(s.repo))
+      if (!pre.length) { add("INFO", `exec ${s.repo}`, `${s.name}, tools run on this machine`); continue }
+      const up = run([...pre, "true"], dir)
+      if (up.ok) add("OK", `exec ${s.repo}`, `${s.name} · ${s.exec} reachable`)
+      else add("FAIL", `exec ${s.repo}`, `${s.exec} is not reachable — its gate cannot run`, s.exec === "ddev" ? `cd ${s.repo} && ddev start` : `start the ${s.exec} environment of ${s.repo}`)
+    }
+    codeChecks()
+    return
+  }
   for (const name of stacks) {
     const f = join(AI, "scripts", "setup", `stack.${name}.json`)
     if (!existsSync(f)) continue

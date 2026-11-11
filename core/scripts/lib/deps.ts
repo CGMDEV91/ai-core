@@ -19,7 +19,7 @@ const which = (c: string) => spawnSync(WIN ? "where" : "sh", WIN ? [c] : ["-c", 
 const pm = WIN ? (which("winget") ? "winget" : "") : MAC ? (which("brew") ? "brew" : "") : which("apt-get") ? "apt" : which("dnf") ? "dnf" : ""
 
 /** The tools this configuration needs. php/composer only run on this machine when exec is local. */
-export function needed(conf: Conf, root: string): Tool[] {
+export function needed(conf: Conf, root0: string): Tool[] {
   const out = new Map<string, Tool>()
   const add = (t: Tool) => { if (!out.has(t.id)) out.set(t.id, t) }
   add({ id: "git", why: "hooks, the exclude list, the .ai repository", required: true, cmd: "git", manual: "https://git-scm.com/downloads" })
@@ -36,6 +36,7 @@ export function needed(conf: Conf, root: string): Tool[] {
       add({ id: "php", why: "phpcs, phpstan and drush run on this machine (exec local)", required: true, cmd: "php", manual: "https://www.php.net/downloads" })
       add({ id: "composer", why: "installs phpcs / phpstan / drush in vendor/", required: true, cmd: "composer", manual: "https://getcomposer.org/download/" })
     } else if (s.name === "java") {
+      const root = (s as any).repo ? join(root0, (s as any).repo) : root0
       add({ id: "java", why: "compile and tests of the java gate", required: true, cmd: "java", args: ["-version"], manual: "https://adoptium.net" })
       if (existsSync(join(root, "pom.xml")) && !existsSync(join(root, "mvnw")))
         add({ id: "mvn", why: "the project builds with Maven (no ./mvnw wrapper)", required: true, cmd: "mvn", manual: "https://maven.apache.org/install.html" })

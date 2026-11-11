@@ -115,7 +115,38 @@ async function ask(rl: ReturnType<typeof createInterface> | null, q: string, def
   return a || def
 }
 
+/** A workspace: a plain folder (no repo) holding several service repos — each one detected on its own */
+function detectWorkspace(project: string): { repo: string; d: ReturnType<typeof detect> }[] | null {
+  if (existsSync(join(project, ".git"))) return null
+  const subs = readdirSync(project).filter((e) => !e.startsWith(".") && existsSync(join(project, e, ".git"))).sort(cmp)
+  return subs.length ? subs.map((repo) => ({ repo, d: detect(join(project, repo)) })) : null
+}
+
+async function configureWorkspace(project: string, a: Args, ws: { repo: string; d: ReturnType<typeof detect> }[], current: any | null): Promise<any> {
+  const avail = available()
+  step(1, `Detecting the workspace ${dim(`— ${ws.length} service repos, one .ai for all`)}`)
+  const stacks: any[] = []
+  for (const { repo, d } of ws) {
+    const found = d.stacks.filter((s) => avail.includes(s.stack))
+    for (const s of found.length ? found : [{ stack: "generic", why: "no known stack", defaults: {} }]) {
+      say(`  ${green("✔")} ${bold(repo.padEnd(18))} ${s.stack.padEnd(9)} ${dim(`${s.why} · exec ${d.exec}`)}`)
+      const adapter = readJson(join(CORE, "stacks", s.stack, "adapter.json"))
+      stacks.push({ name: s.stack, repo, ...adapter.defaults, ...s.defaults, exec: d.exec })
+    }
+  }
+  step(2, `Configuration ${dim("— Enter keeps the value in brackets")}`)
+  const rl = a.yes || !process.stdin.isTTY ? null : createInterface({ input: process.stdin, output: process.stdout })
+  try {
+    const name = a.name ?? (await ask(rl, "Workspace name", current?.name ?? basename(project), "How people call the system — it heads the rules and the agents' prompts."))
+    const language = a.lang ?? (await ask(rl, "Your language", current?.language ?? "en", "The agents answer you in it (es, en…); files stay in English."))
+    const agents = (a.agents ?? (await ask(rl, "AI agents", (current?.agents ?? ["opencode"]).join(","), "opencode · claude-code · both with a comma (opencode,claude-code)."))).split(",").map((s) => s.trim())
+    return { aiCore: current?.aiCore ?? "", name, repo: basename(project), language, agents, stacks: current?.stacks ?? stacks, vars: current?.vars ?? {} }
+  } finally { rl?.close() }
+}
+
 async function configure(project: string, a: Args, current: any | null): Promise<any> {
+  const ws = detectWorkspace(project)
+  if (ws && (!current || (current.stacks ?? []).some((s: any) => s.repo))) return configureWorkspace(project, a, ws, current)
   const d = detect(project)
   const avail = available()
   step(1, "Detecting the project")
@@ -430,7 +461,8 @@ async function main(argv: string[]): Promise<number> {
   }
   const newRepo = !existsSync(join(ai, ".git"))
   if (newRepo) { spawnSync("git", ["init", "-q", "-b", "main", ai]); say(`  ${green("✔")} .ai is a new git repository ${dim("— it is the team's knowledge: it needs its own remote (see Next)")}`) }
-  if (!existsSync(join(project, ".git"))) { say(`  ${yellow("⚠")} ${project} is not a git checkout: hooks and exclude are skipped`); return 0 }
+  const workspace = (conf.stacks ?? []).some((s: any) => s.repo)
+  if (!workspace && !existsSync(join(project, ".git"))) { say(`  ${yellow("⚠")} ${project} is not a git checkout: hooks and exclude are skipped`); return 0 }
   if (a.wiring) {
     step(5, "Wiring the checkout (hooks, exclude, opencode / Claude Code, indexes)")
     const r = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(ai, "scripts", "cli.ts"), "setup"], { cwd: project, encoding: "utf-8" })
@@ -470,8 +502,8 @@ function starterParts(project: string, conf: any): string[] {
   }
   if (!existsSync(join(dir, "facts.md"))) {
     const code: string[] = []
-    for (const s of st) for (const p of s.paths ?? []) {
-      const d = join(project, p)
+    for (const s of st) for (const p0 of s.paths ?? []) {
+      const p = s.repo ? `${s.repo}/${p0}` : p0, d = join(project, p)
       const kids = existsSync(d) ? readdirSync(d).filter((x) => !x.startsWith(".") && statSync(join(d, x)).isDirectory()).sort(cmp) : []
       code.push(`\`${p}/\`${kids.length ? ` (${kids.length}: ${kids.slice(0, 8).join(", ")}${kids.length > 8 ? " …" : ""})` : ""}`)
     }

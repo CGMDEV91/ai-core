@@ -23,7 +23,7 @@ import { detect as sonarDetect } from "./sonar.ts"
 type StackConf = { name: string; exec?: string; service?: string; paths?: string[]; apiRoot?: string; gateSkip?: string[]; root?: string; test?: string; build?: string; checkstyle?: string }
 type Conf = { name?: string; stacks?: StackConf[]; gateSkip?: string[]; sonar?: { projectKey?: string } }
 /** a step: a command, a file to write, a project.json setting, or something only a person can do */
-export type Step = { stack: string; what: string; cmd?: string; file?: string; content?: string; set?: Record<string, string>; manual?: string }
+export type Step = { stack: string; what: string; cwd?: string; cmd?: string; file?: string; content?: string; set?: Record<string, string>; manual?: string }
 export type Check = { stack: string; check: string; ready: boolean; off: boolean; detail: string }
 export type QA = { applies: boolean; checks: Check[]; missing: string[]; steps: Step[]; phpcs?: string; phpstan?: string }
 
@@ -186,9 +186,17 @@ export function state(conf: Conf, root: string): QA {
     if (!all) continue
     q.applies = true
     const on = all.filter((c) => !(s.gateSkip ?? []).includes(c) && !(s.name === "react-ts" && c === "tests" && s.test === "none"))
-    if (s.name === "drupal") drupal(conf, s, root, q, on)
-    else if (s.name === "react-ts") react(s, root, q, on)
-    else java(s, root, q, on)
+    // a workspace service: its own folder; its steps run there and its files are written there
+    const repo = (s as any).repo as string | undefined, here = repo ? join(root, repo) : root
+    const [n0, m0, c0] = [q.steps.length, q.missing.length, q.checks.length]
+    if (s.name === "drupal") drupal(conf, s, here, q, on)
+    else if (s.name === "react-ts") react(s, here, q, on)
+    else java(s, here, q, on)
+    if (repo) {
+      for (const st of q.steps.slice(n0)) { st.stack = `${repo} (${st.stack})`; if (st.cmd) st.cwd = repo; if (st.file) st.file = `${repo}/${st.file}` }
+      for (let i = m0; i < q.missing.length; i++) q.missing[i] = `${repo}: ${q.missing[i]}`
+      for (const c of q.checks.slice(c0)) c.stack = `${repo}/${c.stack}`
+    }
   }
   // SonarQube: a check of the whole project (only when it is a SonarQube project: a projectKey somewhere)
   const sc = sonarDetect(root, conf)
@@ -215,9 +223,9 @@ export const missingChecks = (q: QA) => q.checks.filter((c) => !c.ready).map((c)
 /** One step in the project root. A `set` step changes `conf` (the caller saves it); a manual one cannot be applied. */
 export function apply(root: string, st: Step, conf?: Conf): boolean {
   if (st.manual) return false
-  if (st.set) { const s = conf?.stacks?.find((x) => x.name === st.stack); if (!s) return false; Object.assign(s, st.set); return true }
+  if (st.set) { const s = conf?.stacks?.find((x) => x.name === st.stack || `${(x as any).repo} (${x.name})` === st.stack); if (!s) return false; Object.assign(s, st.set); return true }
   if (st.file) { if (!existsSync(join(root, st.file))) writeFileSync(join(root, st.file), st.content ?? ""); return true }
-  return spawnSync("bash", ["-c", st.cmd ?? "true"], { cwd: root, stdio: "inherit" }).status === 0
+  return spawnSync("bash", ["-c", st.cmd ?? "true"], { cwd: st.cwd ? join(root, st.cwd) : root, stdio: "inherit" }).status === 0
 }
 
 const label = (st: Step) => st.cmd ? `$ ${st.cmd}` : st.file ? `→ ${st.file}` : st.set ? `→ project.json: ${Object.entries(st.set).map(([k, v]) => `${k} = ${v}`).join(", ")}` : `by hand: ${st.manual}`
@@ -255,7 +263,7 @@ export function decideConf(conf: Conf, root: string, off: boolean): string[] {
     const all = CHECKS[s.name]
     if (!all) continue
     const rest = (s.gateSkip ?? []).filter((x) => !all.includes(x))
-    const add = off ? q.checks.filter((c) => c.stack === s.name && !c.ready).map((c) => c.check) : []
+    const add = off ? q.checks.filter((c) => (c.stack === s.name || c.stack === `${(s as any).repo}/${s.name}`) && !c.ready).map((c) => c.check) : []
     const next = [...new Set([...(off ? (s.gateSkip ?? []) : rest), ...add])]
     if (off) changed.push(...add)
     else changed.push(...(s.gateSkip ?? []).filter((x) => all.includes(x)))

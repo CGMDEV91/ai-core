@@ -17,9 +17,10 @@
 //   Files reviewed:
 //   - lib/modules/x/src/Y.php 3f2a9c1
 // Severities: BLOCKER · MAJOR (both force another round) · MINOR · NIT. Statuses: open · fixed · wontfix — <reason>.
-import { existsSync } from "node:fs"
+import { createHash } from "node:crypto"
+import { existsSync, readFileSync } from "node:fs"
 import { combined, ticketFile } from "./knowledge.ts"
-import { AI, ROOT, cfg } from "./project.ts"
+import { AI, ROOT, cfg, isWorkspace, services } from "./project.ts"
 import { cmp, escapeRe, read, sh, splitlines } from "./util.ts"
 
 const MAX_ROUNDS = 2, FULL_RATIO = 0.3
@@ -63,14 +64,17 @@ function reviewedHashes(sec: string): Record<string, string> {
   return Object.fromEntries([...part.matchAll(/^\s*-\s+`?(\S+?)`?\s+([0-9a-f]{7,40}|deleted)\s*$/gm)].map((m) => [m[1], m[2]]))
 }
 
+/** git's blob hash of the file (the same as `git hash-object`), computed here: a workspace root is no repo */
 function fileHash(rel: string): string {
-  if (!existsSync(`${ROOT}/${rel}`)) return "deleted"
-  const [, out] = sh(["git", "-C", ROOT, "hash-object", rel])
-  return out.trim().slice(0, 7) || "?"
+  const f = `${ROOT}/${rel}`
+  if (!existsSync(f)) return "deleted"
+  const b = readFileSync(f)
+  return createHash("sha1").update(`blob ${b.length}\0`).update(b).digest("hex").slice(0, 7)
 }
 
 /** the folders whose files a review covers: every stack's code paths + config sync (giportal: lib/ and config/) */
 function tracked(): string[] {
+  if (isWorkspace()) return services().map((s) => `${s.repo}/`)
   const out = new Set<string>()
   for (const s of cfg().stacks ?? []) {
     for (const p of s.paths ?? []) out.add(String(p).split("/")[0] + "/")
@@ -83,9 +87,10 @@ function tracked(): string[] {
 function changedFiles(text: string): string[] {
   const pre = tracked(), under = (f: string) => pre.some((p) => f.startsWith(p))
   const files = new Set([...section(text, "Changes").matchAll(/`([^`\s]+\/[^`\s]+)`/g)].map((m) => m[1]).filter(under))
-  for (const cmd of [["diff", "--name-only", "HEAD"], ["ls-files", "--others", "--exclude-standard"]]) {
-    const r = sh(["git", "-C", ROOT, ...cmd])
-    for (const f of splitlines(r[0] === 0 ? r[1] : "")) if (under(f)) files.add(f)
+  const repos = isWorkspace() ? services().map((s) => String(s.repo)) : [""]
+  for (const repo of repos) for (const cmd of [["diff", "--name-only", "HEAD"], ["ls-files", "--others", "--exclude-standard"]]) {
+    const r = sh(["git", "-C", repo ? `${ROOT}/${repo}` : ROOT, ...cmd])
+    for (const f0 of splitlines(r[0] === 0 ? r[1] : "")) { const f = repo ? `${repo}/${f0}` : f0; if (under(f)) files.add(f) }
   }
   return [...files].sort(cmp)
 }
