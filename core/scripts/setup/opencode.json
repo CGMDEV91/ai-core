@@ -278,10 +278,8 @@
       "template": "{file:./.ai/commands/jira.md}"
     },
     "skill": {
-      "description": "Should this work update a skill, create one, or nothing? Recommends and asks (skill-curator). Usage: /skill [key]",
-      "template": "{file:./.ai/commands/skill.md}",
-      "agent": "skill-curator",
-      "subtask": true
+      "description": "Before /close: should what this ticket learned (every dev's work) update a skill, create one, or nothing? Asks, writes, links the ticket to the skill and shortens it. Usage: /skill [key]",
+      "template": "{file:./.ai/commands/skill.md}"
     },
     "learn": {
       "description": "Capture a lesson into the right skill / known issue / convention (proposed first). Usage: /learn [lesson]",

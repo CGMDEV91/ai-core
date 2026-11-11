@@ -50,10 +50,12 @@ export function suggest(t: { key: string; text: string }): string {
   const edited = has(changes, /^\s*-\s+`/m)
   if (!plan && field(t.text, "type") === "feature") return `/plan ${k} — adaptive work needs an approved plan before any code`
   if (!edited) return plan ? `"go" with the plan's first step/block (or /debug ${k} if the cause of a bug is still unknown)` : `/plan ${k} if the fix is not trivial, else "go"`
-  const gateLines = ver.split("\n").filter((l) => /\[VERIFIED [^\]]*phpcs/.test(l))
+  // gate evidence of any stack: phpcs / phpstan (drupal) · eslint / tsc (react-ts) · compile / checkstyle (java) · tests
+  const GATE = /\[VERIFIED [^\]]*\b(phpcs|phpstan|eslint|tsc|compile|checkstyle|tests|gate)\b/
+  const gateLines = ver.split("\n").filter((l) => GATE.test(l))
   const lastGate = gateLines.length ? gateLines[gateLines.length - 1] : ""
   if (!lastGate || lastDate(changes, /edited \d{4}-\d{2}-\d{2}/g) > lastDate(lastGate, /\d{4}-\d{2}-\d{2}/g)) return `/gate — the changed code has no gate evidence yet`
-  if (/phpcs: [1-9]\d* new|phpstan: [1-9]\d* new/.test(ver.split("\n").filter((l) => /\[VERIFIED/.test(l)).slice(-2).join(" ")))
+  if (/(phpcs|phpstan|eslint|tsc|compile|checkstyle): [1-9]\d* new/.test(ver.split("\n").filter((l) => /\[VERIFIED/.test(l)).slice(-2).join(" ")))
     return `fix the NEW errors of the last gate, then /gate again`
   const next = (section(t.text, "Current state").match(/Next:\s*(.+)/) || [])[1] ?? ""
   const blocksLeft = has(plan, /\[ \]/) || (!has(plan, /\[x\]/i) && /\b(block|bloque|step|paso)\b/i.test(next) && !/\/(impact|review|close)\b|all blocks|todos los bloques/i.test(next))
@@ -67,6 +69,7 @@ export function suggest(t: { key: string; text: string }): string {
   if (!has(notes, /^\s*-?\s*Review:/m) && !section(t.text, "Review")) return `/review ${k}` + (/access|role|permission|representative|webservice|personal/i.test(t.text.slice(0, 3000)) ? ` and /security ${k}` : "")
   if (!checklist) return `/tests ${k} — manual re-test checklist`
   if (!has(ver, /VERIFIED-BY-HUMAN/)) return `test in the browser with the checklist and report the result`
+  if (!section(t.text, "Knowledge")) return `/skill ${k} — what this ticket taught (every dev's work) into a skill, or why not; then /close`
   return `/close ${k}`
 }
 

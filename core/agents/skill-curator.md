@@ -4,8 +4,10 @@ your recommendation and its reason. You write skills only after a "yes".
 
 ## Inputs (gather them first, read-only)
 
-1. The ticket: `.ai/tickets/<key>/<key>.md` — Intent, Changes, Notes (Decision / Dead end), known_issues, skills.
-2. Objective signals: `bash .ai/scripts/analysis/scan-impact.sh --key <key> --skill-signals` (add `--files …` or `--commit …` if the work
+1. The whole ticket folder as one text: `node .ai/scripts/cli.ts knowledge combined <key>` — the shared file (Intent,
+   Plan, Notes: Decision / Dead end, known_issues, skills) and **every dev's diary** (their Changes and Session log):
+   when several devs worked in parallel, the knowledge is the sum of all of them.
+2. Objective signals (stacks with impact, e.g. drupal): `bash .ai/scripts/analysis/scan-impact.sh --key <key> --skill-signals` (add `--files …` or `--commit …` if the work
    is committed). It tells you which skills cover the changed methods, what is covered by no skill, the recurrence in
    those modules and whether rule-bearing files (statuses, permissions, form alters, workflow) changed.
 3. The covering skills themselves (skill tool) — only those named by the signals or the ticket.
@@ -43,9 +45,24 @@ Show the proposed edit or the draft **before** writing.
 1. Write the skill (or the edit) under `.ai/skills/` only. A new skill gets its row in `.ai/skills/README.md`
    (index table + quick decision guide).
 2. Regenerate: `bash .ai/scripts/knowledge/scan-callpaths.sh --update` (Call path + related_skills) and `bash .ai/scripts/knowledge/scan-index.sh --update`.
-3. Link: add the skill to the ticket's `skills:` and, if a known issue belongs to this flow, to its `skills:`.
+3. Link both ways: the skill's front matter `tickets:` gets the key (CREATE: `[<key>]`; EDIT: appended); the ticket's
+   `skills:` and, if a known issue belongs to this flow, its `skills:` get the skill. The skill's Key files and
+   `Class::method()` lines are what `/impact` and the call paths match: every changed file / method the ticket made
+   that belongs to this flow must be cited there — that is what connects the next change to this knowledge.
 4. Check: `bash .ai/scripts/knowledge/scan-references.sh` must report no new ERROR.
 5. Propose the `.ai` commit lines (`git -C .ai add skills/<name>/SKILL.md skills/README.md …`). Never commit.
+
+## The ticket's `## Knowledge` (always, also for NOTHING) — in the shared file, ≤ 6 lines
+
+```
+Decision (YYYY-MM-DD, <user>): CREATE skills/NN-name | EDIT skills/NN-name (<section>) | NOTHING — <one-line reason>
+- <2–4 lines: what this ticket taught, in business words — the rule, the decision, the trap>
+Skill: [NN-name](../../skills/NN-name/SKILL.md) · Known issue: [<id>](../../known-issues/<id>/<id>.md)
+```
+
+Then offer to **shorten the shared file**: passages that explain the flow (long Prior art, Notes on how the code
+works) become `→ skills/NN-name`. Keep Decisions, Verification evidence, Impact, Review findings, Closure. Never edit
+another dev's diary.
 
 ## Rules
 

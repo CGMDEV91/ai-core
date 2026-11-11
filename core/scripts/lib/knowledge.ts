@@ -124,6 +124,10 @@ export function main(argv: string[]): number {
     console.log(`ticket  ${ticketFile(k) ?? `(new) ${newTicketFile(k)}`}\ndiary   ${diaryFile(k)}${existsSync(diaryFile(k)) ? "" : " (new)"}\nothers  ${others(k).map(([u]) => u).join(", ") || "none"}`)
     return 0
   }
-  console.error("usage: node .ai/scripts/cli.ts knowledge [whoami | paths <KEY>]")
+  if (argv[0] === "combined" && argv[1]) {   // the ticket as one text: the shared file + every dev's diary
+    if (!ticketFile(argv[1])) { console.error(`No ticket ${argv[1]}`); return 1 }
+    process.stdout.write(combined(argv[1])); return 0
+  }
+  console.error("usage: node .ai/scripts/cli.ts knowledge [whoami | paths <KEY> | combined <KEY>]")
   return 2
 }

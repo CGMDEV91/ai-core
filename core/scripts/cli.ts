@@ -20,6 +20,9 @@ if (process.platform === "win32" && wsl.distro && !process.env.AI_IN_WSL) {
   process.exit(r.status ?? 1)
 }
 
+// a reader that stops early (| head) is not an error
+process.stdout.on("error", (e: NodeJS.ErrnoException) => { if (e.code === "EPIPE") process.exit(0); throw e })
+
 const lib = join(dirname(fileURLToPath(import.meta.url)), "lib")
 const [cmd, ...args] = process.argv.slice(2)
 const NOT_COMMANDS = ["util.ts", "project.ts", "claude.ts", "opencode.ts", "gatelib.ts", "ticketctx.ts", "edits.ts"]   // libraries, no main()

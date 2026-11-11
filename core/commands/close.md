@@ -12,7 +12,8 @@ Do these steps in order and stop to ask wherever it says "propose" or "ask":
    from `.ai/templates/known-issue.template.md`, or update the existing one (`related`, `last_seen`,
    References), and add its id to the ticket's `known_issues:`. Fill its `skills:` with `bash .ai/scripts/analysis/scan-impact.sh --files <its Files> --skills-only` plus the
    ticket's `skills:`, and cite methods in **Files**. Then run `bash .ai/scripts/knowledge/scan-known-issues.sh --update`.
-5. **Skills (always ask).** Run the `skill-curator` (`/skill <key>` — or apply its instructions in
+5. **Skills.** If the shared file already has `## Knowledge` (written by `/skill`), skip this step. Otherwise run
+   `/skill <key>` now (the curator's instructions in
    `.ai/agents/skill-curator.md` yourself): it decides EDIT an existing skill / CREATE a new one / NOTHING from the
    ticket and `bash .ai/scripts/analysis/scan-impact.sh --key <key> --skill-signals`, and asks the human **one** question with its
    recommendation and reason. Also run `/scan` logic if a service, content type, field or form alter changed, and

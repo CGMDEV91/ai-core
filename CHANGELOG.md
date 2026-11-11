@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.14.0 — 2026-11-11
+
+- **A ticket's knowledge goes into a skill before `/close`.** When the work is verified and the shared file has no
+  `## Knowledge`, ▶ Next proposes `/skill <key>`. It reads the whole ticket folder (`cli knowledge combined <key>`:
+  the shared file + every dev's diary), decides CREATE / EDIT / NOTHING, asks once, and on yes writes the skill and
+  links both ways — the skill's new `tickets:` front matter, the ticket's `skills:`. It always writes a short
+  `## Knowledge` (decision, 2–4 lines, links) and offers to shorten the shared file (what lives in the skill becomes
+  `→ skills/<name>`; decisions, evidence, impact, review and closure stay). `/close` skips the curator when
+  `## Knowledge` exists. The skill must cite the ticket's changed files / methods: that is what `/impact` and the
+  call paths match next time.
+- `/skill` runs in the main session (it has to ask and wait for the yes; as a subtask it could not).
+- ▶ Next recognises the gate evidence of every stack (eslint, tsc, compile, checkstyle, tests — not only phpcs).
+- `cli … | head` no longer prints an EPIPE trace.
+
 ## 0.13.1 — 2026-11-11
 
 - **`/jira` shows the drafts in the conversation**, each in its own block ready to copy — it ran as a subtask, so its

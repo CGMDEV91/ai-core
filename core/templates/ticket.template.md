@@ -80,6 +80,11 @@ updated: YYYY-MM-DD
 
 <!-- Written by the test-designer (/tests): - [ ] N. role · status · language · action → expected -->
 
+## Knowledge
+
+<!-- Written by /skill before /close — short: the decision (CREATE / EDIT / NOTHING) and why, 2–4 lines of what this
+     ticket taught, and the links. The detail lives in the skill, not here. -->
+
 ## Notes
 
 <!-- Append as things happen, one typed line each, never rewrite:

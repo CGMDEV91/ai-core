@@ -61,9 +61,18 @@ const cases: [string, Record<string, string>, Record<string, string>, RegExp | "
     { Plan: PLAN_DONE, Changes: CHANGES, Verification: GATE_OK, Impact: IMPACT, Notes: REVIEW }, /^\/tests EUIPOFO-1/],
   ["no human verification → browser", { type: "feature" },
     { Plan: PLAN_DONE, Changes: CHANGES, Verification: GATE_OK + "\n" + CHECKLIST, Impact: IMPACT, Notes: REVIEW }, /^test in the browser/],
-  ["everything → /close", { type: "feature" },
+  ["verified, no ## Knowledge → /skill before /close", { type: "feature" },
     { Plan: PLAN_DONE, Changes: CHANGES, Verification: GATE_OK + "\n" + HUMAN + "\n" + CHECKLIST, Impact: IMPACT, Notes: REVIEW },
-    /^\/close EUIPOFO-1$/],
+    /^\/skill EUIPOFO-1 /],
+  ["## Knowledge only the template comment → /skill", { type: "feature" },
+    { Plan: PLAN_DONE, Changes: CHANGES, Verification: GATE_OK + "\n" + HUMAN + "\n" + CHECKLIST, Impact: IMPACT, Notes: REVIEW,
+      Knowledge: "<!-- Written by /skill -->" }, /^\/skill EUIPOFO-1 /],
+  ["everything, ## Knowledge written → /close", { type: "feature" },
+    { Plan: PLAN_DONE, Changes: CHANGES, Verification: GATE_OK + "\n" + HUMAN + "\n" + CHECKLIST, Impact: IMPACT, Notes: REVIEW,
+      Knowledge: "Decision (2026-11-11, ana): CREATE skills/31-renewal — x" }, /^\/close EUIPOFO-1$/],
+  ["react-ts gate evidence (eslint) counts as a gate", { type: "bugfix" },
+    { Plan: PLAN_DONE, Changes: CHANGES, Verification: '- [VERIFIED 2026-11-12 @abc — "eslint: 0 new issue(s) in 2 file(s)"]', Impact: IMPACT, Notes: REVIEW },
+    /^\/tests EUIPOFO-1/],
 ]
 
 for (const [name, front, sections, want] of cases) {
