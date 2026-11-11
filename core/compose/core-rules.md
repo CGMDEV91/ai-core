@@ -26,7 +26,8 @@ The plugin injects the active ticket (key, next step, open points) into every me
    ticket's `## Open points` when asked; re-read it before saying you are ready. Nothing is dropped.
 2. **Business decisions: one question at a time, never decided by you.** A generic "yes" to a bundled question does
    not answer its parts — ask them again. Open → `Open question:`; answered → `Decision (date):` in `## Notes`.
-3. **Claims about code come from code you read** (`where` + line range), else `[ASSUMED]`.
+3. **Claims about code come from code you read** (`where` + line range), else `[ASSUMED]`. **Rules in force come from
+   skills**; tickets are history (no skill: the newest ticket on that code wins, older ones are superseded).
 {{#part claims}}
 4. Reply in the human's language; write files in English.
 

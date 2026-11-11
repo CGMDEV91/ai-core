@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.19.0 — 2026-11-12
+
+- **Impact, touchpoints and call paths on every stack.** One impact engine in core with a profile per stack (Drupal's
+  output is identical — the 17 golden snapshots did not change): React and Java map a changed line to its method with
+  the code index, cite methods as `Class::method()`, `Class.method()`, `Component()`, `useHook()`, and read a module as
+  the feature folder (React) or the package (Java). Generic `callpaths` (skills' call paths from the code index) and
+  `touchpoints` (grouped per stack: React routes, state, API calls, hooks, i18n; Java controllers, entities, config,
+  migrations, messages) in core; Drupal keeps its PHP resolver and its own grouping. `references` moved to core.
+  Workspaces: impact reads the diff of every service.
+- **A skill is the source of truth; tickets are history.** `## History` in the skill template; the rules in force are
+  rewritten in the skill, the ticket keeps the reference. Without a skill the newest ticket on the same code wins and
+  older ones are marked `Superseded by …`.
+- **Stale skills**: `impact --stale-skills` lists the skills whose cited methods or call path the ticket changed;
+  ▶ Next and `/close` require `/skill` to update each one (an edit drafted from the diff) or say why not.
+- **Code touched**: `/close` runs `impact --record <key>` — the files and methods the ticket changed, from its
+  baseline, kept in its shared file: a later change on those methods finds the ticket at method level, with or
+  without a skill.
+- `known_issues:` of the current ticket count as declared in its impact; a skill's `tickets:` show as its history.
+- `./selftest.sh --real` checks impact and touchpoints on the real Vite project (it found two bugs fixed here:
+  capitalised components were not read as methods, and touchpoints skipped a project under a `.cache` folder).
+
 ## 0.18.0 — 2026-11-11
 
 - **Workspaces: several service repos, one `.ai`.** A plain folder (no repo) holding service repos is detected as a

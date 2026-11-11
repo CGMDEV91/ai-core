@@ -8,7 +8,7 @@
 // node runs its doctor on the \\wsl.localhost path (cli.ts must re-run itself in WSL: hooks and exclude OK), loads its
 // opencode plugins the way opencode does, and runs a command through the tools' WSL runner (nvm's node found).
 import { spawnSync } from "node:child_process"
-import { chmodSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs"
+import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -102,6 +102,15 @@ if (argv.includes("--real")) {
   check("real react-ts: gate finds the type error (tsconfig with references → tsc -b)", /\| tsc \| FAIL/.test(gt), (gt.match(/\| tsc \|[^\n]*/) ?? [""])[0])
   rmSync(join(app, "src", "typeerr.ts"))
   check("real react-ts: gate finds the NEW eslint issue", /\| eslint \| FAIL \| eslint: [1-9]\d* new issue/.test(g), (g.match(/\| (eslint|tsc|tests) \|[^\n]*/g) ?? []).join(" · ").slice(0, 200))
+  // impact on real code: a skill that cites App() is flagged when App.tsx changes
+  mkdirSync(join(app, ".ai", "skills", "01-app"), { recursive: true })
+  writeFileSync(join(app, ".ai", "skills", "01-app", "SKILL.md"), "---\nname: 01-app\ndescription: \"the app shell\"\nrelated_skills: []\n---\n\n# App\n\n## How to test\n\n- the page loads\n\n## Key files\n\n- `src/App.tsx` — `App()`\n")
+  cli(app, "codeindex", "--update"); cli(app, "callpaths", "--update")
+  sh("git checkout -q -- src", app)
+  writeFileSync(join(app, "src", "App.tsx"), readFileSync(join(app, "src", "App.tsx"), "utf-8").replace("useState(0)", "useState(1)"))
+  const im = cli(app, "impact").stdout ?? ""
+  check("real react-ts: impact flags the skill of the changed component", /⚠ \*\*01-app\*\* \(method: App::App\(\)\)/.test(im), (im.match(/- [⚠·] \*\*[^\n]*/) ?? ["no flow"])[0])
+  check("real react-ts: touchpoints groups a concept", /## (components|hooks|code: other) — /.test(cli(app, "touchpoints", "count").stdout ?? ""))
   // Java: spring-petclinic at a pinned commit (needs a JDK)
   if (spawnSync("java", ["-version"]).status !== 0) console.log(dim("· real java: skipped — no JDK here (install one: node .ai/scripts/cli.ts deps --install)"))
   else {

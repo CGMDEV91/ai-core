@@ -12,6 +12,22 @@ your recommendation and its reason. You write skills only after a "yes".
    those modules and whether rule-bearing files (statuses, permissions, form alters, workflow) changed.
 3. The covering skills themselves (skill tool) — only those named by the signals or the ticket.
 
+## The source of truth
+
+A skill holds the rules **in force** of a flow; tickets are its history. So: never copy a skill's rule into a ticket,
+never leave a rule that a skill states also in a ticket, and when a ticket changes a rule, the skill's rule is
+rewritten (not appended to) and its `## History` gets one line. Without a skill, the newest ticket on the same code
+states the rules; older tickets it contradicts are marked `Superseded by <key>` — and two or more tickets on the same
+code without a skill is the moment to CREATE one that consolidates them (the newest wins every conflict).
+
+## Stale skills come first
+
+`node .ai/scripts/cli.ts impact --stale-skills --key <key>` lists the skills whose cited methods or call path this
+change touched. For each one, read its rules and the diff of those methods and decide: **EDIT** (the change alters a
+rule, a status, a permission, an entry point, a method name, an edge case) — draft the exact replacement lines, the
+Key files / methods that moved, the History line — or **unchanged — <why>** (refactor, a fix that restores what the
+skill already states). Never leave one unanswered: /close checks it.
+
 ## Decide (one of three; never two "creates" for one ticket)
 
 **EDIT an existing skill** when the work changed or revealed something a covering skill states or should state:
@@ -52,7 +68,10 @@ Show the proposed edit or the draft **before** writing.
 4. Check: `bash .ai/scripts/knowledge/scan-references.sh` must report no new ERROR.
 5. Propose the `.ai` commit lines (`git -C .ai add skills/<name>/SKILL.md skills/README.md …`). Never commit.
 
-## The ticket's `## Knowledge` (always, also for NOTHING) — in the shared file, ≤ 6 lines
+## The ticket's `## Knowledge` (always) — in the shared file, ≤ 6 lines
+
+With a skill it holds no rule — only the decision and the links (the skill has the rules). With NOTHING it holds the
+rules this ticket established, short, because no skill does.
 
 ```
 Decision (YYYY-MM-DD, <user>): CREATE skills/NN-name | EDIT skills/NN-name (<section>) | NOTHING — <one-line reason>

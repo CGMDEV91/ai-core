@@ -116,13 +116,16 @@ export function harvestCodeRefs(doc: Doc, text: string, keyfileText: string | nu
     }
   }
   for (const m of findall(CLASS_METHOD_RE, text)) { doc.classes.add(m[1]); doc.addCM(m[1], m[2].toLowerCase()); doc.methods.add(m[2].toLowerCase()) }
+  // other stacks: a module, a hook or a function file is lower-case — `useCounter::useCounter()` (what --record writes)
+  if (OTHERS) for (const m of findall(/\b([a-z_][A-Za-z0-9_]*)::([a-zA-Z_][A-Za-z0-9_]*)\s*\(/g, text)) { doc.classes.add(m[1]); doc.addCM(m[1], m[2].toLowerCase()); doc.methods.add(m[2].toLowerCase()) }
   for (const line of splitlines(keyfileText || text)) {
     const paths = findall(PATH_RE, line).map((m) => m[0]).filter((p) => CODE_EXT.includes(psuffix(p)))
     const cls = paths.length ? pstem(paths[0]) : null
     if (cls) doc.classes.add(cls)
     for (const b of findall(BACKTICK_RE, line)) {
       const tok = b[1].trim()
-      const m = tok.match(METHOD_TOKEN_RE)
+      // other stacks: a component or a class constructor is written with a capital — `App()`, `OrderForm()`
+      const m = tok.match(METHOD_TOKEN_RE) ?? (OTHERS && tok.endsWith("()") ? tok.match(/^([A-Z][A-Za-z0-9_]*)\(\)$/) : null)
       // bare tokens bind only when camelCase: snake_case ones are statuses/fields, not methods
       const isMethod = tok.endsWith("()") || (cls && /[a-z][A-Z]/.test(tok))
       if (m && !STOP_METHODS.has(m[1].toLowerCase()) && isMethod) {

@@ -1,19 +1,30 @@
-# /skill — what did this ticket teach, and where does it live from now on?
+# /skill — where does what this ticket taught live from now on?
 
 Ticket key (optional): `$ARGUMENTS` — if empty, the active ticket (`.ai/current-ticket.local.md`).
 
-Run before `/close` (▶ Next proposes it when the work is verified), and whenever several devs worked on the ticket.
-Apply `.ai/agents/skill-curator.md` yourself, in this session (you must ask the human and wait for the answer):
+Run before `/close` (▶ Next proposes it), and whenever several devs worked on the ticket. Apply
+`.ai/agents/skill-curator.md` yourself, in this session: you must ask the human and wait for the answer.
 
-1. **Read the whole ticket folder** as one text — `node .ai/scripts/cli.ts knowledge combined <key>`: the shared file
-   and every dev's diary (their Changes, Notes, Session log). Plus the signals and the covering skills (curator, Inputs).
-2. **Decide** CREATE / EDIT / NOTHING with the curator's criteria and ask **one** question, recommendation first,
-   showing the draft or the edit.
-3. **On yes**, write the skill and link both ways (curator, After a "yes"). **Always** — also for NOTHING — write the
-   shared file's `## Knowledge`: short, never a copy of the skill.
-4. **Shorten the ticket** (ask once): what now lives in the skill is replaced in the shared file by one line
-   `→ skills/<name>` — never Decisions, Verification evidence, Impact, Review findings or Closure. Other devs'
-   diaries are theirs: never edited.
+**The rule:** a skill is the single source of truth of a flow's rules. A ticket is history. When a skill covers the
+work, the knowledge moves into the skill and the ticket keeps only the reference — never the same rule in two places.
+
+1. **Read** the whole ticket folder (`node .ai/scripts/cli.ts knowledge combined <key>`: shared file + every diary),
+   the signals (`node .ai/scripts/cli.ts impact --key <key> --skill-signals`) and the **skills this ticket must update**
+   (`node .ai/scripts/cli.ts impact --stale-skills --key <key>`: the skills whose cited methods or call path the change
+   touched).
+2. **Every stale skill** gets an answer: an EDIT drafted from the diff (`git diff <baseline>` of its cited methods) and
+   the ticket's decisions — the rules that changed are rewritten in place (the old wording goes away), Key files and
+   methods follow renames, a `## History` line `<key> (<date>): <what changed>` is added — or `unchanged — <why>`
+   when the change does not alter what the skill states.
+3. **New knowledge** with no skill: CREATE when the curator's criteria hold; otherwise NOTHING.
+4. **Ask once**, recommendation first, showing every draft. On yes: write, then
+   `node .ai/scripts/cli.ts callpaths --update` and `node .ai/scripts/cli.ts references --quick`.
+5. **The ticket** (shared file):
+   - with a skill (CREATE / EDIT): `## Knowledge` is only the decision and the links; the passages that explain the
+     flow move to the skill and become `→ skills/<name>` (Decisions, evidence, Impact, Review and Closure stay);
+   - NOTHING: `## Knowledge` keeps the rules this ticket established (short); a past ticket on the same code whose
+     `## Knowledge` stated something this one changed gets `Superseded by <key> (<date>): <what>`;
+   - in every case `skills:` lists the skills it updated, and each skill's `tickets:` lists this key.
 
 ## Next
 

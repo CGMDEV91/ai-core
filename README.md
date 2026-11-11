@@ -22,7 +22,8 @@ install.sh · install.ps1 → install.ts   install · --update · --reconfigure 
 | `java` | pom.xml + src/main/java, build.gradle | compile · Checkstyle (XML) · JUnit XML (Maven / Gradle) | classes, methods, beans, routes, listeners, @Scheduled |
 | `generic` | anything else | the commands in project.json `"gate"` (`file-line` or `exit`) | — |
 
-Several stacks in one repo (Drupal + a React front end): each stack has its `paths`; the gate and the index run each
+Impact, touchpoints and the skills' call paths work on every stack (one engine, a profile per stack; Drupal keeps
+its PHP resolver). Several stacks in one repo (Drupal + a React front end): each stack has its `paths`; the gate and the index run each
 stack on its own files. Tests of the adapters: `node --experimental-strip-types --test tests/stacks.test.mts`.
 
 ## Install into a project

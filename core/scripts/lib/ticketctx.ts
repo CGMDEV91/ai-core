@@ -2,8 +2,10 @@
 // suggest() (the deterministic next step) and the state a compacted session must keep. Used by the opencode plugin
 // (plugin/ticket-context.ts), the Claude Code hooks (hook.ts) and the tests. Not a plugin itself: opencode would call
 // every exported function of a plugin file.
+import { spawnSync } from "node:child_process"
+import { fileURLToPath } from "node:url"
 import { existsSync, readFileSync } from "node:fs"
-import { join } from "node:path"
+import { dirname, join } from "node:path"
 import { combined, currentKey, devUser, diaryFile, others, sectionOf, ticketFile } from "./knowledge.ts"
 
 export function rootOf(directory?: string, worktree?: string): string {
@@ -40,6 +42,15 @@ function openBlocking(text: string): { ids: string[]; rounds: number; section: s
   return { ids: [], rounds: 0, section: "review" }
 }
 
+/** the skills whose code this ticket changed at method level (impact --stale-skills): the ticket must update them */
+export function staleSkills(key: string, baseline = ""): string[] {
+  if ((process.versions as any).bun || !/node(\.exe)?$/i.test(process.execPath)) return []   // inside opencode's runtime: /close checks it
+  const cli = fileURLToPath(new URL("../cli.ts", import.meta.url))
+  const args = ["impact", "--stale-skills", "--key", key, ...(/^[0-9a-f]{6,40}$/.test(baseline.trim()) ? ["--base", baseline.trim()] : [])]
+  const r = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", cli, ...args], { encoding: "utf-8", timeout: 30000, cwd: dirname(dirname(dirname(cli))) })
+  return r.status === 0 ? (r.stdout ?? "").split("\n").map((l) => l.split("\t")[0].trim()).filter(Boolean) : []
+}
+
 export function suggest(t: { key: string; text: string }): string {
   const k = t.key
   const status = field(t.text, "status")
@@ -71,6 +82,8 @@ export function suggest(t: { key: string; text: string }): string {
   if (!checklist) return `/tests ${k} — manual re-test checklist`
   if (!has(ver, /VERIFIED-BY-HUMAN/)) return `test in the browser with the checklist and report the result`
   if (!section(t.text, "Knowledge")) return `/skill ${k} — what this ticket taught (every dev's work) into a skill, or why not; then /close`
+  const stale = staleSkills(k, field(t.text, "baseline")).filter((s) => !section(t.text, "Knowledge").includes(s))
+  if (stale.length) return `/skill ${k} — this ticket changed code that ${stale.join(", ")} describe${stale.length > 1 ? "" : "s"}: update ${stale.length > 1 ? "them" : "it"} (or say why not) before /close`
   return `/close ${k}`
 }
 

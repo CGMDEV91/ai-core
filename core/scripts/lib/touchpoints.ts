@@ -62,7 +62,7 @@ export function main(argv: string[]): number {
   const scan = (base: string, stackName: string) => {
     if (!existsSync(base)) return
     const own = (x: string) => stackName === "knowledge" || !x.startsWith(`${AI}/`)   // the code roots never re-read .ai/
-    for (const p of walk(base, (x) => !SKIP.test(x) && own(x) && (EXTS.has(extname(x)) || basename(x).startsWith(".env")) && !/\.(min\.js|map|lock)$/.test(x) && !/package-lock\.json$/.test(x))) {
+    for (const p of walk(base, (x) => !SKIP.test(x.slice(ROOT.length)) && own(x) && (EXTS.has(extname(x)) || basename(x).startsWith(".env")) && !/\.(min\.js|map|lock)$/.test(x) && !/package-lock\.json$/.test(x))) {
       if (seen.has(p)) continue
       seen.add(p)
       let lines: string[]

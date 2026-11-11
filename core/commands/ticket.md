@@ -51,6 +51,8 @@ This command is the whole procedure (no other process file to load):
    the ticket may touch (`git -C <repo> …`), listed in `services:` with its branch and baseline in Notes. Uncommitted work not of this ticket → `WIP-other:` note and ask.
 5. **Prior art.** `.ai/known-issues/INDEX.md` → open only matching entries · `grep -ril "<keywords>" .ai/tickets/`
    · load the skills of the area (skill tool) and list them in `skills:`; related bugs found go to `known_issues:`.
+   **The skills are the rules in force; past tickets are history.** Without a skill, the newest ticket on the same code
+   wins (its `## Knowledge`); a ticket marked `Superseded by …` is never followed.
    Write `## Prior art`.
    Mention any matching "Pattern to watch" before starting.
    **Locate, don't guess (core rule 3):** `where` for every class/method you will reason about, then read only
