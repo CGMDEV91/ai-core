@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.16.0 — 2026-11-11
+
+- **SonarQube at the end of a ticket**: `cli sonar` (and `gate --sonar`) posts the analysis of the branch (Maven:
+  sonar-maven-plugin; otherwise `sonar` / `sonar-scanner`), waits for the server to process it, then reads the quality
+  gate, the new issues and the new coverage → PASS only with the gate OK and 0 new issues; the failed conditions are
+  listed. `/close` runs it when the project is a SonarQube project. `$SONAR_URL` + `$SONAR_TOKEN` in the developer's
+  environment (never in the repo); the project key in project.json, sonar-project.properties or pom.xml. `cli qa` and
+  the doctor show it as a project check (missing token, scanner or key → the step); `qa --off` turns it off.
+- **Machine policy**: `/doctor` finds a machine-wide opencode policy (`C:\ProgramData\opencode`, `/etc/opencode`…),
+  says which keys it wins on, and warns when it lets git write (commit, push, reset…) what the project denies.
+  The project's own `opencode.json` already denies those for every agent.
+
 ## 0.15.0 — 2026-11-11
 
 - **`./selftest.sh`** — ai-core's own checks on this machine instead of a pipeline: every test plus, from WSL, the

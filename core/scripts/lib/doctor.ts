@@ -176,6 +176,22 @@ function codeChecks(): void {
     `node .ai/scripts/cli.ts qa --setup (asks before each step${first ? `; first: ${first.cmd ?? first.file ?? first.manual ?? first.what}` : ""}) — or qa --off if the project goes without them`)
 }
 
+/** A machine-wide opencode policy (enterprise installs) wins over the project on every key it sets: say which, and
+ *  warn when it lets git write what the project denies (git commit / push / add / reset… → "ask" or "allow"). */
+function machinePolicy(): void {
+  const candidates = ["/mnt/c/ProgramData/opencode/opencode.json", "C:\\ProgramData\\opencode\\opencode.json", "/etc/opencode/opencode.json",
+    "/Library/Application Support/opencode/opencode.json"]
+  const f = process.env.AI_POLICY_FILE || candidates.find((x) => { try { return existsSync(x) } catch { return false } })
+  if (!f) return
+  let p: any = {}
+  try { p = JSON.parse(read(f).replace(/^\s*\/\/.*$/gm, "")) } catch { add("WARN", "machine policy", `${f} is not valid JSON`); return }
+  const bash = p.permission?.bash ?? {}
+  const loose = Object.entries<string>(typeof bash === "object" ? bash : {}).filter(([k, v]) => /git\s+(commit|push|add|reset|rebase|checkout|switch|restore|stash|clean)/.test(k) && v !== "deny").map(([k, v]) => `${k} → ${v}`)
+  const keys = Object.keys(p).filter((k) => k !== "$schema")
+  if (loose.length) add("WARN", "machine policy", `${f} wins over the project and allows: ${loose.join(", ")} — the agent may be offered those git commands`, "ask the policy owner to set them to deny; meanwhile, never approve a git write the agent proposes")
+  else add("INFO", "machine policy", `${f} wins on: ${keys.join(", ") || "nothing"} (instructions are merged, not replaced)`)
+}
+
 function context(): void {
   const m = measure(ROOT), header = Math.round((ticketHeader(ROOT) ?? "").length / 4), top = m.files[0]
   const detail = `${m.rules} / ${MAX_RULES} tok always loaded${header ? ` + ticket header ${header} / ${MAX_HEADER}` : ""}${top ? ` (largest: ${top[0]} ${top[2]})` : ""}`
@@ -202,7 +218,7 @@ function claudeCode(): void {
 export function main(_argv: string[]): number {
   node()
   const { stacks } = project()
-  managed(); parts(); hooks(); exclude(); opencode(); claudeCode(); context(); fresh(stacks); execEnv(stacks); remote()
+  managed(); parts(); hooks(); exclude(); opencode(); claudeCode(); context(); machinePolicy(); fresh(stacks); execEnv(stacks); remote()
   console.log(`DOCTOR — ${ROOT}\n\n| status | check | detail |\n|---|---|---|`)
   for (const [s, c, d] of rows) console.log(`| ${s} | ${c} | ${d} |`)
   const fixes = rows.filter((r) => (r[0] === "FAIL" || r[0] === "WARN") && r[3])

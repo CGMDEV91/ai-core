@@ -55,6 +55,9 @@ test("installer Next steps, qa --off / --on, doctor row, --setup writes the base
   assert.equal(node(d, ".ai/scripts/cli.ts", "qa", "--off").code, 0)
   assert.deepEqual(JSON.parse(readFileSync(join(d, ".ai", "project.json"), "utf-8")).stacks[0].gateSkip, ["phpcs", "phpstan"])
   assert.match(node(d, ".ai/scripts/cli.ts", "doctor").out, /\| INFO \| code checks \| phpcs, phpstan off — project decision/)
+  const pol = join(d, "policy.json"); writeFileSync(pol, JSON.stringify({ model: "x/y", permission: { bash: { "git commit *": "ask", "git push *": "deny" } } }))
+  const withPolicy = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", ".ai/scripts/cli.ts", "doctor"], { cwd: d, encoding: "utf-8", env: { ...process.env, AI_POLICY_FILE: pol } }).stdout
+  assert.match(withPolicy, /\| WARN \| machine policy \| .* allows: git commit \* → ask/)
   node(d, ".ai/scripts/cli.ts", "qa", "--on")
   assert.equal(JSON.parse(readFileSync(join(d, ".ai", "project.json"), "utf-8")).stacks[0].gateSkip, undefined)
 

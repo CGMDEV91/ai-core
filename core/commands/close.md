@@ -7,6 +7,8 @@ Do these steps in order and stop to ask wherever it says "propose" or "ask":
 2. **Impact.** Re-run `bash .ai/scripts/analysis/scan-impact.sh --write-ticket <key>` (diff + the ticket's declared skills). Every ⚠ flow must have a `Notes` line
    `Impact: <skill> — re-tested [VERIFIED-BY-HUMAN …] | checked, not affected — <why>`. A ⚠ flow without one
    → ask the human; do not close.
+2b. **SonarQube** (when `node .ai/scripts/cli.ts qa` lists `sonar` as ready): `node .ai/scripts/cli.ts gate --sonar` —
+   the quality gate of this branch must pass with 0 new issues; its `[VERIFIED …]` line goes to `## Verification`.
 3. **Verification hygiene.** Every `[VERIFIED]` in `## Verification` has an evidence line; list what was not verified.
    An open `[QUESTION]` anywhere in the ticket (diaries too) → ask the human; do not close with one.
 4. **Known issue.** For a bugfix/analysis with a confirmed cause: create `.ai/known-issues/<key>-<short-slug>/<key>-<short-slug>.md`
