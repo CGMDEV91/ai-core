@@ -32,7 +32,9 @@ if (argv.includes("--install-hook")) {
 // 1. the tests
 const files = ["tests", join("core", "tests")].flatMap((d) => existsSync(join(CORE, d)) ? readdirSync(join(CORE, d)).filter((f) => f.endsWith(".test.mts")).map((f) => join(d, f)) : [])
 console.log(bold(`ai-core selftest — ${files.length} test files`))
-const t = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--test", ...files], { cwd: CORE, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024 })
+// a git hook (pre-push) exports GIT_DIR, GIT_INDEX_FILE…: the tests' own temporary repos must not inherit them
+const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_")))
+const t = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--test", ...files], { cwd: CORE, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024, env })
 const out = (t.stdout ?? "") + (t.stderr ?? "")
 const n = (k: string) => Number((out.match(new RegExp(`^ℹ ${k} (\\d+)`, "m")) ?? [])[1] ?? 0)
 check("tests", t.status === 0, `${n("pass")} pass · ${n("fail")} fail`)
