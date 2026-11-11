@@ -18,6 +18,10 @@ This command is the whole procedure (no other process file to load):
    in one line. Files: `node .ai/scripts/cli.ts knowledge paths <key>` → the shared `.ai/tickets/<key>/<key>.md`, **your
    diary** `<key>.<you>.md` (you = global git user.name) and the other devs on the ticket.
 3. **Resume or create.**
+   - Exists with `status: waiting-validation` → the analysis waits for the client's approval. The human says it was
+     approved (`/ticket <key> approved`) → `status: active`, Notes `Decision (date): analysis approved — <by whom>`,
+     go on; rejected (`/ticket <key> rejected <why>`) → Notes `Decision (date): analysis rejected — <why>`, back to
+     the analysis. Nothing is implemented while it waits.
    - Exists with `status: done` (or `abandoned`) → it was closed. Ask **one** question: reopen it for this request (a
      follow-up on the same Jira issue) — or is it a new ticket? On **reopen**: in the shared file `status: active`, a
      `Notes` line `Reopened YYYY-MM-DD by <you>: <the request in one line>`, the request in `## Open points`, and new
@@ -62,6 +66,10 @@ This command is the whole procedure (no other process file to load):
    - **Small** (one module, ≤ ~30 lines, no new service/field/transition) → implement here.
    - **Not small** → ask the human: run `/plan <key>` (backend-architect) first? On approval of the plan,
      delegate each step to `@fullstack-developer` with the key and the step, and review every returned diff.
+   - **bugfix of logic, and the project has tests** → the regression test first: write it, run it **red** (its failing
+     assertion is the evidence), then fix and run it green. A test that was never red proves nothing.
+   - **the client must approve the analysis before any code** (the human says so) → write the analysis and the plan,
+     `status: waiting-validation`, and stop: `/jira <key>` gives the analysis comment to send.
    - **bug with unknown cause / analysis** → delegate the diagnosis to `@debugger` (`/debug`): it returns the proven
      root cause or what was ruled out. Write it in `Notes`; stop and ask whether a fix follows.
 7. **Gate** — delegate to `@gate-runner` (`/gate`) after each implementation block: it returns pass/fail and the

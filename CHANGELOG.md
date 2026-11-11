@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.15.0 — 2026-11-11
+
+- **Context budget**: `cli budget` — what loads on every message (opencode instructions, CLAUDE.md imports, the
+  ticket header) against 4000 + 800 tokens; `/doctor` row **context**; a test keeps every stack under it. If you add,
+  take something out.
+- **`status: waiting-validation`**: when the client must approve the analysis before any code, `/ticket` stops there;
+  ▶ Next waits; `/ticket <key> approved | rejected <why>` records the Decision and goes on (or back to the analysis).
+- **`[QUESTION]`**: facts only the team knows — the header counts the open ones, `/close` does not close with one;
+  answered → `[ANSWERED <date>]`.
+- **Regression test red first** in a logic bugfix when the project has tests (the failing assertion is the evidence).
+- **`/close` gives the pull request description** (Bitbucket / GitLab) ready to paste, next to the commit messages.
+
 ## 0.14.0 — 2026-11-11
 
 - **A ticket's knowledge goes into a skill before `/close`.** When the work is verified and the shared file has no

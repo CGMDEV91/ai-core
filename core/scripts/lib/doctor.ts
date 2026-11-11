@@ -13,6 +13,8 @@ import { composedText } from "./opencode.ts"
 import { AI, ROOT, cfg, runPrefix, stack } from "./project.ts"
 import { read } from "./util.ts"
 import * as qa from "./qa.ts"
+import { MAX_HEADER, MAX_RULES, measure } from "./budget.ts"
+import { ticketHeader } from "./ticketctx.ts"
 
 type Row = [status: "OK" | "WARN" | "FAIL" | "INFO", check: string, detail: string, fix?: string]
 const rows: Row[] = []
@@ -174,6 +176,13 @@ function codeChecks(): void {
     `node .ai/scripts/cli.ts qa --setup (asks before each step${first ? `; first: ${first.cmd ?? first.file ?? first.manual ?? first.what}` : ""}) — or qa --off if the project goes without them`)
 }
 
+function context(): void {
+  const m = measure(ROOT), header = Math.round((ticketHeader(ROOT) ?? "").length / 4), top = m.files[0]
+  const detail = `${m.rules} / ${MAX_RULES} tok always loaded${header ? ` + ticket header ${header} / ${MAX_HEADER}` : ""}${top ? ` (largest: ${top[0]} ${top[2]})` : ""}`
+  if (m.rules > MAX_RULES || header > MAX_HEADER) add("WARN", "context", `${detail} — over budget: the model gets less room for the work`, "node .ai/scripts/cli.ts budget — move facts only some tickets need to a skill or .ai/context/")
+  else add("OK", "context", detail)
+}
+
 function remote(): void {
   const dirty = git(AI, "status", "--porcelain").out.split("\n").filter((l) => l && !/\.local\.md$/.test(l))
   const up = git(AI, "rev-parse", "--abbrev-ref", "@{u}")
@@ -193,7 +202,7 @@ function claudeCode(): void {
 export function main(_argv: string[]): number {
   node()
   const { stacks } = project()
-  managed(); parts(); hooks(); exclude(); opencode(); claudeCode(); fresh(stacks); execEnv(stacks); remote()
+  managed(); parts(); hooks(); exclude(); opencode(); claudeCode(); context(); fresh(stacks); execEnv(stacks); remote()
   console.log(`DOCTOR — ${ROOT}\n\n| status | check | detail |\n|---|---|---|`)
   for (const [s, c, d] of rows) console.log(`| ${s} | ${c} | ${d} |`)
   const fixes = rows.filter((r) => (r[0] === "FAIL" || r[0] === "WARN") && r[3])

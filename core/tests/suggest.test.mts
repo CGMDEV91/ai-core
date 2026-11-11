@@ -73,6 +73,8 @@ const cases: [string, Record<string, string>, Record<string, string>, RegExp | "
   ["react-ts gate evidence (eslint) counts as a gate", { type: "bugfix" },
     { Plan: PLAN_DONE, Changes: CHANGES, Verification: '- [VERIFIED 2026-11-12 @abc — "eslint: 0 new issue(s) in 2 file(s)"]', Impact: IMPACT, Notes: REVIEW },
     /^\/tests EUIPOFO-1/],
+  ["waiting-validation → wait for the client", { type: "bugfix", status: "waiting-validation" },
+    { Plan: PLAN_DONE }, /^waiting for the client to approve the analysis — when the answer comes: \/ticket EUIPOFO-1 approved/],
 ]
 
 for (const [name, front, sections, want] of cases) {

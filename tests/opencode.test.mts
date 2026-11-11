@@ -52,5 +52,6 @@ for (const stack of ["drupal", "react-ts", "java", "generic"]) {
     }
     assert.equal(cli(dir, ["hook", "edit"], JSON.stringify({ tool_input: { file_path: join(dir, "README.md") } })).code, 0)
     assert.match(cli(dir, ["doctor"]).out, /\| OK \| opencode load \|/)
+    const b = cli(dir, ["budget"]); assert.equal(b.code, 0, b.out)   // what loads on every message stays under budget
   })
 }

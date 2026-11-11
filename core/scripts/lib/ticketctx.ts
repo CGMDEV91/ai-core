@@ -44,6 +44,7 @@ export function suggest(t: { key: string; text: string }): string {
   const k = t.key
   const status = field(t.text, "status")
   if (/done|abandoned/.test(status)) return ""
+  if (/waiting-validation/.test(status)) return `waiting for the client to approve the analysis — when the answer comes: /ticket ${k} approved (or /ticket ${k} rejected <why>)`
   const plan = section(t.text, "Plan"), changes = section(t.text, "Changes"), impact = section(t.text, "Impact")
   const ver = section(t.text, "Verification"), notes = section(t.text, "Notes")
   const checklist = (ver.split(/^### Manual checklist/m)[1] ?? "").trim()
@@ -73,6 +74,9 @@ export function suggest(t: { key: string; text: string }): string {
   return `/close ${k}`
 }
 
+/** `[QUESTION]` marks still open in the ticket (an answered one becomes `[ANSWERED <date>]`) */
+export const questions = (text: string) => (text.replace(/<!--[\s\S]*?-->/g, "").match(/\[QUESTION\]/g) ?? []).length
+
 export function header(t: { key: string; text: string }): string {
   const me = devUser(), mine = diaryFile(t.key, me)
   const own = existsSync(mine) ? sectionOf(readFileSync(mine, "utf-8"), "Current state") : ""
@@ -88,6 +92,7 @@ export function header(t: { key: string; text: string }): string {
     ...(team.length ? [`Also on this ticket (do not take their plan blocks, do not edit their diaries):\n${team.join("\n")}`] : []),
     ...(suggest(t) ? [`Suggested next command for the human (from the ticket's state): ${suggest(t)}`] : []),
     open.length ? `Open points not done (answer each before saying you are ready):\n${open.join("\n")}` : "Open points: none pending",
+    ...(questions(t.text) ? [`[QUESTION] open: ${questions(t.text)} — only the team can answer them; ask, never guess`] : []),
   ].join("\n")
 }
 

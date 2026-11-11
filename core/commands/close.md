@@ -8,6 +8,7 @@ Do these steps in order and stop to ask wherever it says "propose" or "ask":
    `Impact: <skill> — re-tested [VERIFIED-BY-HUMAN …] | checked, not affected — <why>`. A ⚠ flow without one
    → ask the human; do not close.
 3. **Verification hygiene.** Every `[VERIFIED]` in `## Verification` has an evidence line; list what was not verified.
+   An open `[QUESTION]` anywhere in the ticket (diaries too) → ask the human; do not close with one.
 4. **Known issue.** For a bugfix/analysis with a confirmed cause: create `.ai/known-issues/<key>-<short-slug>/<key>-<short-slug>.md`
    from `.ai/templates/known-issue.template.md`, or update the existing one (`related`, `last_seen`,
    References), and add its id to the ticket's `known_issues:`. Fill its `skills:` with `bash .ai/scripts/analysis/scan-impact.sh --files <its Files> --skills-only` plus the
@@ -24,7 +25,11 @@ Do these steps in order and stop to ask wherever it says "propose" or "ask":
    `.ai/MEMORY.local.md`.
 7. **Clear the active ticket:** delete `.ai/current-ticket.local.md` if it holds this key.
 8. **Jira drafts.** Offer `/jira <key>` (analysis comment, test instructions, worklog for the human to post).
-9. **Hand over.** Per repository, the list of changed files and one proposed commit message:
+9. **Hand over.** Per repository, the list of changed files and one proposed commit message — and the **pull request
+   description** for {{repo}}, shown in a ` ```text ` block ready to paste in Bitbucket / GitLab: title (key + summary),
+   what changed and why (3–5 bullets), how it was tested (the `[VERIFIED…]` lines), the flows to re-test (`## Impact`),
+   the skill / known issue links. A project template (`.gitlab/merge_request_templates/*.md`, or the one in
+   `.ai/project/parts/`) wins over this layout. The list of changes and the commit message:
    `{{repo}}` (starts with the key, no mention of AI) and `.ai` (`git -C .ai add <paths>` by path).
    Remind the human to push **both** repositories: the `.ai` commit holds the ticket, known issue and skills the team
    needs (the project's `pre-push` hook warns if `.ai` is left behind). Never commit, push or switch.
