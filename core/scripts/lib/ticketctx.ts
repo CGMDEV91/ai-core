@@ -48,7 +48,7 @@ export function staleSkills(key: string, baseline = ""): string[] {
   const cli = fileURLToPath(new URL("../cli.ts", import.meta.url))
   const args = ["impact", "--stale-skills", "--key", key, ...(/^[0-9a-f]{6,40}$/.test(baseline.trim()) ? ["--base", baseline.trim()] : [])]
   const r = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", cli, ...args], { encoding: "utf-8", timeout: 30000, cwd: dirname(dirname(dirname(cli))) })
-  return r.status === 0 ? (r.stdout ?? "").split("\n").map((l) => l.split("\t")[0].trim()).filter(Boolean) : []
+  return r.status === 0 ? (r.stdout ?? "").split("\n").filter((l) => l.includes("\t")).map((l) => l.split("\t")[0].trim()).filter(Boolean) : []   // "skill<TAB>why" lines only
 }
 
 export function suggest(t: { key: string; text: string }): string {

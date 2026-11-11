@@ -552,7 +552,7 @@ export function main(argv: string[]): number {
   if (a.check) return checkSkills()
   if (a.record) return record(a.record)
   const ch = a.ticket ? changeFromTicket(a.ticket) : a.files ? changeFromArgs(a.files, a.methods) : changeFromDiff(a.base ?? null, a.commit ?? null)
-  if (!ch.files.size) { console.log(`No changed files in ${cfg().repo ?? "the project"}.`); return 0 }
+  if (!ch.files.size) { if (!a.stale && !a.skillsOnly) console.log(`No changed files in ${cfg().repo ?? "the project"}.`); return 0 }   // --stale-skills / --skills-only: a list, so nothing
   const exclude = a.exclude || a.ticket || a.writeTicket || null   // the current ticket gives context (declared skills)
   const [skills, kis, tickets] = analyse(ch, exclude)
   const minLevel = ({ module: WEAK, file: MEDIUM, method: STRONG } as Record<string, number>)[a.min]
