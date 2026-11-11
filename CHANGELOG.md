@@ -2,6 +2,9 @@
 
 ## 0.15.0 — 2026-11-11
 
+- **`./selftest.sh`** — ai-core's own checks on this machine instead of a pipeline: every test plus, from WSL, the
+  Windows checks (Windows' node runs the doctor on a `\\wsl.localhost` sample, loads the plugins, reaches WSL's node);
+  `--install-hook` adds a pre-push hook to the ai-core repo. Nothing for GitHub Actions or any CI service.
 - **Context budget**: `cli budget` — what loads on every message (opencode instructions, CLAUDE.md imports, the
   ticket header) against 4000 + 800 tokens; `/doctor` row **context**; a test keeps every stack under it. If you add,
   take something out.

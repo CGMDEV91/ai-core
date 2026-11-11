@@ -59,7 +59,10 @@ Later: `--update` (newer ai-core) · `--reconfigure` (ask again) · `--status` �
 the knowledge stays) · `--adopt` (take ai-core's version of every managed file, even edited ones) · `--help`.
 Then write the project's own parts in `<project>/.ai/project/parts/` (at least `intro.md` and `facts.md`) and `--update`.
 
-Tests: `node --experimental-strip-types --test tests/*.test.mts core/tests/*.test.mts` — the adapters per stack, the
+Checks of ai-core itself — on this machine, no pipeline (projects live in Bitbucket / GitLab): `./selftest.sh` runs
+every test and, from WSL, the Windows checks (Windows' node on a `\\wsl.localhost` project: doctor, plugin load, the
+tools' WSL runner); `./selftest.sh --install-hook` makes every push of ai-core run it first. Tests alone:
+`node --experimental-strip-types --test tests/*.test.mts core/tests/*.test.mts` — the adapters per stack, the
 opencode load of every stack, the team layout, the tools step and the gateway check.
 
 ## Agents: opencode and Claude Code
