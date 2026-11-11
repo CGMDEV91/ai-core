@@ -45,7 +45,7 @@ Termina con un resumen y los siguientes pasos numerados. Después: sesión **nue
 1. `/ticket ABC-123 <síntoma>` — bugs parecidos ya resueltos (known issues) y dónde vive el código afectado.
 2. Si la causa no está clara: `/debug <síntoma>` — diagnóstico con evidencias, sin tocar código.
 3. «go» — cada fichero editado queda apuntado en el ticket y el linter te responde al momento.
-4. `/gate` → `/impact` → `/review` → `/tests` → pruebas tú → `/close`.
+4. `/gate` → `/impact` → `/review` → `/tests` → pruebas tú → `/skill` (lo aprendido → una skill, enlazada desde el ticket) → `/close`.
 5. `/close` escribe el known issue y propone **dos commits**: el del proyecto y el de `.ai`.
 
 ## Añadir o cambiar algo (adaptativo)
@@ -53,7 +53,7 @@ Termina con un resumen y los siguientes pasos numerados. Después: sesión **nue
 1. `/ticket ABC-123 <qué hay que hacer>` — touchpoints (todos los sitios donde vive el concepto) e impacto previsto.
 2. `/plan ABC-123` — opciones, veredicto y **bloques** (A, B, C…) con sus ficheros.
 3. «go» bloque a bloque; `/gate` al final de cada bloque.
-4. `/impact` → `/review` (+ `/security` si toca accesos, roles o datos personales) → `/tests` → tu prueba → `/close`.
+4. `/impact` → `/review` (+ `/security` si toca accesos, roles o datos personales) → `/tests` → tu prueba → `/skill` → `/close`.
 
 ## Varios devs en el mismo ticket
 
@@ -86,8 +86,8 @@ Termina con un resumen y los siguientes pasos numerados. Después: sesión **nue
 | encontrar la causa de un bug | `/debug <síntoma>` |
 | revisión independiente · seguridad | `/review <clave>` · `/security <clave>` |
 | qué probar · textos para Jira | `/tests <clave>` · `/jira <clave>` |
-| parar por hoy · terminar | `/end` · `/close <clave>` |
-| skills · lecciones · deriva · referencias | `/skill` · `/learn` · `/scan` · `/audit` |
+| parar por hoy · conocimiento → skill · terminar | `/end` · `/skill <clave>` · `/close <clave>` |
+| primeros hechos desde el código · lecciones · deriva · referencias | `/bootstrap` · `/learn` · `/scan` · `/audit` |
 | ¿está todo bien montado? | `/doctor` |
 
 ## Mantenerlo al día

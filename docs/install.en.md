@@ -99,6 +99,29 @@ line. Results are cached per content — in the project (`.ai/promptcheck.local.
 A blocked line in a skill or a project part: reword it there (same meaning, no "you are…", "act as…", "behave…",
 "overrides all rules"). In a file managed by ai-core: fix it in ai-core and `--update`.
 
+## A workspace: several service repos, one `.ai`
+
+When the folder you install into is **not** a repo but holds several (services, a front end, a library), it is a
+workspace: one `.ai` beside them, each service detected on its own (stack, exec), the commit guard and the sync hooks
+in **each** service repo. `gate` runs the gate of every changed service in its own repo and lists the **contracts**
+the change touched — who exposes an endpoint and who calls it (`node .ai/scripts/cli.ts contracts`) — so the other
+side gets re-tested. Any tool inside one service: `node .ai/scripts/cli.ts --service <repo> <tool>`.
+
+## SonarQube
+
+A SonarQube project (a `sonar.projectKey` in `sonar-project.properties` or `pom.xml`, or `"sonar"` in project.json)
+gets one more check at the end of a ticket: `node .ai/scripts/cli.ts gate --sonar` posts the analysis of the branch,
+waits for it and reads the quality gate, the new issues and the new coverage. `/close` runs it. On your machine:
+`SONAR_URL` and your personal `SONAR_TOKEN` in `~/.bashrc` (never in a repo); `cli qa` says what is missing.
+
+## Several projects, the context budget, ai-core's own checks
+
+- `install.sh ~/devel/bitbucket --all` updates every project with an ai-core `.ai` under the folder, one table.
+- `node .ai/scripts/cli.ts budget` — what loads on every message, against 4000 + 800 tokens (`/doctor` row
+  **context**): if you add a fact everybody needs, take one out; the rest goes to a skill or `.ai/context/`.
+- `./selftest.sh` in the ai-core clone: every test, and from WSL the Windows checks; `--real` adds real public
+  projects; `--install-hook` runs it before each push of ai-core. No pipeline: the projects live in Bitbucket / GitLab.
+
 ## Windows and WSL
 
 - The project lives in WSL and opencode runs on Windows: the tools and plugins call WSL (`wsl.exe`, loading nvm), and

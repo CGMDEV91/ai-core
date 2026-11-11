@@ -49,6 +49,15 @@ Stopping halfway: `/end` saves where you are; `/ticket ABC-123` resumes.
 
 Ends the same way: you commit both repositories.
 
+## 2b. Before /close — the ticket's knowledge into a skill
+
+When the change is verified, ▶ Next proposes **`/skill <key>`**: it reads the whole ticket folder (the shared file and
+every dev's diary), decides CREATE / EDIT / NOTHING, asks once, writes the skill and links both ways (the skill's
+`tickets:`, the ticket's `skills:`), always leaves a short `## Knowledge` in the ticket and offers to shorten it — the
+detail lives in the skill. The skill cites the changed files and methods: that is what `/impact` matches next time.
+If the client must approve the analysis first, the ticket waits in `status: waiting-validation` until
+`/ticket <key> approved`.
+
 ## 3. Where side effects are checked (★)
 
 1. **Before touching code** — `/ticket` runs the `impact` tool (`--files … --methods …`) on what you are about to change and

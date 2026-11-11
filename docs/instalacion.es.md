@@ -101,6 +101,31 @@ acota hasta el fichero y la línea. Los resultados se guardan por contenido — 
 Una línea bloqueada en una skill o una part del proyecto: reescríbela ahí (mismo significado, sin «you are…», «act
 as…», «behave…», «overrides all rules»). En un fichero gestionado por ai-core: corrígelo en ai-core y `--update`.
 
+## Un workspace: varios repos de servicio, un `.ai`
+
+Si la carpeta donde instalas **no** es un repo pero contiene varios (servicios, un front, una librería), es un
+workspace: un `.ai` junto a ellos, cada servicio detectado por separado (stack, exec), y el guard de commit y los hooks
+de sincronización en **cada** repo de servicio. `gate` ejecuta el gate de cada servicio con cambios en su propio repo y
+lista los **contratos** que tocó el cambio — quién expone un endpoint y quién lo llama
+(`node .ai/scripts/cli.ts contracts`) — para que se vuelva a probar el otro lado. Cualquier herramienta dentro de un
+servicio: `node .ai/scripts/cli.ts --service <repo> <herramienta>`.
+
+## SonarQube
+
+Un proyecto con SonarQube (un `sonar.projectKey` en `sonar-project.properties` o `pom.xml`, o `"sonar"` en project.json)
+tiene una comprobación más al final del ticket: `node .ai/scripts/cli.ts gate --sonar` sube el análisis de la rama,
+espera a que se procese y lee el quality gate, los issues nuevos y la cobertura del código nuevo. `/close` lo ejecuta.
+En tu máquina: `SONAR_URL` y tu `SONAR_TOKEN` personal en `~/.bashrc` (nunca en un repo); `cli qa` dice qué falta.
+
+## Varios proyectos, el presupuesto de contexto, las comprobaciones de ai-core
+
+- `install.sh ~/devel/bitbucket --all` actualiza todos los proyectos con un `.ai` de ai-core bajo la carpeta, con una tabla.
+- `node .ai/scripts/cli.ts budget` — lo que se carga en cada mensaje, contra 4000 + 800 tokens (fila **context** de
+  `/doctor`): si añades un hecho que necesita todo el mundo, quita otro; lo demás va a una skill o a `.ai/context/`.
+- `./selftest.sh` en el clon de ai-core: todos los tests y, desde WSL, las comprobaciones de Windows; `--real` añade
+  proyectos públicos reales; `--install-hook` lo ejecuta antes de cada push de ai-core. Sin pipelines: los proyectos
+  viven en Bitbucket / GitLab.
+
 ## Windows y WSL
 
 - El proyecto vive en WSL y opencode corre en Windows: las herramientas y plugins llaman a WSL (`wsl.exe`, cargando

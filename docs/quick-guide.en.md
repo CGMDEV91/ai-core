@@ -43,7 +43,7 @@ numbered next steps. Then: a **new** opencode session in the project and `/docto
 1. `/ticket ABC-123 <symptom>` — similar bugs already solved (known issues) and where the affected code lives.
 2. Cause unclear: `/debug <symptom>` — a diagnosis with evidence, no code touched.
 3. "go" — every edited file is recorded in the ticket and the linter's feedback comes back at once.
-4. `/gate` → `/impact` → `/review` → `/tests` → you test → `/close`.
+4. `/gate` → `/impact` → `/review` → `/tests` → you test → `/skill` (what it taught → a skill, linked from the ticket) → `/close`.
 5. `/close` writes the known issue and proposes **two commits**: the project and `.ai`.
 
 ## Add or change something (adaptive)
@@ -51,7 +51,7 @@ numbered next steps. Then: a **new** opencode session in the project and `/docto
 1. `/ticket ABC-123 <what to do>` — touchpoints (every place the concept lives) and the expected impact.
 2. `/plan ABC-123` — options, verdict and **blocks** (A, B, C…) with their files.
 3. "go" block by block; `/gate` at the end of each block.
-4. `/impact` → `/review` (+ `/security` for access, roles or personal data) → `/tests` → your test → `/close`.
+4. `/impact` → `/review` (+ `/security` for access, roles or personal data) → `/tests` → your test → `/skill` → `/close`.
 
 ## Several devs on one ticket
 
@@ -84,8 +84,8 @@ numbered next steps. Then: a **new** opencode session in the project and `/docto
 | find the cause of a bug | `/debug <symptom>` |
 | independent review · security | `/review <key>` · `/security <key>` |
 | what to test · Jira texts | `/tests <key>` · `/jira <key>` |
-| stop for today · finish | `/end` · `/close <key>` |
-| skills · lessons · drift · references | `/skill` · `/learn` · `/scan` · `/audit` |
+| stop for today · knowledge → skill · finish | `/end` · `/skill <key>` · `/close <key>` |
+| first facts from the code · lessons · drift · references | `/bootstrap` · `/learn` · `/scan` · `/audit` |
 | is everything set up | `/doctor` |
 
 ## Keep it up to date

@@ -65,6 +65,12 @@ tools' WSL runner); `./selftest.sh --install-hook` makes every push of ai-core r
 `node --experimental-strip-types --test tests/*.test.mts core/tests/*.test.mts` — the adapters per stack, the
 opencode load of every stack, the team layout, the tools step and the gateway check.
 
+## Workspaces (several service repos)
+
+A folder that is no repo but holds service repos gets one `.ai` for all: each service is a stack entry with `"repo"`;
+the installer wires every repo; `cli.ts --service <repo> <tool>` runs a tool inside one; `gate` runs every changed
+service's gate and `contracts` maps who exposes and who calls each HTTP endpoint. Details: `docs/install.en.md`.
+
 ## Agents: opencode and Claude Code
 
 `project.json` → `"agents": ["opencode"]`, `["claude-code"]` or both (installer question, `--agents`). Both read the
