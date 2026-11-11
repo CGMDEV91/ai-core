@@ -73,7 +73,7 @@ test("one person, one diary: the saved name wins over the OS login; merge-user j
 
   const t = path.join(d, ".ai", "tickets", "T-7"); md(t, { recursive: true })
   wf(path.join(t, "T-7.md"), "---\nkey: T-7\nowner: cgonzale\n---\n\n## Plan\n\n- [ ] A (cgonzale)\n")
-  wf(path.join(t, "T-7.cgonzale.md"), "# d\n\n## Current state\n\n## Changes\n\n- `src/a.ts` — edited\n- `src/b.ts` — edited\n\n## Session log\n\n")
+  wf(path.join(t, "T-7.cgonzale.md"), "# d\n\n## Current state\n\n## Changes\n\n- `src/a.ts` — edited 2026-11-11 (auto-recorded; say why)\n- `src/b.ts` — edited\n\n## Session log\n\n")
   wf(path.join(t, "T-7.carlos-gonzalez.md"), "# d\n\n## Current state\n\nNext: B\n\n## Changes\n\n- `src/a.ts` — edited\n\n## Session log\n\n- day 1\n")
   run("knowledge", "merge-user", "cgonzale", "carlos-gonzalez")
   assert.ok(!ex(path.join(t, "T-7.cgonzale.md")))

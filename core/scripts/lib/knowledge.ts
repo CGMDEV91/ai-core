@@ -57,8 +57,10 @@ export function mergeUser(from: string, to: string): string[] {
       else {
         let b = readFileSync(dst, "utf-8")
         for (const name of ["Changes", "Session log"]) {   // add the lines <to> does not have yet
-          const have = new Set(sectionOf(b, name).split("\n").map((l) => l.trim()))
-          const add = sectionOf(a, name).split("\n").filter((l) => l.trim() && !have.has(l.trim()))
+          // Changes: one line per file — a file <to> already lists is not added again (whatever its wording)
+          const fileOf = (l: string) => (name === "Changes" ? (l.match(/`([^`]+)`/) ?? [])[1] : undefined) ?? l.trim()
+          const have = new Set(sectionOf(b, name).split("\n").map(fileOf))
+          const add = sectionOf(a, name).split("\n").filter((l) => l.trim() && !have.has(fileOf(l)))
           if (!add.length) continue
           b = SEC(name).test(b) ? b.replace(SEC(name), (blk) => blk.replace(/\s*$/, "") + "\n" + add.join("\n") + "\n\n") : b.trimEnd() + `\n\n## ${name}\n\n${add.join("\n")}\n`
         }
