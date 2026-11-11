@@ -1,6 +1,22 @@
 {
   "name": "java",
-  "indexes": [["codeindex", "--update"]],
-  "fresh": [["codeindex"]],
+  "indexes": [
+    [
+      "codeindex",
+      "--update"
+    ],
+    [
+      "callpaths",
+      "--update"
+    ]
+  ],
+  "fresh": [
+    [
+      "codeindex"
+    ],
+    [
+      "callpaths"
+    ]
+  ],
   "tools": []
 }

@@ -11,7 +11,7 @@ import { existsSync, readdirSync, statSync } from "node:fs"
 import { fileURLToPath } from "node:url"
 import * as impact from "./impact.ts"
 import { KNOWN, TICKETS, list } from "./knowledge.ts"
-import { ROOT, stack } from "./project.ts"
+import { ROOT, cfg, stack } from "./project.ts"
 import { cmp, comparePaths, dumps, read, splitlines, walk } from "./util.ts"
 
 const AI = impact.AI_DIR
@@ -25,10 +25,18 @@ const pyRepr = (v: string | undefined) => (v === undefined ? "None" : v)
 const pyList = (xs: Iterable<string>) => "[" + [...xs].sort(cmp).map((x) => `'${x}'`).join(", ") + "]"
 const glob = (dir: string, re: RegExp) => walk(dir, (p) => re.test(p.slice(dir.length + 1))).sort(comparePaths)
 
+const STACKS: any[] = cfg().stacks ?? [{ name: "drupal" }]
+const HAS_DRUPAL = STACKS.some((s) => s.name === "drupal")
+/** the modules a ticket or known issue may name: Drupal's module folders; for other stacks, every module impact.moduleOf finds */
 function modulesExist(): Set<string> {
   const out = new Set<string>()
-  for (const base of stack("drupal").paths.map((p) => `${ROOT}/${p.replace(/\/+$/, "")}`))
+  if (HAS_DRUPAL) for (const base of stack("drupal").paths.map((p) => `${ROOT}/${p.replace(/\/+$/, "")}`))
     if (existsSync(base)) for (const e of readdirSync(base)) { try { if (statSync(`${base}/${e}`).isDirectory()) out.add(e) } catch { /* */ } }
+  for (const s of STACKS.filter((x) => x.name !== "drupal"))
+    for (const p of s.paths ?? []) {
+      const rel = s.repo && !process.env.AI_ROOT ? `${s.repo}/${p}` : p
+      for (const f of walk(`${ROOT}/${rel.replace(/\/+$/, "")}`, (x) => !/[\\/](node_modules|target|build|dist)[\\/]/.test(x))) { const m = impact.moduleOf(f.slice(ROOT.length + 1)); if (m) out.add(m) }
+    }
   return out
 }
 const commitExists = (sha: string) => spawnSync("git", ["-C", ROOT, "cat-file", "-e", `${sha}^{commit}`]).status === 0
@@ -72,8 +80,8 @@ export function main(argv: string[]): number {
     if (fm.key !== stem) add("ERROR", "ticket", f, `key '${pyRepr(fm.key)}' != file name`)
     if (!TICKET_STATUS.has(fm.status as string)) add("ERROR", "ticket", f, `status '${pyRepr(fm.status)}' not in ${pyList(TICKET_STATUS)}`)
     for (const sk of impact.fmList(fm.skills ?? "")) if (!skillNames.has(sk)) add("ERROR", "ticket", f, `skills names unknown skill '${sk}'`)
-    for (const m of impact.fmList(fm.modules ?? "")) if (!mods.has(m)) add("WARN", "ticket", f, `module '${m}' not found in ${stack("drupal").paths.join(" or ")}`)
-    for (const sha of impact.fmList(fm.commits ?? "")) if (!commitExists(sha)) add("ERROR", "ticket", f, `commit ${sha} not found in giportal`)
+    for (const m of impact.fmList(fm.modules ?? "")) if (!mods.has(m)) add("WARN", "ticket", f, `module '${m}' not found in ${(HAS_DRUPAL ? stack("drupal").paths : STACKS.flatMap((s) => s.paths ?? [])).join(" or ")}`)
+    for (const sha of impact.fmList(fm.commits ?? "")) if (!commitExists(sha)) add("ERROR", "ticket", f, `commit ${sha} not found in ${cfg().repo ?? "the project"}`)
     if (["done", "abandoned"].includes(fm.status) && /^- Open question/m.test(text))
       add("WARN", "ticket", f, "closed with an open question in Notes — answer it or move it to a new ticket")
   }
