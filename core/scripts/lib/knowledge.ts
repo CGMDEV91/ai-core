@@ -9,7 +9,7 @@
 //
 // The user is the global git user.name as a slug ("Carlos Gonzalez" → carlos-gonzalez); $AI_DEV overrides it.
 import { spawnSync } from "node:child_process"
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { AI } from "./project.ts"
 
@@ -18,12 +18,62 @@ const slug = (s: string) => s.toLowerCase().normalize("NFD").replace(/[\u0300-\u
 const git = (...a: string[]) => { const r = spawnSync("git", ["-C", AI, ...a], { encoding: "utf-8" }); return r.status === 0 ? (r.stdout ?? "").trim() : "" }
 
 let cachedUser = ""
-/** who "I" am in file names: $AI_DEV · git config --global user.name · the repo's user.name — as a slug */
+export const USER_FILE = `${AI}/user.local.json`   // written by setup (where git runs): who "I" am on this machine
+/** git config --global user.name — here, or, for a Windows process on a \\wsl.localhost project, inside WSL (where git is) */
+function gitGlobalName(): string {
+  const here = spawnSync("git", ["config", "--global", "user.name"], { encoding: "utf-8" })
+  if (here.status === 0 && here.stdout.trim()) return here.stdout.trim()
+  const m = process.platform === "win32" ? AI.replace(/\//g, "\\").match(/^\\\\wsl(?:\.localhost|\$)\\([^\\]+)\\/i) : null
+  if (!m) return ""
+  const r = spawnSync("wsl.exe", ["-d", m[1], "--", "git", "config", "--global", "user.name"], { encoding: "utf-8", timeout: 15000 })
+  return r.status === 0 ? (r.stdout ?? "").trim() : ""
+}
+/** who "I" am in file names, as a slug: $AI_DEV · .ai/user.local.json (setup writes it) · git config --global user.name
+ *  (in WSL when this is opencode on Windows) · the repo's user.name — never the OS login, unless nothing else exists */
 export function devUser(): string {
   if (cachedUser) return cachedUser
-  const global = spawnSync("git", ["config", "--global", "user.name"], { encoding: "utf-8" })
-  const u = process.env.AI_DEV || (global.status === 0 ? global.stdout.trim() : "") || git("config", "user.name") || process.env.USER || process.env.USERNAME || "dev"
+  let saved = ""
+  try { saved = existsSync(USER_FILE) ? String(JSON.parse(readFileSync(USER_FILE, "utf-8")).user ?? "") : "" } catch { /* unreadable: ask git */ }
+  const u = process.env.AI_DEV || saved || gitGlobalName() || git("config", "user.name") || process.env.USER || process.env.USERNAME || "dev"
   return (cachedUser = slug(u) || "dev")
+}
+/** setup: remember who I am, so every process (the Windows plugin too) names my diary the same way */
+export function rememberUser(): string {
+  const name = process.env.AI_DEV || gitGlobalName() || git("config", "user.name")
+  if (!name) return ""
+  writeFileSync(USER_FILE, JSON.stringify({ user: slug(name), from: process.env.AI_DEV ? "$AI_DEV" : "git config --global user.name" }, null, 2) + "\n")
+  cachedUser = ""
+  return slug(name)
+}
+
+/** one person, two names (an old diary written as the OS login): move every diary and plan owner of <from> to <to> */
+export function mergeUser(from: string, to: string): string[] {
+  const done: string[] = []
+  for (const [key] of list(TICKETS)) {
+    const src = diaryFile(key, from), dst = diaryFile(key, to)
+    if (existsSync(src)) {
+      const a = readFileSync(src, "utf-8")
+      if (!existsSync(dst)) writeFileSync(dst, a.split(from).join(to))
+      else {
+        let b = readFileSync(dst, "utf-8")
+        for (const name of ["Changes", "Session log"]) {   // add the lines <to> does not have yet
+          const have = new Set(sectionOf(b, name).split("\n").map((l) => l.trim()))
+          const add = sectionOf(a, name).split("\n").filter((l) => l.trim() && !have.has(l.trim()))
+          if (!add.length) continue
+          b = SEC(name).test(b) ? b.replace(SEC(name), (blk) => blk.replace(/\s*$/, "") + "\n" + add.join("\n") + "\n\n") : b.trimEnd() + `\n\n## ${name}\n\n${add.join("\n")}\n`
+        }
+        if (!sectionOf(b, "Current state") && sectionOf(a, "Current state")) b = b.replace(SEC("Current state"), () => `## Current state\n\n${sectionOf(a, "Current state")}\n\n`)
+        writeFileSync(dst, b)
+      }
+      unlinkSync(src); done.push(`${key}: ${from} → ${to}`)
+    }
+    const shared = ticketFile(key)
+    if (shared) {   // plan block owners and the owner field
+      const s = readFileSync(shared, "utf-8"), n = s.replace(new RegExp(`\\((${from})\\)`, "g"), `(${to})`).replace(new RegExp(`^owner: ${from}$`, "m"), `owner: ${to}`)
+      if (n !== s) { writeFileSync(shared, n); done.push(`${key}: owners ${from} → ${to}`) }
+    }
+  }
+  return done
 }
 
 const SPECIAL = new Set(["README.md", "INDEX.md"])
@@ -128,6 +178,12 @@ export function main(argv: string[]): number {
     if (!ticketFile(argv[1])) { console.error(`No ticket ${argv[1]}`); return 1 }
     process.stdout.write(combined(argv[1])); return 0
   }
-  console.error("usage: node .ai/scripts/cli.ts knowledge [whoami | paths <KEY> | combined <KEY>]")
+  if (argv[0] === "remember") { const u = rememberUser(); console.log(u ? `you are ${u} (.ai/user.local.json)` : "no git user.name found — set it: git config --global user.name \"Your Name\""); return u ? 0 : 1 }
+  if (argv[0] === "merge-user" && argv[1] && argv[2]) {
+    const done = mergeUser(slug(argv[1]), slug(argv[2]))
+    console.log(done.length ? done.join("\n") + "\nCommit .ai: the diaries and owners moved." : `No diary or owner named ${argv[1]}.`)
+    return 0
+  }
+  console.error("usage: node .ai/scripts/cli.ts knowledge [whoami | remember | paths <KEY> | combined <KEY> | merge-user <from> <to>]")
   return 2
 }

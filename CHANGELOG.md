@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.19.1 — 2026-11-12
+
+- **One person, one diary.** opencode on Windows has no git, so its edit-tracking plugin named the diary after the
+  Windows login (`EUIPOFO-123.cgonzale.md`) while the agent, running in WSL, used `git config --global user.name`
+  (`EUIPOFO-123.carlos-gonzalez.md`). Setup now saves who you are in `.ai/user.local.json` (git-ignored) and every
+  process reads it first; without it, a Windows process asks git inside WSL instead of using the Windows login.
+  `/doctor` shows the row **you**. `cli knowledge merge-user <from> <to>` joins the diaries of the same person (no
+  duplicate lines) and fixes plan owners. The selftest checks that Windows and WSL give the same name.
+- `impact --stale-skills` prints only skills (the "No changed files" line was read as a skill name); the selftest
+  does not inherit `GIT_*` from the pre-push hook.
+
 ## 0.19.0 — 2026-11-12
 
 - **Impact, touchpoints and call paths on every stack.** One impact engine in core with a profile per stack (Drupal's

@@ -71,6 +71,14 @@ console.log(JSON.stringify(await runInProject(root, "node -v")))
   const run = ps(`node --experimental-strip-types --no-warnings '${unc}\\runner-check.mts' '${unc}'`)
   const r = (run.stdout ?? "").trim()
   check("windows: tools reach WSL's node (nvm)", /"ok":true/.test(r) && /v\d+\./.test(r), r.slice(0, 80))
+  // the plugin's identity on Windows (no git there): the diary must be named as in WSL, not after the Windows login
+  writeFileSync(join(dir, "who-check.mts"), `import { pathToFileURL } from "node:url"
+const { devUser } = await import(pathToFileURL(process.argv[2] + "\\\\.ai\\\\scripts\\\\lib\\\\knowledge.ts").href)
+console.log(devUser())
+`)
+  const winWho = (ps(`node --experimental-strip-types --no-warnings '${unc}\\who-check.mts' '${unc}'`).stdout ?? "").trim()
+  const wslWho = (spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(dir, ".ai", "scripts", "cli.ts"), "knowledge", "whoami"], { cwd: dir, encoding: "utf-8" }).stdout ?? "").trim()
+  check("windows: the plugin names your diary as WSL does", !!winWho && winWho === wslWho, `windows ${winWho || "?"} · wsl ${wslWho}`)
   rmSync(dir, { recursive: true, force: true })
 }
 

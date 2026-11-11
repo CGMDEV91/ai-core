@@ -10,6 +10,7 @@ import { isAbsolute, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import * as claude from "./claude.ts"
 import { composedText } from "./opencode.ts"
+import { USER_FILE, devUser } from "./knowledge.ts"
 import { AI, ROOT, WORKSPACE, cfg, isWorkspace, runPrefix, services, stack } from "./project.ts"
 import { read } from "./util.ts"
 import * as qa from "./qa.ts"
@@ -205,6 +206,12 @@ function machinePolicy(): void {
   else add("INFO", "machine policy", `${f} wins on: ${keys.join(", ") || "nothing"} (instructions are merged, not replaced)`)
 }
 
+function identity(): void {
+  const me = devUser()
+  if (!existsSync(USER_FILE)) add("WARN", "you", `${me} — not saved: opencode on Windows may name your diary after the Windows login`, "node .ai/scripts/cli.ts knowledge remember (setup does it)")
+  else add("OK", "you", `${me} in ticket diaries (.ai/user.local.json)`)
+}
+
 function context(): void {
   const m = measure(ROOT), header = Math.round((ticketHeader(ROOT) ?? "").length / 4), top = m.files[0]
   const detail = `${m.rules} / ${MAX_RULES} tok always loaded${header ? ` + ticket header ${header} / ${MAX_HEADER}` : ""}${top ? ` (largest: ${top[0]} ${top[2]})` : ""}`
@@ -231,7 +238,7 @@ function claudeCode(): void {
 export function main(_argv: string[]): number {
   node()
   const { stacks } = project()
-  managed(); parts(); hooks(); exclude(); opencode(); claudeCode(); context(); machinePolicy(); fresh(stacks); execEnv(stacks); remote()
+  managed(); parts(); hooks(); exclude(); opencode(); claudeCode(); context(); machinePolicy(); identity(); fresh(stacks); execEnv(stacks); remote()
   console.log(`DOCTOR — ${ROOT}\n\n| status | check | detail |\n|---|---|---|`)
   for (const [s, c, d] of rows) console.log(`| ${s} | ${c} | ${d} |`)
   const fixes = rows.filter((r) => (r[0] === "FAIL" || r[0] === "WARN") && r[3])

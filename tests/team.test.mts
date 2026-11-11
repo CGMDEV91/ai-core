@@ -55,3 +55,29 @@ test("two devs on one ticket: own diaries, shared view, migration of flat files"
   assert.match(readFileSync(join(dir, ".ai", "known-issues", "INDEX.md"), "utf-8"), /\[OLD-1-bug\/OLD-1-bug\.md\]\(OLD-1-bug\/OLD-1-bug\.md\)/)
   assert.match(cli(dir, ["layout"]).out, /NO CHANGES/)
 })
+
+test("one person, one diary: the saved name wins over the OS login; merge-user joins two diaries of the same person", () => {
+  const mk = mkdtempSync, wf = writeFileSync, rf = readFileSync, ex = existsSync, md = mkdirSync
+  const os = { tmpdir }, path = { join, dirname }, cp = { spawnSync }
+  const root = join(dirname(fileURLToPath(import.meta.url)), "..")
+  const d = mk(path.join(os.tmpdir(), "aicore-who-"))
+  cp.spawnSync("git", ["init", "-q", d])
+  const inst = cp.spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", path.join(root, "install.ts"), d, "--yes", "--no-doctor", "--no-wiring", "--stack", "generic", "--name", "p"], { encoding: "utf-8" })
+  assert.equal(inst.status, 0, inst.stdout + inst.stderr)
+  const home = mk(path.join(os.tmpdir(), "aicore-home-"))   // no global git config here: like opencode's Windows process
+  const env = { ...process.env, HOME: home, USERPROFILE: home, USER: "winlogin", USERNAME: "winlogin", AI_DEV: "", GIT_CONFIG_NOSYSTEM: "1" }
+  const run = (...a: string[]) => cp.spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", ".ai/scripts/cli.ts", ...a], { cwd: d, encoding: "utf-8", env }).stdout.trim()
+  assert.equal(run("knowledge", "whoami"), "winlogin", "without a saved name and without git: the OS login (the old behaviour)")
+  wf(path.join(d, ".ai", "user.local.json"), JSON.stringify({ user: "carlos-gonzalez" }))
+  assert.equal(run("knowledge", "whoami"), "carlos-gonzalez")
+
+  const t = path.join(d, ".ai", "tickets", "T-7"); md(t, { recursive: true })
+  wf(path.join(t, "T-7.md"), "---\nkey: T-7\nowner: cgonzale\n---\n\n## Plan\n\n- [ ] A (cgonzale)\n")
+  wf(path.join(t, "T-7.cgonzale.md"), "# d\n\n## Current state\n\n## Changes\n\n- `src/a.ts` — edited\n- `src/b.ts` — edited\n\n## Session log\n\n")
+  wf(path.join(t, "T-7.carlos-gonzalez.md"), "# d\n\n## Current state\n\nNext: B\n\n## Changes\n\n- `src/a.ts` — edited\n\n## Session log\n\n- day 1\n")
+  run("knowledge", "merge-user", "cgonzale", "carlos-gonzalez")
+  assert.ok(!ex(path.join(t, "T-7.cgonzale.md")))
+  const merged = rf(path.join(t, "T-7.carlos-gonzalez.md"), "utf-8")
+  assert.equal(merged.match(/src\/a\.ts/g)!.length, 1, "no duplicate line"); assert.match(merged, /src\/b\.ts/); assert.match(merged, /Next: B/)
+  assert.match(rf(path.join(t, "T-7.md"), "utf-8"), /owner: carlos-gonzalez[\s\S]*- \[ \] A \(carlos-gonzalez\)/)
+})

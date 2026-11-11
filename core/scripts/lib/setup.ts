@@ -11,6 +11,7 @@ import { dirname, isAbsolute, join } from "node:path"
 import { fileURLToPath } from "node:url"
 import * as claude from "./claude.ts"
 import { composedText } from "./opencode.ts"
+import { rememberUser } from "./knowledge.ts"
 import { AI, ROOT, WORKSPACE, cfg, isWorkspace, services, stack } from "./project.ts"
 import { read } from "./util.ts"
 
@@ -128,6 +129,9 @@ function install(indexes: boolean): number {
 
   installHooks(AI, OUR_HOOKS.ai)
   if (!ws) installHooks(ROOT, OUR_HOOKS.project)
+  // who I am, saved where every process reads it (opencode's plugin on Windows has no git to ask): one diary per person
+  const me = rememberUser()
+  say(me ? `✔ you are ${me} in ticket diaries (.ai/user.local.json, from git config --global user.name)` : "⚠ no git user.name — set it: git config --global user.name \"Your Name\", then run setup again")
   // workspace: the workspace folder is no repo; each service repo gets the commit guard and the sync hooks
   for (const s of ws ? services() : []) {
     const repo = join(WORKSPACE, String(s.repo))
