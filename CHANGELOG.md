@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.20.0 — 2026-11-12
+
+- **Native Windows** (the project on C:\, no WSL). The opencode tools and the lint after an edit run locally (node,
+  PowerShell) instead of calling wsl.exe; a WSL project seen from Windows still goes through WSL. New short entry
+  `node .ai/scripts/ai.mjs <command>` (plain JS, no bash; Node ≥ 22.18 runs cli.ts directly, an older Node 22 is
+  re-run with --experimental-strip-types): every command, agent and rule now uses it instead of
+  `bash .ai/scripts/….sh` (the .sh wrappers stay for whoever likes them), with the same permissions in opencode and
+  Claude Code. `qa --setup` runs its steps with the system shell, `references` no longer calls bash. Only Drupal's
+  content-model drift script still needs bash (Git Bash). Git for Windows (complete) is still needed for the hooks.
+- `./selftest.sh` checks native Windows from WSL: Windows' node installs nothing in WSL, runs the launcher, the code
+  index and touchpoints, and an opencode tool without WSL on a project under %TEMP%.
+
 ## 0.19.1 — 2026-11-12
 
 - **One person, one diary.** opencode on Windows has no git, so its edit-tracking plugin named the diary after the

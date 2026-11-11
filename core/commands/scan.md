@@ -4,12 +4,12 @@ Run from the `{{repo}}` root (through the `wsl.exe` wrapper if your shell is Win
 
 ```
 bash .ai/scripts/drift/scan-content-model.sh
-bash .ai/scripts/knowledge/scan-index.sh
-bash .ai/scripts/knowledge/scan-callpaths.sh
-bash .ai/scripts/knowledge/scan-known-issues.sh
-bash .ai/scripts/analysis/scan-impact.sh --check
-bash .ai/scripts/knowledge/scan-references.sh
-bash .ai/scripts/analysis/scan-integrations.sh
+node .ai/scripts/ai.mjs codeindex
+node .ai/scripts/ai.mjs callpaths
+node .ai/scripts/ai.mjs knownissues
+node .ai/scripts/ai.mjs impact --check
+node .ai/scripts/ai.mjs references
+node .ai/scripts/ai.mjs integrations
 ```
 
 What to do with each drift:

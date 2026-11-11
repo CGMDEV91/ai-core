@@ -225,7 +225,8 @@ export function apply(root: string, st: Step, conf?: Conf): boolean {
   if (st.manual) return false
   if (st.set) { const s = conf?.stacks?.find((x) => x.name === st.stack || `${(x as any).repo} (${x.name})` === st.stack); if (!s) return false; Object.assign(s, st.set); return true }
   if (st.file) { if (!existsSync(join(root, st.file))) writeFileSync(join(root, st.file), st.content ?? ""); return true }
-  return spawnSync("bash", ["-c", st.cmd ?? "true"], { cwd: st.cwd ? join(root, st.cwd) : root, stdio: "inherit" }).status === 0
+  const cwd = st.cwd ? join(root, st.cwd) : root   // Windows without WSL: the system shell (cmd), no bash
+  return (process.platform === "win32" ? spawnSync(st.cmd ?? "rem", { cwd, stdio: "inherit", shell: true }) : spawnSync("bash", ["-c", st.cmd ?? "true"], { cwd, stdio: "inherit" })).status === 0
 }
 
 const label = (st: Step) => st.cmd ? `$ ${st.cmd}` : st.file ? `→ ${st.file}` : st.set ? `→ project.json: ${Object.entries(st.set).map(([k, v]) => `${k} = ${v}`).join(", ")}` : `by hand: ${st.manual}`

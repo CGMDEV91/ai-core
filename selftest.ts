@@ -8,7 +8,7 @@
 // node runs its doctor on the \\wsl.localhost path (cli.ts must re-run itself in WSL: hooks and exclude OK), loads its
 // opencode plugins the way opencode does, and runs a command through the tools' WSL runner (nvm's node found).
 import { spawnSync } from "node:child_process"
-import { chmodSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
+import { chmodSync, cpSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 import { fileURLToPath } from "node:url"
@@ -71,6 +71,24 @@ console.log(JSON.stringify(await runInProject(root, "node -v")))
   const run = ps(`node --experimental-strip-types --no-warnings '${unc}\\runner-check.mts' '${unc}'`)
   const r = (run.stdout ?? "").trim()
   check("windows: tools reach WSL's node (nvm)", /"ok":true/.test(r) && /v\d+\./.test(r), r.slice(0, 80))
+  // a project on Windows itself (C:\…, no WSL): the launcher, the indexes and the opencode tools run with Windows' node
+  const win = (ps("$env:TEMP").stdout ?? "").trim(), nat = `${win}\\aicore-native-selftest`, natL = (spawnSync("wslpath", ["-u", nat], { encoding: "utf-8" }).stdout ?? "").trim()
+  if (natL) {
+    rmSync(natL, { recursive: true, force: true }); cpSync(join(CORE, "tests", "fixtures", "react"), natL, { recursive: true })
+    spawnSync("git", ["init", "-q", natL])
+    spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(CORE, "install.ts"), natL, "--yes", "--no-doctor", "--no-deps", "--no-wiring", "--stack", "react-ts", "--exec", "local", "--name", "native"], { encoding: "utf-8", env: { ...process.env, AI_SKIP_NPM: "1" } })
+    mkdirSync(join(natL, ".ai", "skills", "01-counter"), { recursive: true })
+    writeFileSync(join(natL, ".ai", "skills", "01-counter", "SKILL.md"), "---\nname: 01-counter\ndescription: \"c\"\nrelated_skills: []\n---\n\n# c\n\n## Key files\n\n- `src/useCounter.ts` — `useCounter()`\n")
+    writeFileSync(join(natL, "rc.mts"), `import { pathToFileURL } from "node:url"
+const root = process.argv[2]
+const { runScript } = await import(pathToFileURL(root + "\\\\.ai\\\\scripts\\\\opencode\\\\tool\\\\_lib.ts").href)
+console.log(await runScript(root, "scripts/analysis/scan-impact.sh", ["--files", "src/useCounter.ts"]))
+`)
+    const o = (ps(`Set-Location '${nat}'; node .ai\\scripts\\ai.mjs codeindex --update; node .ai\\scripts\\ai.mjs callpaths --update; node .ai\\scripts\\ai.mjs touchpoints count; node --experimental-strip-types --no-warnings rc.mts '${nat}'`).stdout ?? "")
+    check("windows native: launcher, index, touchpoints", /code-index\.json written/.test(o) && /Touchpoints of "count"/.test(o), (o.match(/Touchpoints of[^\n]*/) ?? ["no touchpoints"])[0])
+    check("windows native: opencode tool runs without WSL", /⚠ \*\*01-counter\*\*/.test(o), (o.match(/- ⚠[^\n]*/) ?? ["no flow"])[0])
+    rmSync(natL, { recursive: true, force: true })
+  }
   // the plugin's identity on Windows (no git there): the diary must be named as in WSL, not after the Windows login
   writeFileSync(join(dir, "who-check.mts"), `import { pathToFileURL } from "node:url"
 const { devUser } = await import(pathToFileURL(process.argv[2] + "\\\\.ai\\\\scripts\\\\lib\\\\knowledge.ts").href)

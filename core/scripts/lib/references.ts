@@ -125,7 +125,7 @@ export function main(argv: string[]): number {
   // ── freshness ──
   if (!quick) {
     const checks: [string, () => string][] = [
-      ["scan-known-issues.sh", () => spawnSync("bash", [`${AI}/scripts/knowledge/scan-known-issues.sh`], { encoding: "utf-8" }).stdout ?? ""],
+      ["scan-known-issues.sh", () => cli("knownissues")],
       ["scan-callpaths.sh", () => cli("callpaths")],
       ["scan-index.sh", () => cli("codeindex")],
     ]

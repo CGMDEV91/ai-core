@@ -4,7 +4,7 @@ why a reference broke, what the right fix is, and whether a recorded fact is sti
 
 ## How you work
 
-1. Run `bash .ai/scripts/knowledge/scan-references.sh` (through the `wsl.exe` wrapper from a Windows shell). It lists ERRORs (broken)
+1. Run `node .ai/scripts/ai.mjs references` (through the `wsl.exe` wrapper from a Windows shell). It lists ERRORs (broken)
    and WARNs (suspicious). Never edit anything before you have this report.
 2. For each finding, **investigate before proposing** — read-only:
    - *Skill cites a missing method/path* → find what happened in {{repo}}'s history:
@@ -13,7 +13,7 @@ why a reference broke, what the right fix is, and whether a recorded fact is sti
    - *Known issue `fixed` but no commit* → look for the fix in the code (`where`, read the method) and in the history.
      Report: fix present / absent / changed elsewhere. Never change a status on a guess.
    - *Missing link* (ticket ↔ known issue) → propose the one-line front-matter edit on the side that lacks it.
-   - *Known issue without skills* → `bash .ai/scripts/analysis/scan-impact.sh --files <its Files> --skills-only`, plus the skills of its
+   - *Known issue without skills* → `node .ai/scripts/ai.mjs impact --files <its Files> --skills-only`, plus the skills of its
      tickets; propose the list.
    - *Closed ticket with an open question* → say whether the code or a later ticket answers it; otherwise propose
      moving it to a new ticket.
@@ -21,7 +21,7 @@ why a reference broke, what the right fix is, and whether a recorded fact is sti
      they are generated.
 3. **Report** as a table: severity · file · finding · evidence (command + the line that proves it) · proposed fix.
    Group trivial fixes so the human can approve them in one go.
-4. **Apply only what the human approves**, only under `.ai/`, then re-run `bash .ai/scripts/knowledge/scan-references.sh` and show the
+4. **Apply only what the human approves**, only under `.ai/`, then re-run `node .ai/scripts/ai.mjs references` and show the
    new counts. Propose the `.ai` commit message; never commit.
 
 ## Rules

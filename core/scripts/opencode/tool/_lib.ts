@@ -164,27 +164,36 @@ export const q = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`
 export const NODE_ENV = `[ -s "$HOME/.nvm/nvm.sh" ] && . "$HOME/.nvm/nvm.sh" >/dev/null 2>&1; ` +
   `command -v node >/dev/null 2>&1 || export PATH="$HOME/.volta/bin:$HOME/.local/share/fnm/aliases/default/bin:$HOME/.local/bin:/usr/local/bin:$PATH"; `
 
+// Three ways to run a tool from opencode: a WSL project seen from Windows → wsl.exe (bash, nvm); a project on Windows
+// itself (C:\…, no WSL) → node / PowerShell here, no bash; Linux / macOS / WSL → bash.
+const nativeWindows = (root: string) => process.platform === "win32" && !linuxPath(root).distro
+
 export function runInProject(root: string, command: string, timeoutMs = 60000): Promise<{ ok: boolean; out: string }> {
   const { distro, path } = linuxPath(root)
   const cmd = `${NODE_ENV}cd ${q(path)} && ${command}`
-  const [bin, argv] = process.platform === "win32"
-    ? ["wsl.exe", [...(distro ? ["-d", distro] : []), "--", "bash", "-lc", cmd]]
-    : ["bash", ["-lc", cmd]]
+  const [bin, argv, opts] = nativeWindows(root) ? ["powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", command], { cwd: root }]
+    : process.platform === "win32" ? ["wsl.exe", [...(distro ? ["-d", distro] : []), "--", "bash", "-lc", cmd], {}]
+    : ["bash", ["-lc", cmd], {}]
   return new Promise((resolve) => {
-    execFile(bin, argv as string[], { timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024 }, (err, stdout, stderr) => {
+    execFile(bin as string, argv as string[], { timeout: timeoutMs, maxBuffer: 4 * 1024 * 1024, ...(opts as object) }, (err, stdout, stderr) => {
       resolve({ ok: !err, out: ((stdout || "") + (stderr || "")).trim() })
     })
   })
 }
 
+/** each script wrapper is one cli command: on Windows without WSL the tool runs `node .ai/scripts/ai.mjs <command>` */
+const SCRIPT_CMD: Record<string, string[]> = { "scripts/gate/run-gate.sh": ["gate"], "scripts/analysis/scan-impact.sh": ["impact"],
+  "scripts/analysis/scan-touchpoints.sh": ["touchpoints"], "scripts/analysis/scan-integrations.sh": ["integrations"], "scripts/review/review.sh": ["review"] }
+
 export function runScript(worktree: string, script: string, args: string[], timeoutMs = 180000): Promise<string> {
   const { distro, path } = linuxPath(worktree)
   const cmd = `${NODE_ENV}cd ${q(path)} && bash .ai/${script} ${args.map(q).join(" ")}`
-  const [bin, argv] = process.platform === "win32"
-    ? ["wsl.exe", [...(distro ? ["-d", distro] : []), "--", "bash", "-lc", cmd]]
-    : ["bash", ["-lc", cmd]]
+  const native = nativeWindows(worktree) && SCRIPT_CMD[script]
+  const [bin, argv, opts] = native ? ["node", [join(worktree, ".ai", "scripts", "ai.mjs"), ...SCRIPT_CMD[script], ...args], { cwd: worktree }]
+    : process.platform === "win32" ? ["wsl.exe", [...(distro ? ["-d", distro] : []), "--", "bash", "-lc", cmd], {}]
+    : ["bash", ["-lc", cmd], {}]
   return new Promise((resolve) => {
-    execFile(bin, argv as string[], { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024 }, (err, stdout, stderr) => {
+    execFile(bin as string, argv as string[], { timeout: timeoutMs, maxBuffer: 8 * 1024 * 1024, ...(opts as object) }, (err, stdout, stderr) => {
       const out = (stdout || "") + (stderr ? `\n${stderr}` : "")
       resolve(clip(err && !stdout ? `Failed: ${err.message}\n${out}` : out))
     })

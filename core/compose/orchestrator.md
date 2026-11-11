@@ -10,7 +10,7 @@
 
 ### Gate — the checks that can say "NO" (run before reporting a change as done)
 
-**One run for the automatic checks:** the `gate` tool (or `/gate`, or `bash .ai/scripts/gate/run-gate.sh`).
+**One run for the automatic checks:** the `gate` tool (or `/gate`, or `node .ai/scripts/ai.mjs gate`).
 {{#part gate}}
 
 ### Review rounds — `/review` and `/security` converge

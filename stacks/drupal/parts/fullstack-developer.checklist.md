@@ -8,5 +8,5 @@
 - [ ] Hook implementations: the hook signature comes from `where` kind `hook` (or `node .ai/scripts/cli.ts apiindex --show <hook>`): copy it and cite its `*.api.php` line — never from memory, the plan or another module. The edit result shows `[api-signatures …]` if it does not match
 - [ ] Service class registered in `{module}.services.yml` with correct arguments
 - [ ] EventSubscriber registered with correct tag if event-driven
-- [ ] `bash .ai/scripts/knowledge/scan-index.sh --update` run after adding services
+- [ ] `node .ai/scripts/ai.mjs codeindex --update` run after adding services
 - [ ] `{{drush}} cr` after any module or config change

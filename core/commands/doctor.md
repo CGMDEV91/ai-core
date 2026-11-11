@@ -1,6 +1,6 @@
 # /doctor — is the AI set-up of this checkout healthy?
 
-Run `bash .ai/scripts/setup/doctor.sh` (from a Windows shell without bash:
+Run `node .ai/scripts/ai.mjs doctor` (from a Windows shell without bash:
 `node --experimental-strip-types .ai/scripts/cli.ts doctor`) and show its table as returned. Then, for each FAIL and
 WARN, the one fix it prints — in the human's language, shortest first. Do not run the fixes yourself: setup, `--update`,
 `git pull/push` and `ddev start` are the human's.

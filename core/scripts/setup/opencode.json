@@ -51,8 +51,10 @@
           "git show*": "allow",
           "git blame*": "allow",
           "bash .ai/scripts/analysis/scan-impact.sh*": "allow",
+          "node .ai/scripts/ai.mjs impact*": "allow",
           "wsl.exe *scan-impact.sh*": "allow",
           "bash .ai/scripts/review/review.sh*": "allow",
+          "node .ai/scripts/ai.mjs review*": "allow",
           "wsl.exe *review.sh*": "allow"
         }
       }
@@ -75,6 +77,7 @@
           "git diff*": "allow",
           "git status*": "allow",
           "bash .ai/scripts/*": "allow",
+          "node .ai/scripts/ai.mjs*": "allow",
           "wsl.exe *.ai/scripts/*": "allow"
         }
       }
@@ -97,6 +100,7 @@
           "git diff*": "allow",
           "git status*": "allow",
           "bash .ai/scripts/*": "allow",
+          "node .ai/scripts/ai.mjs*": "allow",
           "wsl.exe *.ai/scripts/*": "allow"
         }
       }
@@ -133,6 +137,7 @@
           "git blame*": "allow",
           "git rev-parse*": "allow",
           "bash .ai/scripts/gate/run-gate.sh*": "allow",
+          "node .ai/scripts/ai.mjs gate*": "allow",
           "wsl.exe *bash .ai/scripts/gate/run-gate.sh*": "allow",
           "wsl.exe *git *": "allow"
         }
@@ -155,6 +160,7 @@
           "grep *": "allow",
           "rg *": "allow",
           "bash .ai/scripts/*": "allow",
+          "node .ai/scripts/ai.mjs*": "allow",
           "wsl.exe *.ai/scripts/*": "allow"
         }
       }
@@ -174,8 +180,10 @@
           "git status*": "allow",
           "git blame*": "allow",
           "bash .ai/scripts/review/review.sh*": "allow",
+          "node .ai/scripts/ai.mjs review*": "allow",
           "wsl.exe *review.sh*": "allow",
-          "bash .ai/scripts/analysis/scan-impact.sh*": "allow"
+          "bash .ai/scripts/analysis/scan-impact.sh*": "allow",
+          "node .ai/scripts/ai.mjs impact*": "allow"
         }
       }
     },
@@ -209,6 +217,9 @@
         "bash": {
           "*": "deny",
           "bash .ai/scripts/analysis/*": "allow",
+          "node .ai/scripts/ai.mjs impact*": "allow",
+          "node .ai/scripts/ai.mjs touchpoints*": "allow",
+          "node .ai/scripts/ai.mjs integrations*": "allow",
           "wsl.exe *.ai/scripts/analysis/*": "allow"
         }
       }
@@ -323,6 +334,7 @@
       "git rev-parse*": "allow",
       "git fetch*": "allow",
       "bash .ai/scripts/*": "allow",
+      "node .ai/scripts/ai.mjs*": "allow",
       "wsl.exe *": "allow",
       "*git add*": "deny",
       "*git commit*": "deny",

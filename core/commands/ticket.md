@@ -10,7 +10,7 @@ This command is the whole procedure (no other process file to load):
 
 1. **Workspace check.** Run `ls .ai/project.json` from the `{{repo}}` root; when it is missing, report it and end here.
    Get the date (`date`). Decide once whether you need the `wsl.exe` wrapper (`.ai/core-rules.md` rule 6).
-   **Team knowledge up to date:** `bash .ai/scripts/setup/ai-status.sh`. `BEHIND n` → tell the human and propose
+   **Team knowledge up to date:** `node .ai/scripts/ai.mjs sync --remote`. `BEHIND n` → tell the human and propose
    `git -C .ai pull` before starting (other devs' skills, known issues and tickets are missing; the git hooks rebuild
    the indexes after the pull). Do not pull yourself. `UP TO DATE` / `NO UPSTREAM` → go on.
 2. **Key.** A Jira key in the arguments → that key. No key and `.ai/current-ticket.local.md` exists → **resume that

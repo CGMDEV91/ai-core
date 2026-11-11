@@ -36,7 +36,7 @@ function rules(glob: string): string[] {
 function settings(): any {
   const perm = opencodeJson().permission ?? {}
   const allow = new Set<string>(["Read", "Grep", "Glob", "Bash(node --experimental-strip-types --no-warnings .ai/scripts/cli.ts:*)",
-    "Bash(node .ai/scripts/cli.ts:*)", "Bash(bash .ai/scripts/:*)"])
+    "Bash(node .ai/scripts/cli.ts:*)", "Bash(node .ai/scripts/ai.mjs:*)", "Bash(bash .ai/scripts/:*)"])
   const deny = new Set<string>(["Read(./.env)", "Read(./.env.*)", "Read(**/*.key)", "Read(**/*.pem)"])
   const ask = new Set<string>()
   for (const [g, v] of Object.entries<string>(perm.bash ?? {})) {

@@ -3,8 +3,8 @@
 Arguments (optional): `$ARGUMENTS` — a ticket key; or `--files <paths> [--methods Class::method]`; or `--base <ref>`.
 
 1. Run from the {{repo}} root (through the `wsl.exe` wrapper if your shell is Windows):
-   - with a ticket key: `bash .ai/scripts/analysis/scan-impact.sh --write-ticket <key>` (current diff → writes `## Impact` in the ticket)
-   - otherwise: `bash .ai/scripts/analysis/scan-impact.sh $ARGUMENTS` (add `--key <key>` when you know the ticket: its declared
+   - with a ticket key: `node .ai/scripts/ai.mjs impact --write-ticket <key>` (current diff → writes `## Impact` in the ticket)
+   - otherwise: `node .ai/scripts/ai.mjs impact $ARGUMENTS` (add `--key <key>` when you know the ticket: its declared
      `skills:` count as affected flows and pull in the other tickets and bugs of those flows)
 2. Read the report. For every **⚠ flow**: open that skill (skill tool), find the rules and the call path that
    the changed methods take part in, and say in one line per flow **why** it could break or why not.

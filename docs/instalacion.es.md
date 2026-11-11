@@ -128,6 +128,9 @@ En tu máquina: `SONAR_URL` y tu `SONAR_TOKEN` personal en `~/.bashrc` (nunca en
 
 ## Windows y WSL
 
+- **Windows sin WSL** (el proyecto en C:\\): instala con `install.ps1`; necesita Node y Git for Windows completo (los
+  hooks). Las herramientas corren con el node de Windows; los agentes usan `node .ai/scripts/ai.mjs <comando>`, sin bash.
+
 - El proyecto vive en WSL y opencode corre en Windows: las herramientas y plugins llaman a WSL (`wsl.exe`, cargando
   nvm), y `node .ai/scripts/cli.ts <comando>` lanzado por el node de Windows sobre una ruta `\\wsl.localhost\…` se
   re-ejecuta dentro de WSL, así git, ddev y los hooks son los de verdad.

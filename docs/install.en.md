@@ -124,6 +124,9 @@ waits for it and reads the quality gate, the new issues and the new coverage. `/
 
 ## Windows and WSL
 
+- **Windows without WSL** (the project on C:\\): install with `install.ps1`; it needs Node and the complete Git for
+  Windows (the hooks). The tools run with Windows' node; agents call `node .ai/scripts/ai.mjs <command>`, no bash.
+
 - The project lives in WSL and opencode runs on Windows: the tools and plugins call WSL (`wsl.exe`, loading nvm), and
   `node .ai/scripts/cli.ts <command>` started by Windows node on a `\\wsl.localhost\…` path re-runs itself inside WSL,
   so git, ddev and the hooks are the real ones.
