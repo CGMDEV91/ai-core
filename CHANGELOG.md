@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.4 — 2026-11-12
+
+- `ai.mjs` runs itself inside WSL when it is started on Windows over a `\\wsl.localhost\<distro>\…` path (opencode on
+  Windows, the project in WSL): the tools need WSL's git, ddev and drush. Before, the gate ran with Windows' node and
+  every check came back NOT RUN. `AI_NO_WSL=1` turns it off.
+
 ## 0.20.3 — 2026-11-12
 
 - `budget` (and doctor's **context** row) also reads the instructions of opencode's Windows configuration from WSL
