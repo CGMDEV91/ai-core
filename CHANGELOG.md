@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.20.7 — 2026-11-12
+
+- **The ticket header leaves the system prompt.** The opencode plugin attaches it to the message you send, as a hidden
+  part, only when it changed (and on the first message, and after a compaction). The system prompt and the history no
+  longer change when the ticket moves, so a server that caches prompt prefixes keeps the conversation cached; and most
+  messages carry no header at all. `AI_HEADER_IN_SYSTEM=1` restores the old behaviour. The teammates' line shows dates.
+- **Shorter gate output.** The PRE-EXISTING findings show the first three; all of them go to
+  `.ai/context/last-gate.<service or stack>.md` (`gate --full` prints them all). They block nothing, and a long list
+  was paid for by every following model call.
+
 ## 0.20.6 — 2026-11-12
 
 - `impact` reads a path written with "./" in a skill, a known issue or a ticket (`./web/modules/custom/…`) as the

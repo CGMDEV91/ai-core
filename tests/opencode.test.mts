@@ -55,3 +55,23 @@ for (const stack of ["drupal", "react-ts", "java", "generic"]) {
     const b = cli(dir, ["budget"]); assert.equal(b.code, 0, b.out)   // what loads on every message stays under budget
   })
 }
+
+test("ticket header: attached to the message only when it changed, again after a compaction; never in the system prompt", async () => {
+  const dir = sample("generic")
+  mkdirSync(join(dir, ".ai", "tickets", "T-2"), { recursive: true })
+  const tf = join(dir, ".ai", "tickets", "T-2", "T-2.md")
+  writeFileSync(tf, "---\nkey: T-2\ntitle: \"t\"\ntype: feature\nstatus: active\n---\n\n## Plan\n\n## Notes\n")
+  writeFileSync(join(dir, ".ai", "current-ticket.local.md"), "T-2\n")
+  const { pathToFileURL } = await import("node:url")
+  const mod = await import(pathToFileURL(join(dir, ".ai", "scripts", "opencode", "plugin", "ticket-context.ts")).href)
+  const hooks: any = await mod.TicketContext({ directory: dir, worktree: dir })
+  assert.equal(hooks["experimental.chat.system.transform"], undefined, "the system prompt stays the same")
+  const send = async () => { const out = { message: { id: "msg_1", sessionID: "ses_1" }, parts: [] as any[] }; await hooks["chat.message"]({ sessionID: "ses_1" }, out); return out.parts }
+  const first = await send()
+  assert.equal(first.length, 1); assert.equal(first[0].synthetic, true); assert.match(first[0].text, /ACTIVE TICKET T-2/); assert.match(first[0].id, /^prt_/)
+  assert.equal((await send()).length, 0, "unchanged: not attached again")
+  writeFileSync(tf, readFileSync(tf, "utf-8").replace("status: active", "status: blocked"))
+  assert.equal((await send()).length, 1, "the state moved: attached again")
+  await hooks["experimental.session.compacting"]({ sessionID: "ses_1" }, { context: [] })
+  assert.equal((await send()).length, 1, "after a compaction: attached again")
+})

@@ -107,5 +107,5 @@ export function main(argv: string[]): number {
       g.row("tests", failed.length ? "FAIL" : "PASS", `${runner}: ${data.numPassedTests ?? "?"} passed, ${failed.length} failed`)
     }
   }
-  return g.print(`${files.length} file(s), ${src.length} source`)
+  return g.print(`${files.length} file(s), ${src.length} source`, "react-ts")
 }

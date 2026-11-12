@@ -36,5 +36,5 @@ export function main(argv: string[]): number {
       g.row(c.name, rc === 0 ? "PASS" : "FAIL", `${c.name}: exit ${rc}`)
     }
   }
-  return g.print(`${files.length} file(s)`)
+  return g.print(`${files.length} file(s)`, "generic")
 }

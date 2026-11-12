@@ -1,7 +1,26 @@
 // gatelib.ts — what every stack's gate shares: the changed files, the lines a change touched, NEW vs PRE-EXISTING,
 // and one output format (table, NEW, PRE-EXISTING, [VERIFIED] lines, RESULT) — so the agents read every gate the same way.
 // Errors on a line the change added or modified (or in a new file) are NEW and fail the gate; the others are listed apart.
+import { mkdirSync, writeFileSync } from "node:fs"
+import { AI } from "./project.ts"
 import { cut, plen, sh, splitlines, today } from "./util.ts"
+
+/** PRE-EXISTING findings: the first 3 in the output, all of them in .ai/context/last-gate.<scope>.md — they block nothing
+ *  and a long list costs the model tokens on every following call. --full (or AI_GATE_FULL=1) prints them all. */
+export function printPreExisting(list: string[], scope: string): void {
+  if (!list.length) return
+  const full = process.argv.includes("--full") || process.env.AI_GATE_FULL === "1"
+  const name = `last-gate.${String(process.env.AI_SERVICE || scope).replace(/[^\w.-]/g, "_")}.md`
+  let saved = false
+  try {
+    mkdirSync(`${AI}/context`, { recursive: true })
+    writeFileSync(`${AI}/context/${name}`, `# PRE-EXISTING findings (${today()}) — ${list.length}\n\n${list.map((e) => `- ${e}`).join("\n")}\n`)
+    saved = true
+  } catch { /* the output still shows them */ }
+  const shown = full || !saved ? list.slice(0, full ? list.length : 15) : list.slice(0, 3)
+  console.log(`\nPRE-EXISTING / INFO (untouched lines — not caused by this change; do not fix inside this ticket unless asked) — ${list.length}:`)
+  console.log(shown.map((e) => `- ${e}`).join("\n") + (list.length > shown.length ? `\n- … ${list.length - shown.length} more${saved ? `: .ai/context/${name} (or gate --full)` : ""}` : ""))
+}
 
 export type Row = [check: string, result: "PASS" | "FAIL" | "NOT RUN" | "SKIPPED" | "CHECK", evidence: string]
 
@@ -55,7 +74,7 @@ export class Gate {
     this.rows.push([check, result, evidence])
     if (verified) this.evidence.push(evidence)
   }
-  print(title: string): number {
+  print(title: string, scope = "gate"): number {
     const sha = sh(["git", "rev-parse", "--short", "HEAD"])[1].trim() || "?", day = today()
     console.log(`GATE ${day} @${sha} — ${title}`)
     console.log("| check | result | evidence |\n|---|---|---|")
@@ -64,10 +83,7 @@ export class Gate {
       console.log(`\nNEW (caused by this change, must be fixed) — ${this.newErrs.length}:`)
       console.log(this.newErrs.slice(0, 25).map((e) => `- ${e}`).join("\n") + (this.newErrs.length > 25 ? `\n- … ${this.newErrs.length - 25} more` : ""))
     }
-    if (this.oldErrs.length) {
-      console.log(`\nPRE-EXISTING / INFO (untouched lines — not caused by this change; do not fix inside this ticket unless asked) — ${this.oldErrs.length}:`)
-      console.log(this.oldErrs.slice(0, 15).map((e) => `- ${e}`).join("\n") + (this.oldErrs.length > 15 ? `\n- … ${this.oldErrs.length - 15} more` : ""))
-    }
+    printPreExisting(this.oldErrs, scope)
     console.log("\nFor ## Verification:")
     for (const e of this.evidence) console.log(`- [VERIFIED ${day} @${sha} — "${e}"]`)
     const failed = this.rows.some((r) => r[1] === "FAIL"), notrun = this.rows.some((r) => r[1] === "NOT RUN")
@@ -83,7 +99,7 @@ export function args(argv: string[]): { base: string; files: string[]; flags: Se
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === "--base") base = argv[++i] ?? "HEAD"
-    else if (a.startsWith("--")) flags.add(a)
+    else if (a.startsWith("--")) flags.add(a)   // --full included: printPreExisting reads it
     else files.push(a.startsWith("../") ? a : a.replace(/\\/g, "/").replace(/^\.\//, ""))
   }
   return { base, files, flags }

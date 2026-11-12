@@ -102,5 +102,5 @@ export function main(argv: string[]): number {
       g.row("tests", failed.length ? "FAIL" : "PASS", `tests: ${total - failed.length} passed, ${failed.length} failed`)
     }
   }
-  return g.print(`${files.length} file(s), ${src.length} Java`)
+  return g.print(`${files.length} file(s), ${src.length} Java`, "java")
 }

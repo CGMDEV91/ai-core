@@ -99,7 +99,7 @@ export function header(t: { key: string; text: string }): string {
   const shared = ticketFile(t.key)
   const state = own || (shared ? sectionOf(readFileSync(shared, "utf-8"), "Current state") : "")
   const next = (state.match(/Next:\s*(.+)/) || [])[1] ?? "(no Next: line in Current state)"
-  const team = others(t.key, me).map(([u, st, at]) => `  - ${u} (${at.toISOString().slice(0, 16).replace("T", " ")}): ${st.slice(0, 140)}`)
+  const team = others(t.key, me).map(([u, st, at]) => `  - ${u} (${at.toISOString().slice(0, 10)}): ${st.slice(0, 140)}`)
   const open = section(t.text, "Open points").split("\n").filter((l) => /^\s*-\s*\[ \]/.test(l)).slice(0, 5)
   return [
     `ACTIVE TICKET ${t.key} — ${field(t.text, "title")} (${field(t.text, "status") || "active"}) · shared file ${(ticketFile(t.key) ?? "").replace(/^.*\/\.ai\//, ".ai/")} · your diary (${me}) .ai/tickets/${t.key}/${t.key}.${me}.md`,

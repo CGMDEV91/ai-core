@@ -20,6 +20,7 @@ import { build, checkFile, moduleOf } from "./apiindex.ts"
 import { AI, ROOT, codePaths, drushPrefix, runPrefix, stack } from "./project.ts"
 import { cut, dumps, mtime, plen, read, sh, splitlines, today } from "./util.ts"
 import { configOf } from "./qa.ts"
+import { printPreExisting } from "./gatelib.ts"
 
 
 const STACK = stack("drupal")
@@ -107,6 +108,7 @@ export function main(argv: string[]): number {
     const a = argv[i]
     if (a === "--base") base = argv[++i] ?? "HEAD"
     else if (a === "--skip-drush") skipDrush = true
+    else if (a === "--full") continue   // printPreExisting reads it
     else files.push(a.startsWith("../") ? a : a.replace(/\\/g, "/").replace(/^[./]+/, ""))
   }
   if (!files.length) files = changedFiles(base)
@@ -213,10 +215,7 @@ export function main(argv: string[]): number {
     console.log(`\nNEW (caused by this change, must be fixed) — ${newErrs.length}:`)
     console.log(newErrs.slice(0, 25).map((e) => `- ${e}`).join("\n") + (newErrs.length > 25 ? `\n- … ${newErrs.length - 25} more` : ""))
   }
-  if (oldErrs.length) {
-    console.log(`\nPRE-EXISTING / INFO (untouched lines — not caused by this change; do not fix inside this ticket unless asked) — ${oldErrs.length}:`)
-    console.log(oldErrs.slice(0, 15).map((e) => `- ${e}`).join("\n") + (oldErrs.length > 15 ? `\n- … ${oldErrs.length - 15} more` : ""))
-  }
+  printPreExisting(oldErrs, "drupal")
   console.log("\nFor ## Verification:")
   for (const e of evidence) console.log(`- [VERIFIED ${day} @${sha} — "${e}"]`)
   const failed = rows.some((r) => r[1] === "FAIL"), notrun = rows.some((r) => r[1] === "NOT RUN")
