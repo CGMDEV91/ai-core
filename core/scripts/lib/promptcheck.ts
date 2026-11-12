@@ -74,7 +74,7 @@ export function prompts(): [string, string][] {
   const out: [string, string][] = []
   const md = (dir: string) => (existsSync(join(AI, dir)) ? readdirSync(join(AI, dir)).filter((f) => f.endsWith(".md")).sort().map((f) => `${dir}/${f}`) : [])
   // ai-core's layout, and a methodology that keeps its procedures, rules and per-machine wiring in .ai/ as well
-  for (const rel of [...md("commands"), ...md("agents"), ...md("procedures"), ...md("rules"), ...md("rules/stacks"), ...md("install/opencode/commands"), ...md("install/opencode/agents"),
+  for (const rel of [...md("commands"), ...md("agents"), ...md("procedures"), ...md("rules"), ...md("rules/stacks"), ...md("templates"), ...md("install/opencode/commands"), ...md("install/opencode/agents"),
     "core-rules.md", "orchestrator.md", "non-negotiables.md"]) {
     if (!existsSync(join(AI, rel))) continue
     out.push([rel, readFileSync(join(AI, rel), "utf-8").replaceAll("$ARGUMENTS", "ABC-123 check the module list")])
