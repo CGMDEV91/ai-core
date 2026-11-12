@@ -107,6 +107,9 @@ export function moduleOf(path: string): string | null {
 
 /** Paths, classes and methods cited in a text. Methods on a Key-files line bind to that file's class. */
 export function harvestCodeRefs(doc: Doc, text: string, keyfileText: string | null = null): void {
+  // a path written "./web/modules/…" (relative to the repository) is the same path: drop the "./"
+  const dot = (t: string) => t.replace(/(^|[\s`'"(\[])\.\/(?=[A-Za-z0-9_])/g, "$1")
+  text = dot(text); if (keyfileText) keyfileText = dot(keyfileText)
   for (const m of findall(PATH_RE, text)) {
     const p = prstrip(m[0], ".,)")
     if (TRACKED.some((t) => p.startsWith(t))) {

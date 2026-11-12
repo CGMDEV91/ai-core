@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.20.6 — 2026-11-12
+
+- `impact` reads a path written with "./" in a skill, a known issue or a ticket (`./web/modules/custom/…`) as the
+  same path. Before, such a skill cited nothing and was never matched nor reported as stale.
+
 ## 0.20.5 — 2026-11-12
 
 - `--service <name>` in a single repository (in-repo, or a project without services) means the whole project — before,
