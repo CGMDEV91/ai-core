@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.20.3 — 2026-11-12
+
+- `budget` (and doctor's **context** row) also reads the instructions of opencode's Windows configuration from WSL
+  (`/mnt/c/Users/<user>/.config/opencode`), where the desktop app keeps them.
+
 ## 0.20.2 — 2026-11-11
 
 - **SonarQube per service in a workspace**: each service repo is its own SonarQube project (its

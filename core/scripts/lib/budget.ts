@@ -16,7 +16,11 @@ const tok = (s: string) => Math.round(s.length / 4)
 export function measure(root = ROOT): { files: [string, number, number][]; rules: number; header: number } {
   const names = new Set<string>()
   const globalDir = process.env.OPENCODE_CFG_DIR ?? join(process.env.XDG_CONFIG_HOME ?? join(homedir(), ".config"), "opencode")
-  for (const cfgFile of [join(root, "opencode.json"), join(globalDir, "opencode.json")]) {
+  // WSL with opencode on Windows: its user configuration is under /mnt/c/Users/<user>/.config/opencode
+  const winDirs: string[] = []
+  if (!process.env.OPENCODE_CFG_DIR && process.platform === "linux" && existsSync("/mnt/c/Users"))
+    try { for (const u of readdirSync("/mnt/c/Users")) { const d = `/mnt/c/Users/${u}/.config/opencode`; if (existsSync(join(d, "opencode.json"))) winDirs.push(d) } } catch { /* no access */ }
+  for (const cfgFile of [join(root, "opencode.json"), join(globalDir, "opencode.json"), ...winDirs.map((d) => join(d, "opencode.json"))]) {
     try {
       const oc = JSON.parse(readFileSync(cfgFile, "utf-8").replace(/^\s*\/\/.*$/gm, ""))
       for (const f of oc.instructions ?? []) {
