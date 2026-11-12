@@ -3,7 +3,7 @@
 // Each command is .ai/scripts/lib/<command>.ts exporting main(argv): number | Promise<number>; the core and the stack
 // install theirs in the same folder, so this file never changes when a stack adds one. Node ≥ 22.6, no npm.
 import { spawnSync } from "node:child_process"
-import { readdirSync } from "node:fs"
+import { readFileSync, readdirSync } from "node:fs"
 import { dirname, join } from "node:path"
 import { fileURLToPath, pathToFileURL } from "node:url"
 import { NODE_ENV, linuxPath, q } from "./opencode/tool/_lib.ts"
@@ -26,10 +26,19 @@ process.stdout.on("error", (e: NodeJS.ErrnoException) => { if (e.code === "EPIPE
 // --service <repo>: run the command inside one service of a workspace (its git, its paths, its tools)
 const si = process.argv.indexOf("--service")
 if (si > 1 && process.argv[si + 1]) {
-  const repo = process.argv[si + 1]
-  process.env.AI_SERVICE = repo
-  process.env.AI_ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", repo)
+  const repo = process.argv[si + 1].replace(/[\\/]+$/, "")
+  const ai = join(dirname(fileURLToPath(import.meta.url)), "..")
+  let repos: string[] = []
+  try { repos = [...new Set((JSON.parse(readFileSync(join(ai, "project.json"), "utf-8")).stacks ?? []).map((x: any) => x.repo).filter(Boolean))] as string[] } catch { /* no project.json */ }
   process.argv.splice(si, 2)
+  if (repos.includes(repo)) {
+    process.env.AI_SERVICE = repo
+    process.env.AI_ROOT = join(ai, "..", repo)
+  } else if (repos.length) {
+    console.error(`--service ${repo}: not a service of this workspace (services: ${repos.join(", ")})`)
+    process.exit(2)
+  }
+  // a single repository (in-repo, or a project without services): --service . / its own name is the whole project
 }
 
 const lib = join(dirname(fileURLToPath(import.meta.url)), "lib")

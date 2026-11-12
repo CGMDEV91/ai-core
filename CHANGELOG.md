@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.5 — 2026-11-12
+
+- `--service <name>` in a single repository (in-repo, or a project without services) means the whole project — before,
+  `--service .` found no stack and the gate answered "no gate configured". A name that is not a service of a workspace
+  is an error that lists the services.
+
 ## 0.20.4 — 2026-11-12
 
 - `ai.mjs` runs itself inside WSL when it is started on Windows over a `\\wsl.localhost\<distro>\…` path (opencode on
