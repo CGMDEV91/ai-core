@@ -11,7 +11,22 @@ import { WORKSPACE, cfg, isWorkspace, services } from "./project.ts"
 
 const LIB = dirname(fileURLToPath(import.meta.url))
 
+/** the gate, and its receipt: what it printed is recorded by the tool itself in your diary (receipts.ts) */
 export async function main(all: string[]): Promise<number> {
+  const out: string[] = [], write = process.stdout.write.bind(process.stdout)
+  process.stdout.write = ((chunk: any, ...rest: any[]) => { out.push(String(chunk)); return (write as any)(chunk, ...rest) }) as any
+  let rc = 2
+  try { rc = await gateRun(all) } finally { process.stdout.write = write }
+  try {
+    const { writeReceipt } = await import("./receipts.ts")
+    const scope = process.env.AI_SERVICE || (isWorkspace() ? "workspace" : "project")
+    const line = writeReceipt(all.includes("--sonar") ? "gate+sonar" : "gate", scope, rc, out.join(""))
+    if (line) console.log(`\nReceipt (in your diary, ## Receipts): ${line.slice(2)}`)
+  } catch { /* the gate's result stands without its receipt */ }
+  return rc
+}
+
+async function gateRun(all: string[]): Promise<number> {
   const withSonar = all.includes("--sonar"), argv = all.filter((a) => a !== "--sonar")
   const rc = await stacks(argv)
   if (!withSonar) return rc

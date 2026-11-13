@@ -5,6 +5,7 @@ import { join, relative, isAbsolute } from "node:path"
 import { currentKey, ensureDiary, ticketFile } from "./knowledge.ts"
 import { runPrefix, services, stack } from "./project.ts"
 import { configOf } from "./qa.ts"
+import { stamp } from "./receipts.ts"
 import { linuxPath, runInProject } from "../opencode/tool/_lib.ts"
 
 export const EDIT_TOOLS = new Set(["edit", "write", "multiedit", "patch"])
@@ -12,7 +13,7 @@ const TRACKED = /^(lib|config|web|src|app|frontend|docker|scripts|patches)\/|^(D
 
 /** Record a file the agent edited: in my diary (.ai/tickets/<KEY>/<KEY>.<user>.md) when the ticket uses the folder
  *  layout, so two devs on one ticket never write the same lines; in the shared file for a legacy flat ticket. */
-function recordChange(worktree: string, filePath: string, today = new Date().toISOString().slice(0, 10)): string | null {
+function recordChange(worktree: string, filePath: string, today = stamp()): string | null {
   const key = currentKey()
   if (!key || !filePath) return null
   const rel = (isAbsolute(filePath) || /^\\\\/.test(filePath) ? relative(worktree, filePath) : filePath).replace(/\\/g, "/")

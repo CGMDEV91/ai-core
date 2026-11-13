@@ -132,7 +132,7 @@ export function sectionOf(text: string, name: string): string {
   const m = text.match(SEC(name))
   return m ? m[1].replace(/<!--[\s\S]*?-->/g, "").trim() : ""
 }
-export const PER_DEV = ["Current state", "Changes", "Session log"]
+export const PER_DEV = ["Current state", "Changes", "Session log", "Receipts"]
 
 /** The ticket as one text: the shared file with Current state / Changes / Session log rebuilt from every diary
  *  (mine first), so the header, suggest(), /review and /impact see the work of everybody on the ticket. */

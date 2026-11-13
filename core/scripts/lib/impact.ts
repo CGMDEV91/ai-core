@@ -9,7 +9,7 @@
 //   … --stale-skills   the skills this change touches at method level: they must be updated (or justified) by /skill
 import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync, writeFileSync } from "node:fs"
-import { combined, list, skillFiles, ticketFile } from "./knowledge.ts"
+import { combined, list, sectionOf, skillFiles, ticketFile } from "./knowledge.ts"
 import { AI, ROOT, cfg, isWorkspace, services, stack, walkCode } from "./project.ts"
 import { cmp, comparePaths, cut, escapeRe, isFile, read, splitlines, walk } from "./util.ts"
 
@@ -540,7 +540,21 @@ function record(key: string): number {
   const text = read(f), base = parseBase(frontMatter(text).baseline)
   const sha = (x: string) => /^[0-9a-f]{6,40}$/.test(x)
   const ch = changeFromDiff(typeof base === "string" ? (sha(base) ? base : null) : base && Object.fromEntries(Object.entries(base).filter(([, v]) => sha(v))), null)
-  const lines = [...ch.files].sort(cmp).map((p) => {
+  // only this ticket's files: the ones its ## Changes lists (every diary, the generated block itself excluded) — the
+  // working tree may hold other, older changes that are not this ticket's (a composer.json, another feature's config)
+  // (combined() drops comments, so the generated block is recognised by its own heading, not by its markers)
+  const own = sectionOf(combined(key), "Changes").replace(/Code touched \([^)]*\):\n(?:-[^\n]*\n?)*/g, "")
+  const listed = [...own.matchAll(/`\.?\/?([^`\s]+\.[A-Za-z0-9]+)`/g)].map((m) => m[1].replace(/^\.\//, ""))
+  let files = [...ch.files], left = 0
+  if (listed.length) {
+    // the configuration a touched module exported (drush cex writes config/sync/<module>.*.yml, not the agent)
+    const mods = [...new Set(listed.map((l) => (l.match(/modules\/custom\/([^/]+)\//) ?? [])[1]).filter(Boolean))] as string[]
+    const mine = (p: string) => listed.some((l) => p === l || p.endsWith("/" + l) || l.endsWith("/" + p))
+      || mods.some((m) => (p.split("/").pop() ?? "").startsWith(m + "."))
+    left = files.filter((p) => !mine(p)).length
+    files = files.filter(mine)
+  }
+  const lines = files.sort(cmp).map((p) => {
     const ms = [...(ch.methods.get(p) ?? [])].sort(cmp).map((m) => `\`${pstem(p)}::${m}()\``)
     return `- \`${p}\`${ms.length ? " — " + ms.join(", ") : ""}`
   })
@@ -551,7 +565,8 @@ function record(key: string): number {
   else next = text.replace(/^## Notes\b/m, () => `## Changes\n\n${block}\n\n## Notes`)
   if (next === text && !text.includes(BEGIN_CT)) next = text.replace(/\s+$/, "") + `\n\n## Changes\n\n${block}\n`
   writeFileSync(f, next)
-  console.log(`${lines.length} file(s), ${[...ch.methods.values()].reduce((n, s) => n + s.size, 0)} method(s) recorded in ${f.replace(/^.*\/\.ai\//, ".ai/")} → ## Changes (Code touched)`)
+  console.log(`${lines.length} file(s), ${files.reduce((n, p) => n + (ch.methods.get(p)?.size ?? 0), 0)} method(s) recorded in ${f.replace(/^.*\/\.ai\//, ".ai/")} → ## Changes (Code touched)` +
+    (left ? ` · ${left} other changed file(s) left out: not in this ticket's ## Changes` : ""))
   return 0
 }
 

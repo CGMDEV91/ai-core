@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.20.8 — 2026-11-13
+
+- **Receipts: the gate writes its own result.** Each `gate` run writes one line in your diary of the active ticket,
+  section `## Receipts` (tool, scope, date and time, exit code, the `RESULT` line, sha, a hash of the output), and
+  keeps the full output in `.ai/context/receipts/` (ignored by git). The ticket's next step reads the receipt, not
+  what the model wrote in `## Verification`: a gate that did not complete, or an edit after the gate, says so. The
+  edits in `## Changes` now carry the time too.
+- `impact --record` keeps in "Code touched" only the files of this ticket (those its `## Changes` lists); the other
+  changed files of the working tree are counted and left out.
+
 ## 0.20.7 — 2026-11-12
 
 - **The ticket header leaves the system prompt.** The opencode plugin attaches it to the message you send, as a hidden

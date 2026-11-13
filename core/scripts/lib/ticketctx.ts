@@ -2,6 +2,7 @@
 // suggest() (the deterministic next step) and the state a compacted session must keep. Used by the opencode plugin
 // (plugin/ticket-context.ts), the Claude Code hooks (hook.ts) and the tests. Not a plugin itself: opencode would call
 // every exported function of a plugin file.
+import { gateState } from "./receipts.ts"
 import { spawnSync } from "node:child_process"
 import { fileURLToPath } from "node:url"
 import { existsSync, readFileSync } from "node:fs"
@@ -65,10 +66,13 @@ export function suggest(t: { key: string; text: string }): string {
   if (!plan && field(t.text, "type") === "feature") return `/plan ${k} — adaptive work needs an approved plan before any code`
   if (!edited) return plan ? `"go" with the plan's first step/block (or /debug ${k} if the cause of a bug is still unknown)` : `/plan ${k} if the fix is not trivial, else "go"`
   // gate evidence of any stack: phpcs / phpstan (drupal) · eslint / tsc (react-ts) · compile / checkstyle (java) · tests
+  const rg = gateState(t.text)   // the gate's own receipts rule when the ticket has them
+  if (rg?.stale) return `/gate — the code changed after the last gate (${rg.at})`
+  if (rg && !rg.ok) return rg.incomplete ? `/gate — the last gate did not complete: "${rg.result}" — fix what it names, then /gate again` : `fix the NEW errors of the last gate, then /gate again`
   const GATE = /\[VERIFIED [^\]]*\b(phpcs|phpstan|eslint|tsc|compile|checkstyle|tests|gate)\b/
   const gateLines = ver.split("\n").filter((l) => GATE.test(l))
   const lastGate = gateLines.length ? gateLines[gateLines.length - 1] : ""
-  if (!lastGate || lastDate(changes, /edited \d{4}-\d{2}-\d{2}/g) > lastDate(lastGate, /\d{4}-\d{2}-\d{2}/g)) return `/gate — the changed code has no gate evidence yet`
+  if (!rg && (!lastGate || lastDate(changes, /edited \d{4}-\d{2}-\d{2}/g) > lastDate(lastGate, /\d{4}-\d{2}-\d{2}/g))) return `/gate — the changed code has no gate evidence yet`
   if (/(phpcs|phpstan|eslint|tsc|compile|checkstyle): [1-9]\d* new/.test(ver.split("\n").filter((l) => /\[VERIFIED/.test(l)).slice(-2).join(" ")))
     return `fix the NEW errors of the last gate, then /gate again`
   const next = (section(t.text, "Current state").match(/Next:\s*(.+)/) || [])[1] ?? ""

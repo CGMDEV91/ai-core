@@ -5,4 +5,5 @@ __pycache__/
 context/code-index.json
 context/api-index.json
 context/last-gate.*.md
+context/receipts/
 context/.sync.log
