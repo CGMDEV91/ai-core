@@ -6,9 +6,12 @@
 //    every time the ticket's state moves).
 //  - experimental.session.compacting: the summary of a compacted session receives the ticket's current state,
 //    open points, open questions and decisions, so obligations are not lost in the summary.
+//  - event: the context each model call sent goes to .ai/context/session.local.json (lib/session.ts), so the next
+//    step can suggest compacting at the end of a phase of a big conversation; a compaction resets it.
 // AI_HEADER_IN_SYSTEM=1 puts the header back in the system prompt of every message (the behaviour before 0.20.7).
 // No npm import: the stub in <project>/.opencode/plugin/ re-exports this file.
 import { activeTicket, compactionContext, header, rootOf } from "../../lib/ticketctx.ts"
+import { recordContext, resetContext } from "../../lib/session.ts"
 
 const B62 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
 /** a part id in opencode's shape (prt_ + time + random), ascending like the ones it makes */
@@ -20,6 +23,12 @@ export const TicketContext = async ({ directory, worktree }: { directory?: strin
   const inSystem = process.env.AI_HEADER_IN_SYSTEM === "1"
   const last = new Map<string, string>()   // sessionID → the header attached last
   return {
+    event: async ({ event }: { event: { type: string; properties?: { info?: unknown; sessionID?: string } } }) => {
+      try {
+        if (event?.type === "message.updated") recordContext(event.properties?.info as Parameters<typeof recordContext>[0])
+        else if (event?.type === "session.compacted") resetContext(event.properties?.sessionID)
+      } catch { /* bookkeeping only */ }
+    },
     ...(inSystem ? {
       "experimental.chat.system.transform": async (_input: unknown, output: { system: string[] }) => {
         try { const t = activeTicket(root); if (t) output.system.push(header(t)) } catch { /* never break a message */ }

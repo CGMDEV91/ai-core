@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.20.10 — 2026-11-13
+
+- **When compacting pays off.** The opencode plugin records the context each model call sent
+  (`.ai/context/session.local.json`, local; a compaction resets it). `compactHint()` (lib/session.ts) says *compact
+  the conversation* only at the end of a phase (the gate receipt passed, no edit after it) and above
+  `AI_COMPACT_AT` tokens (default 60000): one summary call instead of re-sending the whole conversation on every call.
+  Never mid-phase, never for a short conversation.
+
 ## 0.20.9 — 2026-11-13
 
 - **`receipts fold <key>` at the close.** The newest receipt of each tool becomes one line of the shared
