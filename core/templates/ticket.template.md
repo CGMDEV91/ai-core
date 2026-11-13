@@ -73,7 +73,7 @@ updated: YYYY-MM-DD
 ## Verification
 
 <!-- Each check with its EVIDENCE line:
-     - gate tool / /gate → copy its [VERIFIED YYYY-MM-DD @sha — "phpcs: 0 new issue(s) …"] lines (phpcs, phpstan, drush cr, config:status)
+     - gate tool / /gate → copy its [VERIFIED YYYY-MM-DD @sha — "phpcs: 0 new issue(s) …"] lines (phpcs, phpstan, drush cache:rebuild, config:status)
      - manual → steps the human ran in the browser → [VERIFIED-BY-HUMAN YYYY-MM-DD — "<what they saw>"]
      Say explicitly what was NOT verified. A [VERIFIED] without evidence is [ASSUMED]. -->
 

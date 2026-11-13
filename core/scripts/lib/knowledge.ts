@@ -29,7 +29,7 @@ function gitGlobalName(): string {
   return r.status === 0 ? (r.stdout ?? "").trim() : ""
 }
 /** the `owner:` line of .ai/MEMORY.local.md (the personal journal of a methodology that keeps one) */
-function memoryOwner(): string {
+export function memoryOwner(): string {
   try { const o = (readFileSync(`${AI}/MEMORY.local.md`, "utf-8").match(/^owner:\s*`?([^\s`]+)/m) ?? [])[1] ?? ""; return o.startsWith("<") ? "" : o } catch { return "" }
 }
 /** who "I" am in file names, as a slug: $AI_DEV · .ai/user.local.json (setup writes it) · MEMORY.local.md owner: · git config --global user.name

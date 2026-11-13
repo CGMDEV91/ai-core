@@ -1,4 +1,4 @@
-// gate-drupal.ts — the Drupal stack's gate as one deterministic run: phpcs, phpstan, api-signatures, drush cr, smoke, config:status.
+// gate-drupal.ts — the Drupal stack's gate as one deterministic run: phpcs, phpstan, api-signatures, drush cache:rebuild, smoke, config:status.
 //
 // Why a script and not the raw commands: PHPStan 2.x detects AI agents and prints an "Instructions for interpreting
 // errors" block (fetch this URL, do not add…). Security rules rightly treat instructions inside tool output as prompt
@@ -12,7 +12,7 @@
 // Exit: 0 pass · 1 fail · 2 not run (exec environment down).
 //
 // api-signatures: every hook implementation in the changed files against the installed *.api.php (apiindex).
-// smoke: after `drush cr`, each path of .ai/context/smoke-paths.txt must not answer 5xx, and no PHP error may be in
+// smoke: after `drush cache:rebuild`, each path of .ai/context/smoke-paths.txt must not answer 5xx, and no PHP error may be in
 // watchdog that names a changed file / its class / its module and happened AFTER that file was last edited.
 import { existsSync, writeFileSync } from "node:fs"
 import { basename, extname } from "node:path"
@@ -68,7 +68,7 @@ function smoke(php: string[], rows: Row[], newErrs: string[], oldErrs: string[],
     code = code.trim().slice(-3)
     if (!/^\d+$/.test(code) || code.startsWith("5") || code === "000") bad.push(`${p} → ${code || "no answer"}`)
   }
-  const [rc, out] = sh([...DRUSH, "sqlq", "SELECT wid, timestamp, severity, variables FROM watchdog WHERE type='php' " +
+  const [rc, out] = sh([...DRUSH, "sql:query", "SELECT wid, timestamp, severity, variables FROM watchdog WHERE type='php' " +
     "ORDER BY wid DESC LIMIT 50"], 120)
   const keys = new Map<string, number>()
   for (const f of php) {
@@ -119,7 +119,7 @@ export function main(argv: string[]): number {
   const [up] = RUN.length ? sh([...RUN, "true"], 60) : [0]
   if (up !== 0) {
     console.log("| check | result | evidence |\n|---|---|---|")
-    for (const c of ["phpcs", "phpstan", "api-signatures", "drush cr", "smoke", "config:status"]) console.log(`| ${c} | NOT RUN | ${DOWN} |`)
+    for (const c of ["phpcs", "phpstan", "api-signatures", "drush cache:rebuild", "smoke", "config:status"]) console.log(`| ${c} | NOT RUN | ${DOWN} |`)
     return 2
   }
   const touched = new Map(php.map((f) => [f, touchedLines(base, f)]))
@@ -189,13 +189,13 @@ export function main(argv: string[]): number {
   }
 
   // drush
-  if (skipDrush) rows.push(["drush cr", "SKIPPED", "--skip-drush"], ["smoke", "SKIPPED", "--skip-drush"], ["config:status", "SKIPPED", "--skip-drush"])
+  if (skipDrush) rows.push(["drush cache:rebuild", "SKIPPED", "--skip-drush"], ["smoke", "SKIPPED", "--skip-drush"], ["config:status", "SKIPPED", "--skip-drush"])
   else {
-    let [rc, out] = sh([...DRUSH, "cr"], 300)
+    let [rc, out] = sh([...DRUSH, "cache:rebuild"], 300)
     const ok = out.includes("Cache rebuild complete")
-    rows.push(["drush cr", ok ? "PASS" : "FAIL", ok ? "Cache rebuild complete." : clean(last(out, rc))])
-    if (ok) evidence.push("drush cr: Cache rebuild complete.")
-    else newErrs.push(`drush cr: ${clean(out.slice(-400))}`)
+    rows.push(["drush cache:rebuild", ok ? "PASS" : "FAIL", ok ? "Cache rebuild complete." : clean(last(out, rc))])
+    if (ok) evidence.push("drush cache:rebuild: Cache rebuild complete.")
+    else newErrs.push(`drush cache:rebuild: ${clean(out.slice(-400))}`)
     smoke(php, rows, newErrs, oldErrs, evidence)
     ;[rc, out] = sh([...DRUSH, "config:status", "--format=list"], 300)
     const names = splitlines(out).map((l) => l.trim()).filter((l) => /^[\w.\-]+$/.test(l))

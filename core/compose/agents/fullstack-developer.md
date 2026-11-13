@@ -33,6 +33,6 @@ You receive a **closed scope** (a ticket key and the step(s) of its `## Plan`). 
 ## Delivery
 
 After completing a cross-layer feature:
-1. Run `ddev drush cr` and verify no errors
+1. Run `ddev drush cache:rebuild` and verify no errors
 2. Run `node .ai/scripts/ai.mjs codeindex --update` — the new services become searchable with `where`
 3. Return the summary above to the main session — it asks the human to validate and records the result in the ticket (`.ai/tickets/<key>/<key>.md`).

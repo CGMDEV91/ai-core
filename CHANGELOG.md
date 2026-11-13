@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.20.12 — 2026-11-13
+
+- **`ai.mjs git <args>`**: read-only git through the tools' entry (status, diff, log, show, blame, branch to list,
+  rev-parse, remote -v / get-url; `-C <folder>`). opencode on Windows with the project in WSL has no git on its PATH
+  and a policy denies `wsl git …`; ai.mjs runs itself inside WSL, so this works there. Anything that writes is
+  refused, a credential in a remote URL is masked. The ticket plugin adds one fixed line to the system prompt in that
+  set-up only (the same text on every call), and the reviewer may run it.
+- The same set-up, without relying on the model reading that line: the plugin's `tool.execute.before` rewrites a
+  bash command's read-only `git …` segments (`git status --short`, `git log …; git branch …`, a `workdir` in a service)
+  to `node .ai/scripts/ai.mjs git -C <folder> …`, run from the project folder. A git command that writes is left alone.
+- **Drush in WSL, exactly as written.** On the same set-up the plugin carries a bash command's `drush …` and
+  `ddev drush …` into WSL (`ai.mjs run`, the command base64-encoded so PowerShell cannot touch its quotes, the real
+  command shown as a trailing comment). One command only: `;`, `|`, `&`, `$(`… outside quotes are refused.
+- **Real drush command names** everywhere (`cache:rebuild`, `config:export`, `config:import`, `sql:query`), never the
+  short aliases. The permission templates allow `drush *` and `ddev drush *`.
+
+## 0.20.11 — 2026-11-13
+
+- **`ticket new <KEY>`** creates the ticket from the methodology's own template without the model reading it: the
+  same front matter keys and sections in the same order, the comments left out, `owner`, dates, `code_branch` and the
+  `baseline` sha of each service filled from git; then the diary and the active ticket. It prints one line per
+  section from the template's own comments (what goes where). An existing ticket is never created twice.
+
 ## 0.20.10 — 2026-11-13
 
 - **When compacting pays off.** The opencode plugin records the context each model call sent

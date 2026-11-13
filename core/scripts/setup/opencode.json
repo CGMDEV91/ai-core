@@ -55,6 +55,7 @@
           "wsl.exe *scan-impact.sh*": "allow",
           "bash .ai/scripts/review/review.sh*": "allow",
           "node .ai/scripts/ai.mjs review*": "allow",
+          "node .ai/scripts/ai.mjs git *": "allow",
           "wsl.exe *review.sh*": "allow"
         }
       }
@@ -78,6 +79,10 @@
           "git status*": "allow",
           "bash .ai/scripts/*": "allow",
           "node .ai/scripts/ai.mjs*": "allow",
+          "drush": "allow",
+          "drush *": "allow",
+          "ddev drush": "allow",
+          "ddev drush *": "allow",
           "wsl.exe *.ai/scripts/*": "allow"
         }
       }

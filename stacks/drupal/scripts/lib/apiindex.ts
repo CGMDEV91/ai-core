@@ -2,7 +2,7 @@
 // and a check of every hook implementation against them.
 //
 // Why: a plan once invented the signature of hook_entity_field_access (arguments in another order); phpcs, phpstan
-// level 1 and `drush cr` all passed and the site broke with a TypeError. Signatures must come from the installed code,
+// level 1 and `drush cache:rebuild` all passed and the site broke with a TypeError. Signatures must come from the installed code,
 // never from memory — api.drupal.org is generated from these same files, and here they match the exact version.
 //
 //   node .ai/scripts/cli.ts apiindex --update                  # write .ai/context/api-index.json (+ Drupal version)

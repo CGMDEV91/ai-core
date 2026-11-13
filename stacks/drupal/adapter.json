@@ -1,6 +1,6 @@
 {
   "name": "drupal",
-  "description": "Drupal 10/11 with custom modules; gate = phpcs + phpstan (JSON) + hook signatures + drush cr + smoke + config:status",
+  "description": "Drupal 10/11 with custom modules; gate = phpcs + phpstan (JSON) + hook signatures + drush cache:rebuild + smoke + config:status",
   "vars": {
     "framework": "Drupal",
     "gateChecks": "phpcs / phpstan / cache / config",

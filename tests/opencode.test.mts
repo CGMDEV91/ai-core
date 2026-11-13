@@ -133,3 +133,113 @@ test("compact hint: a big conversation at the end of a phase (gate passed, no ed
   writeFileSync(diary, readFileSync(diary, "utf-8").replace(/## Changes\s*\n/, "## Changes\n\n- `src/a.ts` — edited 2999-01-01 00:00\n"))
   assert.equal(S.compactHint(K.combined("T-4")), null, "mid-phase (an edit after the gate): nothing")
 })
+
+test("ticket new: the template's keys and sections in the same order, no comments, facts filled; never a second file", async () => {
+  const dir = sample("generic")
+  spawnSync("git", ["init", "-q", dir]); spawnSync("git", ["-C", dir, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "x"])
+  const { pathToFileURL } = await import("node:url")
+  const T = await import(pathToFileURL(join(dir, ".ai", "scripts", "lib", "ticket.ts")).href)
+  const tplFile = join(dir, ".ai", "templates", "ticket.template.md")
+  if (!existsSync(tplFile)) {   // a methodology's own template (Edu's shape): comments in the front matter and in every section
+    mkdirSync(dirname(tplFile), { recursive: true })
+    writeFileSync(tplFile, "---\njira_key: X-0   # required\ntitle: \"\"   # required; outcome\n                 # continued comment\nservices: []\nbaseline: {}\nskills: []\ncreated: YYYY-MM-DD\n---\n\n# X-0 — <title>\n\n<!-- top comment -->\n\n## Intent\n\n<!-- What has to be achieved, in 1–3 sentences. More text. -->\n\n## Notes\n\n<!-- Append as things happen, one typed line each: Decision (YYYY-MM-DD): … -->\n")
+  }
+  const tpl = readFileSync(tplFile, "utf-8")
+  const keys = (t: string) => [...(t.match(/^---\n([\s\S]*?)\n---/)?.[1] ?? "").matchAll(/^([\w-]+):/gm)].map((m) => m[1])
+  const secs = (t: string) => [...t.matchAll(/^## (.+)$/gm)].map((m) => m[1].trim())
+  const cwd = process.cwd(); process.chdir(dir)
+  try {
+    assert.equal(T.main(["new", "T-9", "--type", "adaptive", "--title", "Show \"x\"", "--services", "app", "--estimate", "3h"]), 0)
+    const out = readFileSync(join(dir, ".ai", "tickets", "T-9", "T-9.md"), "utf-8")
+    assert.deepEqual(keys(out), keys(tpl), "the same front matter keys, in the same order")
+    assert.deepEqual(secs(out), secs(tpl), "the same sections, in the same order")
+    assert.doesNotMatch(out, /<!--|#\s+required|continued comment/, "no comments")
+    assert.match(out, /^title: "Show \\"x\\""$/m)
+    assert.match(out, /^baseline: \{app: [0-9a-f]{7,}\}$/m, "the baseline sha from git")
+    assert.match(out, /^# T-9 — Show "x"$/m)
+    assert.equal(readFileSync(join(dir, ".ai", "current-ticket.local.md"), "utf-8").trim(), "T-9")
+    assert.ok(T.guide(tpl).length >= 1, "a guide line per commented section")
+    assert.equal(T.main(["new", "T-9", "--type", "adaptive", "--title", "again"]), 1, "an existing ticket is resumed, never created twice")
+  } finally { process.chdir(cwd) }
+})
+
+test("ai.mjs git: reads only (status, log, branch list, remote -v); refuses what writes; masks credentials", async () => {
+  const dir = sample("generic")
+  spawnSync("git", ["init", "-q", dir]); spawnSync("git", ["-C", dir, "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-q", "--allow-empty", "-m", "first"])
+  spawnSync("git", ["-C", dir, "remote", "add", "origin", "https://user:secret@example.com/r.git"])
+  const run = (...a: string[]) => spawnSync(process.execPath, [join(dir, ".ai", "scripts", "ai.mjs"), "git", ...a], { cwd: dir, encoding: "utf-8" })
+  let r = run("log", "--oneline", "-1"); assert.equal(r.status, 0); assert.match(r.stdout, /first/)
+  r = run("-C", ".", "branch", "--show-current"); assert.equal(r.status, 0)
+  r = run("remote", "-v"); assert.match(r.stdout, /https:\/\/\*\*\*@example\.com/); assert.doesNotMatch(r.stdout, /secret/)
+  for (const bad of [["commit", "-m", "x"], ["branch", "-D", "main"], ["branch", "new"], ["remote", "add", "x", "y"], ["push"], ["log", "--output=/tmp/x"]])
+    assert.equal(run(...bad).status, 2, `refused: git ${bad.join(" ")}`)
+  const { pathToFileURL } = await import("node:url")
+  const GIT = await import(pathToFileURL(join(dir, ".ai", "scripts", "lib", "git.ts")).href)
+  assert.equal(GIT.refused(["status", "--short"]), "")
+})
+
+test("plugin: the WSL git note only for opencode on Windows with the project in WSL — the same text every call", async () => {
+  const dir = sample("generic")
+  const { pathToFileURL } = await import("node:url")
+  const P = await import(pathToFileURL(join(dir, ".ai", "scripts", "opencode", "plugin", "ticket-context.ts")).href)
+  const sys = async (hooks: any) => { const o = { system: [] as string[] }; await hooks["experimental.chat.system.transform"]?.({}, o); return o.system }
+  assert.deepEqual(await sys(await P.TicketContext({ directory: dir })), [], "Linux / WSL: nothing")
+  const real = Object.getOwnPropertyDescriptor(process, "platform")!
+  Object.defineProperty(process, "platform", { value: "win32" })
+  try {
+    const hooks = await P.TicketContext({ directory: "\\\\wsl.localhost\\Ubuntu-24.04\\home\\u\\proj" })
+    const a = await sys(hooks), b = await sys(hooks)
+    assert.equal(a.length, 1); assert.match(a[0], /node \.ai\/scripts\/ai\.mjs git/); assert.deepEqual(a, b, "the same text on every call")
+    assert.deepEqual(await sys(await P.TicketContext({ directory: "C:\\proj" })), [], "a Windows project: nothing")
+  } finally { Object.defineProperty(process, "platform", real) }
+})
+
+test("plugin on Windows + WSL: a bash `git status|log…` becomes `node .ai/scripts/ai.mjs git -C <folder> …`; writes are left alone", async () => {
+  const dir = sample("generic")
+  const { pathToFileURL } = await import("node:url")
+  const G = await import(pathToFileURL(join(dir, ".ai", "scripts", "lib", "git.ts")).href)
+  const root = "\\\\wsl.localhost\\Ubuntu-24.04\\home\\u\\proj"
+  assert.equal(G.rewriteForWsl("git branch --show-current; git log --oneline -3; git remote get-url origin", undefined, root),
+    "node .ai/scripts/ai.mjs git -C . branch --show-current; node .ai/scripts/ai.mjs git -C . log --oneline -3; node .ai/scripts/ai.mjs git -C . remote get-url origin")
+  assert.equal(G.rewriteForWsl("git status --short", root + "\\svc-a", root), "node .ai/scripts/ai.mjs git -C svc-a status --short")
+  assert.equal(G.rewriteForWsl("git diff", "svc-a", root), "node .ai/scripts/ai.mjs git -C svc-a diff", "a relative workdir")
+  assert.equal(G.rewriteForWsl("git -C .ai log -1", undefined, root), "node .ai/scripts/ai.mjs git -C .ai log -1")
+  assert.equal(G.rewriteForWsl("git commit -m x", undefined, root), null, "a write is never rewritten")
+  assert.equal(G.rewriteForWsl("Get-ChildItem", undefined, root), null)
+  assert.equal(G.rewriteForWsl("git status", "C:\\other", root), null, "outside the project: left alone")
+  const real = Object.getOwnPropertyDescriptor(process, "platform")!
+  Object.defineProperty(process, "platform", { value: "win32" })
+  try {
+    const P = await import(pathToFileURL(join(dir, ".ai", "scripts", "opencode", "plugin", "ticket-context.ts")).href)
+    const hooks = await P.TicketContext({ directory: root })
+    const o = { args: { command: "git status --short", workdir: root + "\\svc-a" } }
+    await hooks["tool.execute.before"]({ tool: "bash" }, o)
+    assert.deepEqual(o.args, { command: "node .ai/scripts/ai.mjs git -C svc-a status --short", workdir: root })
+    const linux = await P.TicketContext({ directory: dir })
+    Object.defineProperty(process, "platform", real)
+    assert.equal((await P.TicketContext({ directory: dir }))["tool.execute.before"], undefined, "Linux: no rewrite")
+    void linux
+  } finally { Object.defineProperty(process, "platform", real) }
+})
+
+test("drush on Windows + WSL: `ddev drush …` / `drush …` run exactly as written in WSL (base64, real names); anything else refused", async () => {
+  const dir = sample("generic")
+  const { pathToFileURL } = await import("node:url")
+  const G = await import(pathToFileURL(join(dir, ".ai", "scripts", "lib", "git.ts")).href)
+  const R = await import(pathToFileURL(join(dir, ".ai", "scripts", "lib", "run.ts")).href)
+  const root = "\\\\wsl.localhost\\Ubuntu-24.04\\home\\u\\proj"
+  const cmd = `ddev drush config:set idpow_custom.settings hidden_language_codes '["UKR"]' --input-format=yaml`
+  const out = G.rewriteForWsl(cmd, undefined, root)
+  const m = out.match(/^node \.ai\/scripts\/ai\.mjs run -C \. --b64 (\S+)  # (.*)$/)
+  assert.ok(m, out); assert.equal(Buffer.from(m[1], "base64").toString("utf-8"), cmd, "the exact command, quotes intact"); assert.equal(m[2], cmd)
+  assert.match(G.rewriteForWsl("drush config:import -y; git status --short", undefined, root),
+    /^node \.ai\/scripts\/ai\.mjs run -C \. --b64 \S+; node \.ai\/scripts\/ai\.mjs git -C \. status --short$/, "no comment when another command follows")
+  for (const bad of ["ddev ssh", "drush cr; rm -rf x", "drush sql:query $(cat x)", "drush status | tee x", "composer install"])
+    assert.notEqual(R.refusedRun(bad), "", bad)
+  assert.equal(R.refusedRun("ddev drush config:status"), "")
+  assert.equal(R.refusedRun(`ddev drush php:eval 'echo json_encode(["UKR"]);'`), "", "a ; inside quotes is part of the command")
+  assert.notEqual(R.refusedRun(`ddev drush php:eval "$(cat x)"`), "", "$( inside double quotes runs in bash")
+  assert.deepEqual(R.splitTop(`drush php:eval 'a; b' ; git status`), ["drush php:eval 'a; b'", " ; ", "git status"])
+  const r = spawnSync(process.execPath, [join(dir, ".ai", "scripts", "ai.mjs"), "run", "--", "bash", "-c", "echo x"], { cwd: dir, encoding: "utf-8" })
+  assert.equal(r.status, 2, "not drush: refused")
+})

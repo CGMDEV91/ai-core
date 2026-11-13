@@ -547,7 +547,7 @@ function record(key: string): number {
   const listed = [...own.matchAll(/`\.?\/?([^`\s]+\.[A-Za-z0-9]+)`/g)].map((m) => m[1].replace(/^\.\//, ""))
   let files = [...ch.files], left = 0
   if (listed.length) {
-    // the configuration a touched module exported (drush cex writes config/sync/<module>.*.yml, not the agent)
+    // the configuration a touched module exported (drush config:export writes config/sync/<module>.*.yml, not the agent)
     const mods = [...new Set(listed.map((l) => (l.match(/modules\/custom\/([^/]+)\//) ?? [])[1]).filter(Boolean))] as string[]
     const mine = (p: string) => listed.some((l) => p === l || p.endsWith("/" + l) || l.endsWith("/" + p))
       || mods.some((m) => (p.split("/").pop() ?? "").startsWith(m + "."))

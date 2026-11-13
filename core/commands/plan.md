@@ -11,7 +11,7 @@ Return, and write into the ticket's `## Plan` section (the only section you may 
 2. **Self-critique:** assumptions, what could break, missing evidence, the most fragile step.
 3. **Verdict:** `APPROVABLE` | `REVIEW DESIGN` | `NOT RECOMMENDED`, with conditions.
 4. **Plan** (only if approvable): numbered steps, each with files, acceptance criterion and rollback;
-   config exports (`ddev drush cex`), scanners to re-run, skills/context files that will become stale.
+   config exports (`ddev drush config:export`), scanners to re-run, skills/context files that will become stale.
    Group the steps into blocks (each ends with `/gate` and a stop) and finish with the progress list the main agent
    ticks: `Blocks:` then one line per block — `- [ ] A — steps 1–5: <concern>`; a block someone takes gets their name: `- [ ] A (<user>) — …` (several devs on one ticket never take the same block).
 

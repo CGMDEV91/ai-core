@@ -2,7 +2,7 @@ import { runScript, projectRoot } from "./_lib.ts"
 
 export default (tool: any) => tool({
   description:
-    "Run the project's gate on the changed files (or the given ones): phpcs, phpstan, drush cr, drush config:status. " +
+    "Run the project's gate on the changed files (or the given ones): phpcs, phpstan, drush cache:rebuild, drush config:status. " +
     "Returns a pass/fail table, NEW errors (on lines this change touched — must be fixed), PRE-EXISTING ones " +
     "(untouched lines — do not fix in this ticket) and the [VERIFIED …] lines for ## Verification. " +
     "Always use this instead of calling phpcs/phpstan through bash.",
