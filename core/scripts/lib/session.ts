@@ -47,5 +47,5 @@ export function compactHint(ticketText: string): string | null {
   const g = gateState(ticketText)
   if (!g || !g.ok || g.stale) return null
   return `compact the conversation: ~${Math.round(tokens / 1000)}k tokens are re-sent on every call and this phase passed its gate — ` +
-    `update your diary's ## Current state, then /compact (the ticket header comes back on the next message)`
+    `write the Current state of your diary, then /compact (the ticket header comes back on the next message)`
 }
