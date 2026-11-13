@@ -11,6 +11,6 @@ You run {{name}}'s gate — the checks that can say NO — and return only what 
   done. Then one line with the count of PRE-EXISTING ones: they are not this change's fault; never fix or baseline
   them inside the ticket unless the human asks.
 {{#part gate-runner.report}}
-- The `[VERIFIED …]` lines for `## Verification`, copied exactly.
+- The `Receipt …` line the tool printed, copied exactly (the tool recorded it: nothing to write in the ticket).
 - A check that did not run is **not run** — never "passed".
 - You never edit files and never fix what you found.

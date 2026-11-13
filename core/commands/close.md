@@ -12,8 +12,9 @@ Do these steps in order and stop to ask wherever it says "propose" or "ask":
    `node .ai/scripts/cli.ts impact --stale-skills --key <key>`: every skill listed must be named in `## Knowledge`,
    updated by `/skill` or with `unchanged — <why>`. One missing → run `/skill <key>` now; do not close.
 2b. **SonarQube** (when `node .ai/scripts/cli.ts qa` lists `sonar` as ready): `node .ai/scripts/cli.ts gate --sonar` —
-   the quality gate of this branch must pass with 0 new issues; its `[VERIFIED …]` line goes to `## Verification`.
-3. **Verification hygiene.** Every `[VERIFIED]` in `## Verification` has an evidence line; list what was not verified.
+   the quality gate of this branch must pass with 0 new issues; its receipt (`gate+sonar`) is in your diary.
+3. **Verification hygiene.** The newest gate receipt (`## Receipts` of the diaries, written by the tool) says `exit 0` and
+   `RESULT: PASS` and no edit in `## Changes` is later. Every `[VERIFIED]` in `## Verification` has an evidence line; list what was not verified.
    An open `[QUESTION]` anywhere in the ticket (diaries too) → ask the human; do not close with one.
 4. **Known issue.** For a bugfix/analysis with a confirmed cause: create `.ai/known-issues/<key>-<short-slug>/<key>-<short-slug>.md`
    from `.ai/templates/known-issue.template.md`, or update the existing one (`related`, `last_seen`,
@@ -28,7 +29,8 @@ Do these steps in order and stop to ask wherever it says "propose" or "ask":
 6. **Close the file.** In the shared file: `status: done` and a dated entry in `## Closure` (a reopened ticket keeps
    the earlier entries) — one line per dev diary (who did what:
    their `Changes` and last `Current state`; the diaries stay as history); final `## Session log` entry in your diary; one Journal line in
-   `.ai/MEMORY.local.md`.
+   `.ai/MEMORY.local.md`. Then `node .ai/scripts/ai.mjs receipts fold <key>`: the newest receipt of each tool becomes one
+   line of `## Verification`, `## Receipts` leaves your diary, the local outputs go.
 7. **Clear the active ticket:** delete `.ai/current-ticket.local.md` if it holds this key.
 8. **Jira drafts.** Offer `/jira <key>` (analysis comment, test instructions, worklog for the human to post).
 9. **Hand over.** Per repository (in a workspace: each service of `services:` plus `.ai`), the list of changed files and one proposed commit message — and the **pull request

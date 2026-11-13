@@ -1,13 +1,15 @@
 // receipts.ts — what a tool really returned, written by the tool itself (never by the model) into your diary of the
-// active ticket, section ## Receipts: one line per tool and scope, the last run only.
+// active ticket, section ## Receipts: one line per tool and scope, the last run only. At the close,
+// `receipts fold <key>` turns the newest receipt of each tool and scope into ONE line of the shared ## Verification,
+// removes ## Receipts from your diary and deletes the local outputs: the closed ticket keeps the result once.
 //   - gate project · 2026-11-12 10:23 · exit 0 · "RESULT: PASS" · @3d2b56d · #a41f9c02
 // The full output goes to .ai/context/receipts/<key>.<tool>.<scope>.txt (local, ignored by git). The ticket's next
 // step and the close read the receipts — not what the model wrote in ## Verification — to tell whether the gate passed
 // after the last edit. A guard against a wrong or invented account of a tool's result, not against forgery.
 import { createHash } from "node:crypto"
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { AI } from "./project.ts"
-import { currentKey, ensureDiary, sectionOf, ticketFile } from "./knowledge.ts"
+import { combined, currentKey, diaryFile, ensureDiary, sectionOf, ticketFile } from "./knowledge.ts"
 
 export type Receipt = { tool: string; scope: string; at: string; exit: number; result: string; sha: string; hash: string }
 
@@ -69,4 +71,59 @@ export function gateState(text: string): null | { at: string; ok: boolean; stale
   const lastEdit = edits.pop() ?? ""
   return { at: r.at, ok: r.exit === 0 && /PASS/.test(r.result), stale: !!lastEdit && lastEdit > r.at,
     incomplete: /INCOMPLETE|NOT RUN/.test(r.result) || r.exit === 2, result: r.result }
+}
+
+/** the Verification line of a receipt (what the closed ticket keeps) */
+export const verificationLine = (r: Receipt) =>
+  `- ${r.tool[0].toUpperCase()}${r.tool.slice(1)} ${r.scope} (receipt): ` +
+  (r.exit === 0 && /PASS/.test(r.result) ? `[VERIFIED ${r.at} @${r.sha} — "${r.result}"]` : `exit ${r.exit} — "${r.result}" @${r.sha}`) + ` #${r.hash}`
+
+/** at the close: newest receipt of each tool+scope → the shared ## Verification; my diary's ## Receipts and the
+ *  local outputs of the ticket go. Returns the lines written (none when the ticket has no receipts). */
+export function fold(key: string): string[] {
+  const shared = ticketFile(key)
+  if (!shared) return []
+  const newest = new Map<string, Receipt>()
+  for (const r of receipts(combined(key))) {
+    const id = `${r.tool} ${r.scope}`, o = newest.get(id)
+    if (!o || o.at <= r.at) newest.set(id, r)
+  }
+  const lines = [...newest.values()].map(verificationLine)
+  if (lines.length) {
+    let text = readFileSync(shared, "utf-8")
+    const mine = (l: string) => / \(receipt\): /.test(l) && [...newest.keys()].some((id) => l.toLowerCase().startsWith(`- ${id.toLowerCase()} (receipt)`))
+    const SEC = /^## Verification[ \t]*\n([\s\S]*?)(?=^## |(?![\s\S]))/m
+    const m = text.match(SEC)
+    if (m) {
+      const kept = m[1].trimEnd().split("\n").filter((l) => !mine(l.trim()))
+      text = text.replace(SEC, () => `## Verification\n${[...kept, ...lines].join("\n").replace(/^\n*/, "\n")}\n\n`)
+    } else text = text.trimEnd() + `\n\n## Verification\n\n${lines.join("\n")}\n`
+    writeFileSync(shared, text)
+  }
+  const diary = diaryFile(key)
+  if (existsSync(diary)) {
+    const t = readFileSync(diary, "utf-8")
+    const out = t.replace(/^## Receipts[ \t]*\n[\s\S]*?(?=^## |(?![\s\S]))/m, "").trimEnd() + "\n"
+    if (out !== t) writeFileSync(diary, out)
+  }
+  const dir = `${AI}/context/receipts`
+  if (existsSync(dir)) for (const f of readdirSync(dir)) if (f.startsWith(`${key.replace(/[^\w.-]/g, "_")}.`)) rmSync(`${dir}/${f}`)
+  return lines
+}
+
+export function main(argv: string[]): number {
+  const key = argv[1] ?? currentKey()
+  if (argv[0] === "fold" && key) {
+    const lines = fold(key)
+    console.log(lines.length ? `${key}: ## Verification ← the receipts\n${lines.join("\n")}\n(## Receipts removed from your diary, local outputs deleted)` : `${key}: no receipts to fold`)
+    return 0
+  }
+  if (argv[0] === "show" || !argv.length) {
+    if (!key) { console.log("No active ticket"); return 0 }
+    const rs = receipts(combined(key))
+    console.log(rs.length ? rs.map((r) => `${r.tool} ${r.scope} · ${r.at} · exit ${r.exit} · "${r.result}" · @${r.sha}`).join("\n") : `${key}: no receipts`)
+    return 0
+  }
+  console.error("usage: receipts [show [<key>]] | receipts fold <key>   (fold: at the close, after the checks)")
+  return 2
 }

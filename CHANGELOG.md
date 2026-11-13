@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.20.9 — 2026-11-13
+
+- **`receipts fold <key>` at the close.** The newest receipt of each tool becomes one line of the shared
+  `## Verification` (`- Gate project (receipt): [VERIFIED <date time> @<sha> — "RESULT: PASS"] #<hash>`); `## Receipts`
+  leaves your diary and the local outputs are deleted. `receipts` alone shows the active ticket's. The gate's
+  `[VERIFIED …]` lines are no longer copied into the ticket on every run: the receipt is the record.
+
 ## 0.20.8 — 2026-11-13
 
 - **Receipts: the gate writes its own result.** Each `gate` run writes one line in your diary of the active ticket,
