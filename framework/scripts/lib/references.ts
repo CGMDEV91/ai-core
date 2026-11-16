@@ -78,7 +78,8 @@ export function main(argv: string[]): number {
   for (const [stem, f] of list(TICKETS)) {   // folder <KEY>/<KEY>.md or legacy flat <KEY>.md
     const text = read(f), fm = impact.frontMatter(text)
     tickets.set(stem, [f, fm])
-    if (fm.key !== stem) add("ERROR", "ticket", f, `key '${pyRepr(fm.key)}' != file name`)
+    const key = fm.key ?? fm.jira_key   // the framework's template names it jira_key; older tickets say key
+    if (key !== stem) add("ERROR", "ticket", f, `key '${pyRepr(key)}' != file name`)
     if (!TICKET_STATUS.has(fm.status as string)) add("ERROR", "ticket", f, `status '${pyRepr(fm.status)}' not in ${pyList(TICKET_STATUS)}`)
     for (const sk of impact.fmList(fm.skills ?? "")) if (!skillNames.has(sk)) add("ERROR", "ticket", f, `skills names unknown skill '${sk}'`)
     for (const m of impact.fmList(fm.modules ?? "")) if (!mods.has(m)) add("WARN", "ticket", f, `module '${m}' not found in ${(HAS_DRUPAL ? stack("drupal").paths : STACKS.flatMap((s) => s.paths ?? [])).join(" or ")}`)

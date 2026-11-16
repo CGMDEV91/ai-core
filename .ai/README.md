@@ -7,6 +7,7 @@ never copied into a project. Versioned in this repository, with the code it desc
 | Need | File |
 |---|---|
 | How the repository and the framework fit together | `context/architecture.md` |
+| How a v0 knowledge base (MEMORY, BUGLOG, skills) was migrated | `context/migration-from-v0.md` |
 | Every improvement made, by area, with when and why | `context/history.md` |
 | Decisions that hold (and why) — read before changing one | `context/decisions.md` |
 | The machines and the model the framework runs with | `context/environment.md` |

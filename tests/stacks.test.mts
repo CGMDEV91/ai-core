@@ -83,3 +83,19 @@ test("java: compile / checkstyle / JUnit split NEW and PRE-EXISTING; Spring rout
   assert.match(cli(dir, ["where", "orders", "--kind", "route"]).out, /GET \/orders\/\{id\}.*OrderController::get\(\)/)
   assert.match(cli(dir, ["callers", "OrderService::find()"]).out, /route GET \/orders\/\{id\}[\s\S]*kafka orders-created/)
 })
+
+test("drupal with the docroot at the repository root (ddev docroot \"\"): apiRoot is the root and the API index skips vendor/", () => {
+  const dir = mkdtempSync(join(tmpdir(), "aicore-droot-"))
+  const w = (p: string, t: string) => { const f = join(dir, p); run(dir, ["mkdir", "-p", join(f, "..")]); writeFileSync(f, t) }
+  w("composer.json", '{"require":{"drupal/core-recommended":"^10"}}\n')
+  w("core/lib/Drupal.php", "<?php class Drupal { const VERSION = '10.6.19'; }\n")
+  w("core/core.api.php", "<?php\nfunction hook_cache_flush() {}\n")
+  w("vendor/x/y.api.php", "<?php\nfunction hook_should_not_be_indexed() {}\n")
+  w("lib/modules/m1/m1.info.yml", "name: M1\ntype: module\n"); w("lib/modules/m1/m1.module", "<?php\n\nfunction m1_help() {}\n")
+  git(dir, "init", "-q", "-b", "main"); git(dir, "add", "-A"); git(dir, "commit", "-qm", "init")
+  install(dir, { stack: "drupal" })
+  const st = JSON.parse(readFileSync(join(dir, ".ai", "project.json"), "utf-8")).stacks[0]
+  assert.equal(st.apiRoot, "."); assert.deepEqual(st.paths, ["lib/modules"])
+  const idx = JSON.parse(readFileSync(join(dir, ".ai", "context", "api-index.json"), "utf-8"))
+  assert.equal(idx.version, "10.6.19"); assert.ok("hook_cache_flush" in idx.hooks); assert.ok(!("hook_should_not_be_indexed" in idx.hooks))
+})

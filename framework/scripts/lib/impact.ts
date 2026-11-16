@@ -210,7 +210,7 @@ function loadTickets(exclude: string | null): Doc[] {
   for (const [key, f] of list(TICKETS_DIR)) {   // shared file + every dev's diary (combined view)
     if (key === exclude) continue
     const text = combined(key), fm = frontMatter(text)
-    const d = new Doc("ticket", fm.key ?? pstem(f), fm.title ?? pstem(f), f, fm.status ?? "")
+    const d = new Doc("ticket", fm.key ?? fm.jira_key ?? pstem(f), fm.title ?? pstem(f), f, fm.status ?? "")
     for (const x of fmList(fm.modules ?? "")) d.modules.add(x)
     for (const x of fmList(fm.skills ?? "")) d.skills.add(x)
     const changes = section(text, "Changes")

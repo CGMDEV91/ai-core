@@ -24,14 +24,16 @@ export function detectService(dir: string): { stacks: Detected[]; exec: string; 
   const text = (p: string) => (has(p) ? readFileSync(join(dir, p), "utf-8") : "")
   const out: Detected[] = []
   const composer = text("composer.json")
-  if (/"drupal\/core(-recommended)?"/.test(composer) || has("web/core/lib/Drupal.php") || has("docroot/core/lib/Drupal.php")) {
+  if (/"drupal\/core(-recommended)?"/.test(composer) || has("web/core/lib/Drupal.php") || has("docroot/core/lib/Drupal.php") || has("core/lib/Drupal.php")) {
     let apiRoot = ["web", "docroot"].find((d) => has(`${d}/core/lib/Drupal.php`))
     if (!apiRoot) for (const d of ["web", "docroot"]) if (has(d)) for (const sub of readdirSync(join(dir, d)))
       if (has(`${d}/${sub}/core/lib/Drupal.php`)) apiRoot = `${d}/${sub}`
+    if (!apiRoot && has("core/lib/Drupal.php")) apiRoot = "."   // the docroot is the repository root (ddev `docroot: ""`)
+    const at = (p: string) => (apiRoot === "." ? p : `${apiRoot ?? "web"}/${p}`)
     const paths = has("lib/modules") ? ["lib/modules", "lib/themes"].filter(has)
-      : [`${apiRoot ?? "web"}/modules/custom`, `${apiRoot ?? "web"}/themes/custom`].filter(has)
-    out.push({ stack: "drupal", why: `composer.json requires drupal/core${apiRoot ? `, core in ${apiRoot}/core` : ""}`,
-      defaults: { paths: paths.length ? paths : ["web/modules/custom"], configSync: "config/sync", apiRoot: apiRoot ?? "web" } })
+      : [at("modules/custom"), at("themes/custom")].filter(has)
+    out.push({ stack: "drupal", why: `composer.json requires drupal/core${apiRoot ? `, core in ${apiRoot === "." ? "" : `${apiRoot}/`}core` : ""}`,
+      defaults: { paths: paths.length ? paths : [at("modules/custom")], configSync: "config/sync", apiRoot: apiRoot ?? "web" } })
   }
   if ((has("pom.xml") && has("src/main/java")) || has("build.gradle") || has("build.gradle.kts"))
     out.push({ stack: "java", why: has("pom.xml") ? "pom.xml + src/main/java" : "build.gradle", defaults: { paths: ["src/main/java", "src/test/java"].filter(has) } })

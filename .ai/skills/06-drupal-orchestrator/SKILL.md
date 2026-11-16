@@ -32,5 +32,6 @@ hand-made one. For Drupal, a tool now writes every fact that can be read; the mo
 - `framework/commands/start.md` (Step 2) · `framework/commands/restart.md` · `framework/scripts/lib/doctor.ts` — `orchestrator()`
 
 ## History
+- 2026-11-16 — a docroot at the repository root (`apiRoot: "."`) is detected and printed as `core` (KI-09); first real migration of a project (sme-website-epic).
 - 2026-11-16 — written; tested on a copy of ideapow (migration, rerun, hand edits kept, from scratch), a two-service
   Drupal workspace and a project without Drupal.

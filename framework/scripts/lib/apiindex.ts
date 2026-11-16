@@ -40,7 +40,10 @@ export function splitParams(raw: string): Param[] {
 
 export function build(apiRoot: string): any {
   const hooks: Record<string, Hook> = {}
-  for (const f of walk(apiRoot, (p) => p.endsWith(".api.php"))) {
+  // a docroot that is the repository root (apiRoot "."): only core, modules and profiles — never vendor/ or node_modules/
+  const at = (apiRoot.replace(/\/\.$/, "").replace(/\/+$/, "") || ".")
+  const roots = at === ROOT || at === "." ? ["core", "modules", "profiles"].map((d) => `${at}/${d}`) : [apiRoot]
+  for (const f of roots.flatMap((r) => walk(r, (p) => p.endsWith(".api.php")))) {
     const text = read(f)
     for (const m of text.matchAll(FUNC)) {
       const name = m[1]

@@ -15,6 +15,8 @@ _Last updated: 2026-11-16_
 | Reconcile with the code on resume | when a ticket is resumed, compare `## Changes` / Current state with `git diff` — "the code wins" | was in ai-core 0.x `/ticket`, not in the intake yet |
 | Light mode | a question or a one-line change without a formal ticket | v0's simplicity for trivial work |
 | `service.md` by tool for Drupal | like `orchestrator --write`: version, modules, commands with real drush names | the model still writes aliases there |
+| Project subagents that survive an update | a place for subagents of one project (today `install/` is replaced by every update); the sme-website-epic performance auditor had to become a context checklist | |
+| A `migrate` tool for v0 knowledge bases | the mapping in `migration-from-v0.md` as a command, not a throwaway script | |
 | giportal migration | move its hand-written knowledge (conventions, 26 skills, known issues, field inventories) into a 1.0 `.ai/` | do not regenerate it with `/start`: migrate |
 
 ## Proposed (design only)

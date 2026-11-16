@@ -35,5 +35,6 @@ description: How the gate (NEW vs PRE-EXISTING per service), impact by method, t
 - `tests/stacks.test.mts` · `tests/impact.test.mts` · `tests/workspace.test.mts` · `tests/qa.test.mts` · `tests/sonar.test.mts`
 
 ## History
+- 2026-11-16 — `references` and `impact` read `jira_key` as well as `key` (KI-08); the API index of a docroot at the repository root (KI-09).
 - 2026-11-11 — ai-core 0.18–0.19: workspaces, contracts, impact/touchpoints/call paths on every stack, stale skills.
 - 2026-11-16 — the explanatory note on impact, call graph and the shared map (two pages, EN/ES PDFs) written for the team.
