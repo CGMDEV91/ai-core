@@ -92,3 +92,14 @@ test("update-ai-framework --agent: switch an installed project to Claude Code an
   r = update("--reconfigure")
   assert.equal(r.code, 0, r.out); assert.match(r.out, /without a terminal: the recorded agent\(s\) are kept/)
 })
+
+test("update removes the files of an earlier set-up (another methodology repository): the old record, METHODOLOGY-OWNED, AI-CORE-VERSION", () => {
+  const dir = tmp("retired")
+  mkdirSync(join(dir, "src")); writeFileSync(join(dir, "src", "a.txt"), "a\n"); commitAll(dir)
+  install(dir, { stack: "generic" })
+  for (const f of ["scripts/METHODOLOGY-OWNED", "scripts/AI-CORE-VERSION", "guidelines.local.json"]) writeFileSync(join(dir, ".ai", f), "old\n")
+  const out = install(dir, { args: ["--update-methodology"] })
+  assert.match(out, /removed from an earlier set-up: scripts\/METHODOLOGY-OWNED scripts\/AI-CORE-VERSION/)
+  for (const f of ["scripts/METHODOLOGY-OWNED", "scripts/AI-CORE-VERSION", "guidelines.local.json"]) assert.ok(!existsSync(join(dir, ".ai", f)), f)
+  assert.ok(existsSync(join(dir, ".ai", "framework.local.json")) && existsSync(join(dir, ".ai", "scripts", "ai.mjs")))
+})

@@ -11,5 +11,6 @@
 | [KI-07](KI-07.md) | A project installed from the old guidelines repository cannot switch to ai-core | 02-installer-and-updates |
 | [KI-08](KI-08.md) | references reports every ticket as an error: key 'None' != file name | 05-gate-impact-callgraph |
 | [KI-09](KI-09.md) | A Drupal project with the docroot at the repository root gets no hook signatures and the wrong core path | 05-gate-impact-callgraph, 06-drupal-orchestrator |
+| [KI-10](KI-10.md) | Two methodology repositories write into one .ai and one machine | 02-installer-and-updates, 03-agent-wiring |
 
 Search by symptom before debugging. Template: `framework/templates/known-issue.template.md`. Add a row when a bug is fixed with a confirmed cause.

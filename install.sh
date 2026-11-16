@@ -330,6 +330,11 @@ if ! $had_methodology || $UPDATE; then
     cp -R "$SKELETON/." "$AI/"
     if [ -n "$saved" ]; then cp "$saved" "$gitignore"; rm -f "$saved"; fi
     copied=true
+    # files of an earlier set-up (another methodology repository) that this framework does not ship: gone, so two
+    # sets of tools never share one .ai
+    gone=""
+    for f in scripts/METHODOLOGY-OWNED scripts/AI-CORE-VERSION; do [ -f "$AI/$f" ] && { rm -f "$AI/$f"; gone="$gone $f"; }; done
+    [ -n "$gone" ] && ok "removed from an earlier set-up:$gone"
     if has_stack java; then
         ok "Java rules ${B}java-enterprise.md${R}, ${B}sonarqube.md${R} - loaded on every message"
     else

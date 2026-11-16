@@ -36,6 +36,7 @@ one repository, with no other repository behind it.
   `node .ai/scripts/ai.mjs <tool>`).
 - The repository has its own knowledge in `.ai/` (context, nine skills, known issues, subagents) with `AGENTS.md` and
   `CLAUDE.md` at the root; `node .ai/sync.mjs` generates `.claude/` and `.opencode/` from it. Never copied into a project.
+- An update removes the files of an earlier set-up that ai-core does not ship (`scripts/METHODOLOGY-OWNED`, `scripts/AI-CORE-VERSION`, `guidelines.local.json`), so two methodology repositories never share one `.ai`.
 - Fixed: a Drupal docroot at the repository root (`docroot: ""`) is detected (`apiRoot: "."`); `references` and `impact` read `jira_key` as well as `key`; `claude-code.md` is shorter (it loads on every message).
 - Fixed: `install.sh` stopped at the code checks step when the project had none to report; an update of a project
   whose recorded stack is `generic` installed the Java rules.

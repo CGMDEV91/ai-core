@@ -355,6 +355,9 @@ if (-not $hadMethodology -or $UpdateMethodology) {
     $exclude = @(); if ($keepGitignore) { $exclude = @('.gitignore') }
     Copy-Tree $Skeleton $Ai $exclude
     $copied = $true
+    # files of an earlier set-up (another methodology repository) that this framework does not ship
+    $gone = @(); foreach ($f in 'scripts\METHODOLOGY-OWNED', 'scripts\AI-CORE-VERSION') { $p = Join-Path $Ai $f; if (Test-Path $p) { Remove-Item -Force $p; $gone += $f } }
+    if ($gone) { Ok "removed from an earlier set-up: $($gone -join ' ')" }
     if ($stacks -contains 'java') {
         Ok "Java rules java-enterprise.md, sonarqube.md - loaded on every message"
     } else {

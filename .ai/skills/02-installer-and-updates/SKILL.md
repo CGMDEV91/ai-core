@@ -54,6 +54,7 @@ One script sets up, updates and reconfigures a project; the same behaviour on Li
 - `tests/claude.test.mts` (switching agents) · `tests/qa.test.mts` (installer output)
 
 ## History
+- 2026-11-16 — the update removes the retired files of an earlier set-up (KI-10).
 - 2026-11-12 — 3.3: `--in-repo`, questions with defaults, summary and timeline, terminal commands, `/update-ai-framework`.
 - 2026-11-13 — retired wiring files removed on update; "already installed" message; uncommitted changes warning.
 - 2026-11-16 — 1.0.0: renamed init → install, record `framework.local.json`, source switching, `--agent`,
