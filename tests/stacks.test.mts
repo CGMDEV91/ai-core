@@ -10,6 +10,7 @@ import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
+import { install } from "./helpers.mts"
 
 const CORE = join(dirname(fileURLToPath(import.meta.url)), "..")
 const run = (cwd: string, cmd: string[], env: Record<string, string> = {}) => {
@@ -25,13 +26,12 @@ function project(fixture: string | null, stackArgs: string[]): string {
   git(dir, "init", "-q", "-b", "main")
   writeFileSync(join(dir, ".gitignore"), "node_modules\n")
   git(dir, "add", "-A"); git(dir, "commit", "-qm", "init")
-  const r = run(dir, [process.execPath, "--experimental-strip-types", "--no-warnings", join(CORE, "install.ts"), dir, "--yes", "--no-doctor", ...stackArgs])
-  assert.equal(r.code, 0, r.out)
+  install(dir, { args: stackArgs })
   return dir
 }
 
 test("react-ts: gate splits NEW and PRE-EXISTING, tests fail the gate, index finds components and routes", () => {
-  const dir = project("react", ["--name", "React Demo"])
+  const dir = project("react", [])
   assert.match(readFileSync(join(dir, ".ai", "project.json"), "utf-8"), /"react-ts"/)
   appendFileSync(join(dir, "src", "App.tsx"), '\nexport const extra: number = "x" as any\n')   // → lines 12-13
   writeFileSync(join(dir, "src", "NewThing.tsx"), "export function NewThing() {\n  return null\n}\n")
@@ -55,7 +55,7 @@ test("generic: a configured file:line linter splits NEW and PRE-EXISTING", () =>
   writeFileSync(join(dir, "lint.sh"), 'echo "src/a.txt:1: old style problem"\necho "src/a.txt:2:5: new problem"\nexit 1\n')
   run(dir, ["mkdir", "src"]); writeFileSync(join(dir, "src", "a.txt"), "one\ntwo\nthree\n")
   git(dir, "init", "-q", "-b", "main"); git(dir, "add", "-A"); git(dir, "commit", "-qm", "init")
-  assert.equal(run(dir, [process.execPath, "--experimental-strip-types", "--no-warnings", join(CORE, "install.ts"), dir, "--yes", "--no-doctor", "--name", "Gen"]).code, 0)
+  install(dir, { stack: "generic" })
   const pj = join(dir, ".ai", "project.json"), conf = JSON.parse(readFileSync(pj, "utf-8"))
   assert.equal(conf.stacks[0].name, "generic")
   conf.stacks[0].gate = [{ name: "lint", run: "sh lint.sh {files}", parser: "file-line" }, { name: "build", run: "true" }]
@@ -68,7 +68,7 @@ test("generic: a configured file:line linter splits NEW and PRE-EXISTING", () =>
 })
 
 test("java: compile / checkstyle / JUnit split NEW and PRE-EXISTING; Spring routes and listeners indexed", () => {
-  const dir = project("java", ["--name", "Orders"])
+  const dir = project("java", [])
   rmSync(join(dir, "bin"), { recursive: true, force: true })
   const f = join(dir, "src", "main", "java", "eu", "demo", "OrderService.java")
   writeFileSync(f, readFileSync(f, "utf-8").trimEnd().replace(/}$/, "") + "\n  public void added() {\n    find(null);\n  }\n}\n")   // → lines 21-24

@@ -1,0 +1,81 @@
+<svg viewBox="0 0 1010 472" width="100%" xmlns="http://www.w3.org/2000/svg" class="tl" font-family="Segoe UI, Noto Sans, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker></defs>
+<rect x="0" y="0" width="1010" height="472" fill="#fff"/>
+<rect x="0" y="30" width="1010" height="108" fill="#f8fafc"/>
+<rect x="0" y="246" width="1010" height="108" fill="#f8fafc"/>
+<line x1="455" y1="76" x2="980" y2="76" stroke="#2563eb" stroke-width="2.6"/>
+<text x="10" y="72" font-size="11.0" font-weight="700" fill="#2563eb" font-family="Consolas, monospace">fix/EUIPOFO-123</text>
+<text x="10" y="87.0" font-size="8.5" fill="#64748b">rama en el servicio</text>
+<line x1="128" y1="184" x2="980" y2="184" stroke="#059669" stroke-width="2.6"/>
+<text x="10" y="180" font-size="11.0" font-weight="700" fill="#059669" font-family="Consolas, monospace">EUIPOFO-123.md</text>
+<text x="10" y="195.0" font-size="8.5" fill="#64748b">fichero compartido</text>
+<line x1="128" y1="292" x2="980" y2="292" stroke="#7c3aed" stroke-width="2.6"/>
+<text x="10" y="288" font-size="11.0" font-weight="700" fill="#7c3aed" font-family="Consolas, monospace">.carlos.md</text>
+<text x="10" y="303.0" font-size="8.5" fill="#64748b">tu diario</text>
+<line x1="128" y1="400" x2="980" y2="400" stroke="#ea580c" stroke-width="2.6"/>
+<text x="10" y="396" font-size="11.0" font-weight="700" fill="#ea580c" font-family="Consolas, monospace">Jira · EUIPO</text>
+<text x="10" y="411.0" font-size="8.5" fill="#64748b">personas</text>
+<path d="M169,184 C202.0,184 196.0,400 229,400" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 3" fill="none" marker-end="url(#arr)"/>
+<path d="M349,400 C368.25,400 364.75,184 384,184" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 3" fill="none" marker-end="url(#arr)"/>
+<path d="M395,184 C428.0,184 422.0,76 455,76" stroke="#2563eb" stroke-width="2.6" fill="none"/>
+<path d="M539,76 C544.5,76 543.5,292 549,292" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 3" fill="none" marker-end="url(#arr)"/>
+<path d="M894,184 C921.5,184 916.5,76 944,76" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 3" fill="none" marker-end="url(#arr)"/>
+<rect x="152" y="176" width="16" height="16" rx="4" fill="#059669"/><rect x="157" y="181" width="6" height="6" rx="1.2" fill="#fff"/>
+<text x="160" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">/analysis</text>
+<text x="160" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">precedentes</text>
+<text x="160" y="231.0" font-size="8.3" text-anchor="middle" fill="#64748b">causa raíz</text>
+<rect x="125.80000000000001" y="153.0" width="68.39999999999999" height="14.0" rx="7.0" fill="#ede9fe"/>
+<text x="160" y="163.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#6d28d9">known issue?</text>
+<circle cx="175" cy="292" r="6.5" fill="#7c3aed"/>
+<text x="175" y="316.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">intake</text>
+<text x="175" y="328.0" font-size="8.3" text-anchor="middle" fill="#64748b">tu diario</text>
+<text x="175" y="339.0" font-size="8.3" text-anchor="middle" fill="#64748b">creado</text>
+<circle cx="240" cy="400" r="8.5" fill="#fff" stroke="#ea580c" stroke-width="2.6"/><path d="M237.8,396.4 v7.2 M242.2,396.4 v7.2" stroke="#ea580c" stroke-width="2"/>
+<text x="240" y="424.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">validation</text>
+<text x="240" y="436.0" font-size="8.3" text-anchor="middle" fill="#64748b">análisis en Jira</text>
+<circle cx="340" cy="400" r="9" fill="#ea580c"/><circle cx="340" cy="397.4" r="2.6" fill="#fff"/><path d="M335.5,405 q4.5,-6.5 9,0" fill="#fff"/>
+<text x="340" y="424.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">aprobado</text>
+<rect x="387" y="176" width="16" height="16" rx="4" fill="#059669"/><rect x="392" y="181" width="6" height="6" rx="1.2" fill="#fff"/>
+<text x="395" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">/bugfix</text>
+<text x="395" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">retoma · plan</text>
+<circle cx="455" cy="76" r="8.5" fill="#dc2626"/><path d="M451.5,72.5 l7,7 M458.5,72.5 l-7,7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+<text x="455" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">test en rojo</text>
+<text x="455" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">test de</text>
+<text x="455" y="123.0" font-size="8.3" text-anchor="middle" fill="#64748b">regresión primero</text>
+<circle cx="530" cy="76" r="6.5" fill="#2563eb"/>
+<text x="530" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">fix</text>
+<text x="530" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">phpcs al editar</text>
+<circle cx="560" cy="292" r="6.5" fill="#7c3aed"/>
+<text x="560" y="316.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">## Changes</text>
+<text x="560" y="328.0" font-size="8.3" text-anchor="middle" fill="#64748b">se apunta solo</text>
+<circle cx="610" cy="76" r="8.5" fill="#dc2626"/><path d="M606.5,72.5 l7,7 M613.5,72.5 l-7,7" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+<text x="610" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">gate</text>
+<text x="610" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">lo NEW bloquea</text>
+<rect x="593.65" y="45.0" width="32.7" height="14.0" rx="7.0" fill="#fee2e2"/>
+<text x="610" y="55.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#b91c1c">1 NEW</text>
+<circle cx="680" cy="76" r="8.5" fill="#059669"/><path d="M676,76 l3,3 l5,-6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="680" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">gate</text>
+<text x="680" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">lo previo solo</text>
+<text x="680" y="123.0" font-size="8.3" text-anchor="middle" fill="#64748b">se lista</text>
+<rect x="666.2" y="45.0" width="27.599999999999998" height="14.0" rx="7.0" fill="#d1fae5"/>
+<text x="680" y="55.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#047857">PASS</text>
+<rect x="737" y="176" width="16" height="16" rx="8" fill="#fff" stroke="#059669" stroke-width="2.6"/><path d="M741.5,184 h7 M745,180.5 v7" stroke="#059669" stroke-width="2"/>
+<text x="745" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">review</text>
+<text x="745" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">contexto limpio</text>
+<rect x="710.8" y="153.0" width="68.39999999999999" height="14.0" rx="7.0" fill="#ffedd5"/>
+<text x="745" y="163.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#c2410c">R1 IMPORTANT</text>
+<circle cx="815" cy="184" r="8.5" fill="#059669"/><path d="M811,184 l3,3 l5,-6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="815" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">ronda 2</text>
+<text x="815" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">solo lo que</text>
+<text x="815" y="231.0" font-size="8.3" text-anchor="middle" fill="#64748b">cambió</text>
+<rect x="877" y="176" width="16" height="16" rx="4" fill="#059669"/><rect x="882" y="181" width="6" height="6" rx="1.2" fill="#fff"/>
+<text x="885" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">close</text>
+<text x="885" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">skill · known issue</text>
+<text x="885" y="231.0" font-size="8.3" text-anchor="middle" fill="#64748b">worklog</text>
+<circle cx="955" cy="76" r="9" fill="#ea580c"/><circle cx="955" cy="73.4" r="2.6" fill="#fff"/><path d="M950.5,81 q4.5,-6.5 9,0" fill="#fff"/>
+<text x="955" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">tú commiteas</text>
+<text x="955" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">código + .ai</text>
+<circle cx="955" cy="292" r="8" fill="#fff" stroke="#7c3aed" stroke-width="3"/><circle cx="955" cy="292" r="3.2" fill="#7c3aed"/>
+<text x="955" y="316.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">fin de sesión</text>
+<text x="955" y="328.0" font-size="8.3" text-anchor="middle" fill="#64748b">Next: none</text>
+</svg>

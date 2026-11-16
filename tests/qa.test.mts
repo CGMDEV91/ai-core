@@ -8,7 +8,8 @@ import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
-import { state } from "../core/scripts/lib/qa.ts"
+import { state } from "../framework/scripts/lib/qa.ts"
+import { install } from "./helpers.mts"
 
 const CORE = join(dirname(fileURLToPath(import.meta.url)), "..")
 const node = (cwd: string, ...a: string[]) => { const r = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", ...a], { cwd, encoding: "utf-8", env: { ...process.env, AI_SKIP_NPM: "1", AI_GUARD_URL: "", AI_GUARD_MODEL: "" } }); return { code: r.status, out: (r.stdout ?? "") + (r.stderr ?? "") } }
@@ -45,11 +46,10 @@ test("qa.state: the right step for each gap", () => {
 test("installer Next steps, qa --off / --on, doctor row, --setup writes the base files", () => {
   const d = sample({ require: { "drupal/core-recommended": "^11" } })
   spawnSync("git", ["init", "-q", d])
-  const inst = node(d, join(CORE, "install.ts"), d, "--yes", "--stack", "drupal", "--exec", "local", "--name", "p", "--no-deps")
-  assert.equal(inst.code, 0, inst.out)
-  assert.match(inst.out, /Turn on the code checks/)
-  assert.match(inst.out, /node \.ai\/scripts\/cli\.ts qa --setup/)
-  assert.match(inst.out, /\| WARN \| code checks \| not in composer\.json/)
+  const inst = install(d, { stack: "drupal" })
+  assert.match(inst, /code checks/)
+  assert.match(inst, /node \.ai\/scripts\/ai\.mjs qa --setup/)
+  assert.match(inst, /not in composer\.json/)
 
   assert.equal(node(d, ".ai/scripts/cli.ts", "qa").code, 1)
   assert.equal(node(d, ".ai/scripts/cli.ts", "qa", "--off").code, 0)
@@ -76,7 +76,7 @@ test("qa.state: packages already in vendor/ (dependencies of others) count; the 
 })
 
 import { cpSync, rmSync } from "node:fs"
-import { Gate } from "../core/scripts/lib/gatelib.ts"
+import { Gate } from "../framework/scripts/lib/gatelib.ts"
 const copy = (name: string) => { const d = mkdtempSync(join(tmpdir(), `aicore-qa-${name}-`)); cpSync(join(CORE, "tests", "fixtures", name), d, { recursive: true }); return d }
 
 test("qa.state react-ts: eslint config and packages per package manager; tests runner", () => {

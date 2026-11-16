@@ -8,7 +8,8 @@ import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
-import { matches, norm } from "../core/scripts/lib/contracts.ts"
+import { matches, norm } from "../framework/scripts/lib/contracts.ts"
+import { install } from "./helpers.mts"
 
 const CORE = join(dirname(fileURLToPath(import.meta.url)), "..")
 const run = (cwd: string, cmd: string[], env: Record<string, string> = {}) => { const r = spawnSync(cmd[0], cmd.slice(1), { cwd, encoding: "utf-8", env: { ...process.env, AI_SKIP_NPM: "1", ...env } }); return { code: r.status, out: (r.stdout ?? "") + (r.stderr ?? "") } }
@@ -33,19 +34,18 @@ test("workspace: detect services, wire each repo, gate per service, contracts be
   writeFileSync(join(web, "src", "api.ts"), "export const getOrder = (id: string) => fetch(`/api/orders/${id}`)\n")
   run(web, ["git", "add", "-A"]); run(web, ["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "api"])
 
-  const inst = run(ws, [process.execPath, "--experimental-strip-types", "--no-warnings", join(CORE, "install.ts"), ws, "--yes", "--no-doctor", "--no-deps", "--name", "Shop"])
-  assert.equal(inst.code, 0, inst.out)
-  assert.match(inst.out, /Detecting the workspace/)
+  const inst = install(ws, { workspace: true, args: ["--service-hooks"] })
+  assert.match(inst, /services\s+orders, web/)
   const conf = JSON.parse(readFileSync(join(ws, ".ai", "project.json"), "utf-8"))
   assert.deepEqual(conf.stacks.map((s: any) => `${s.repo}:${s.name}`), ["orders:java", "web:react-ts"])
-  for (const d of [orders, web]) assert.match(run(d, ["git", "config", "core.hooksPath"]).out, /ai-core-hooks/, `hooks in ${d}`)
+  for (const d of [orders, web]) assert.match(readFileSync(join(d, ".git", "hooks", "pre-commit"), "utf-8"), /pre-commit-guard/, `commit guard in ${d}`)
 
   const contracts = JSON.parse(readFileSync(join(ws, ".ai", "context", "contracts.json"), "utf-8")).contracts
   assert.equal(contracts.length, 1)
   assert.equal(`${contracts[0].method} ${contracts[0].path} ${contracts[0].provider.service} → ${contracts[0].consumers[0].service}`, "GET /orders/* orders → web")
 
   const doc = cli(ws, ["doctor"]).out
-  assert.match(doc, /\| OK \| hooks orders \|/); assert.match(doc, /\| OK \| hooks web \|/); assert.match(doc, /\| INFO \| exclude \| workspace/)
+  assert.match(doc, /\| OK \| project\.json \| orders \(java\), web \(react-ts\)/); assert.match(doc, /\| INFO \| commit guard services \| in orders, web/)
 
   // a change in the provider: its own gate in its repo, and the consumer named
   const ctl = join(orders, "src", "main", "java", "eu", "demo", "OrderController.java")

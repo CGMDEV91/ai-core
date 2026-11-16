@@ -1,0 +1,57 @@
+<svg viewBox="0 0 1010 364" width="100%" xmlns="http://www.w3.org/2000/svg" class="tl" font-family="Segoe UI, Noto Sans, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker></defs>
+<rect x="0" y="0" width="1010" height="364" fill="#fff"/>
+<rect x="0" y="30" width="1010" height="108" fill="#f8fafc"/>
+<rect x="0" y="246" width="1010" height="108" fill="#f8fafc"/>
+<line x1="128" y1="76" x2="980" y2="76" stroke="#059669" stroke-width="2.6"/>
+<text x="10" y="72" font-size="11.0" font-weight="700" fill="#059669" font-family="Consolas, monospace">EUIPOFO-123.md</text>
+<text x="10" y="87.0" font-size="8.5" fill="#64748b">shared file</text>
+<line x1="260" y1="184" x2="980" y2="184" stroke="#2563eb" stroke-width="2.6"/>
+<text x="10" y="180" font-size="11.0" font-weight="700" fill="#2563eb" font-family="Consolas, monospace">.carlos.md</text>
+<text x="10" y="195.0" font-size="8.5" fill="#64748b">Carlos's diary</text>
+<line x1="330" y1="292" x2="980" y2="292" stroke="#db2777" stroke-width="2.6"/>
+<text x="10" y="288" font-size="11.0" font-weight="700" fill="#db2777" font-family="Consolas, monospace">.ana.md</text>
+<text x="10" y="303.0" font-size="8.5" fill="#64748b">Ana's diary</text>
+<path d="M165,76 C217.25,76 207.75,184 260,184" stroke="#2563eb" stroke-width="2.6" fill="none"/>
+<path d="M165,76 C255.75,76 239.25,292 330,292" stroke="#db2777" stroke-width="2.6" fill="none"/>
+<path d="M569,292 C607.5,292 600.5,184 639,184" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 3" fill="none" marker-end="url(#arr)"/>
+<path d="M659,184 C708.5,184 699.5,76 749,76" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 3" fill="none" marker-end="url(#arr)"/>
+<rect x="157" y="68" width="16" height="16" rx="4" fill="#059669"/><rect x="162" y="73" width="6" height="6" rx="1.2" fill="#fff"/>
+<text x="165" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">plan</text>
+<text x="165" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">Phase A (carlos)</text>
+<text x="165" y="123.0" font-size="8.3" text-anchor="middle" fill="#64748b">Phase B (ana)</text>
+<rect x="146.1" y="45.0" width="37.8" height="14.0" rx="7.0" fill="#d1fae5"/>
+<text x="165" y="55.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#047857">owners</text>
+<circle cx="260" cy="184" r="6.5" fill="#2563eb"/>
+<text x="260" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">A</text>
+<text x="260" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">his changes</text>
+<circle cx="330" cy="292" r="6.5" fill="#db2777"/>
+<text x="330" y="316.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">B</text>
+<text x="330" y="328.0" font-size="8.3" text-anchor="middle" fill="#64748b">joins: her diary</text>
+<circle cx="440" cy="184" r="8" fill="#fff" stroke="#2563eb" stroke-width="3"/><circle cx="440" cy="184" r="3.2" fill="#2563eb"/>
+<text x="440" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">end + push</text>
+<text x="440" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">only his diary</text>
+<rect x="408.35" y="153.0" width="63.3" height="14.0" rx="7.0" fill="#d1fae5"/>
+<text x="440" y="163.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#047857">no conflict</text>
+<circle cx="560" cy="292" r="8" fill="#fff" stroke="#db2777" stroke-width="3"/><circle cx="560" cy="292" r="3.2" fill="#db2777"/>
+<text x="560" y="316.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">end + push</text>
+<text x="560" y="328.0" font-size="8.3" text-anchor="middle" fill="#64748b">only her diary</text>
+<rect x="528.35" y="261.0" width="63.3" height="14.0" rx="7.0" fill="#d1fae5"/>
+<text x="560" y="271.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#047857">no conflict</text>
+<rect x="642" y="176" width="16" height="16" rx="4" fill="#2563eb"/><rect x="647" y="181" width="6" height="6" rx="1.2" fill="#fff"/>
+<text x="650" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">header</text>
+<text x="650" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">sees Ana on B</text>
+<rect x="752" y="68" width="16" height="16" rx="4" fill="#059669"/><rect x="757" y="73" width="6" height="6" rx="1.2" fill="#fff"/>
+<text x="760" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">review</text>
+<text x="760" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">reads every</text>
+<text x="760" y="123.0" font-size="8.3" text-anchor="middle" fill="#64748b">diary</text>
+<rect x="723.25" y="45.0" width="73.5" height="14.0" rx="7.0" fill="#ede9fe"/>
+<text x="760" y="55.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#6d28d9">combined view</text>
+<circle cx="870" cy="76" r="8" fill="#fff" stroke="#059669" stroke-width="3"/><circle cx="870" cy="76" r="3.2" fill="#059669"/>
+<text x="870" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">close</text>
+<text x="870" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">Next: none</text>
+<text x="870" y="123.0" font-size="8.3" text-anchor="middle" fill="#64748b">in each diary</text>
+<circle cx="945" cy="292" r="9" fill="#ea580c"/><circle cx="945" cy="289.4" r="2.6" fill="#fff"/><path d="M940.5,297 q4.5,-6.5 9,0" fill="#fff"/>
+<text x="945" y="316.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">worklog</text>
+<text x="945" y="328.0" font-size="8.3" text-anchor="middle" fill="#64748b">per dev</text>
+</svg>

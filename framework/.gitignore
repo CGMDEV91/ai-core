@@ -1,0 +1,14 @@
+# Knowledge repo (cloned as .ai/ in the workspace folder) — personal, local files: never committed.
+# MEMORY.local.md (personal journal and time) and any other <name>.local.md
+*.local.md
+
+# The services are not in this repository: they are cloned beside .ai/, each in its own repository,
+# so nothing of theirs can ever be staged here.
+
+# The tools of .ai/scripts: personal and generated files (rebuilt by `node .ai/scripts/ai.mjs detect --index`)
+*.local.json
+context/code-index.json
+context/api-index.json
+context/last-gate.*.md
+context/receipts/
+context/.sync.log

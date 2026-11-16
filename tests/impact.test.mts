@@ -9,6 +9,7 @@ import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { test } from "node:test"
 import { fileURLToPath, pathToFileURL } from "node:url"
+import { install } from "./helpers.mts"
 
 const CORE = join(dirname(fileURLToPath(import.meta.url)), "..")
 const sh = (cwd: string, cmd: string[]) => { const r = spawnSync(cmd[0], cmd.slice(1), { cwd, encoding: "utf-8", env: { ...process.env, AI_SKIP_NPM: "1" } }); return { code: r.status, out: (r.stdout ?? "") + (r.stderr ?? "") } }
@@ -19,8 +20,7 @@ function project(fixture: string, stack: string): string {
   const d = mkdtempSync(join(tmpdir(), `aicore-imp-${stack}-`))
   cpSync(join(CORE, "tests", "fixtures", fixture), d, { recursive: true })
   sh(d, ["git", "init", "-q", "-b", "main"]); commit(d, "init")
-  const r = sh(d, [process.execPath, "--experimental-strip-types", "--no-warnings", join(CORE, "install.ts"), d, "--yes", "--no-doctor", "--no-deps", "--stack", stack, "--exec", "local", "--name", "p"])
-  assert.equal(r.code, 0, r.out)
+  install(d, { stack })
   return d
 }
 const doc = (d: string, rel: string, text: string) => { mkdirSync(dirname(join(d, ".ai", rel)), { recursive: true }); writeFileSync(join(d, ".ai", rel), text) }
@@ -69,7 +69,7 @@ test("java: a changed service method flags its skill; --check finds a renamed me
   assert.match(cli(d, "touchpoints", "orders").out, /## code: controllers & endpoints/)
 })
 
-test("▶ Next: a verified ticket whose change touched a skill asks for that skill's update before /close", async () => {
+test("▶ Next: a verified ticket whose change touched a skill asks for that skill's update before the close", async () => {
   const d = project("react", "react-ts")
   doc(d, "skills/01-counter/SKILL.md", skill("01-counter", "- `src/useCounter.ts` — `useCounter()`"))
   cli(d, "codeindex", "--update"); cli(d, "callpaths", "--update"); commit(d, "skills")
@@ -77,10 +77,10 @@ test("▶ Next: a verified ticket whose change touched a skill asks for that ski
   const f = join(d, "src", "useCounter.ts")
   writeFileSync(f, readFileSync(f, "utf-8").replace("useState(0)", "useState(2)"))
   const done = `- [VERIFIED 2026-11-12 @abc — "eslint: 0 new issue(s) in 1 file(s)"]\n- [VERIFIED-BY-HUMAN 2026-11-12 — "ok"]\n### Manual checklist\n- [x] a`
-  const text = (knowledge: string) => `---\nkey: T-5\ntitle: "t"\ntype: bugfix\nstatus: active\nbaseline: ${base}\n---\n\n## Plan\n\n- [x] A\n\n## Changes\n\n- \`src/useCounter.ts\` — edited 2026-11-12\n\n## Impact\n\n- flow\n\n## Verification\n\n${done}\n\n## Knowledge\n\n${knowledge}\n\n## Notes\n\n- Review: ok\n`
+  const text = (knowledge: string) => `---\nkey: T-5\ntitle: "t"\ntype: bugfix\nstatus: active\nbaseline: ${base}\n---\n\n## Plan\n\n- [x] A\n\n## Changes\n\n- \`src/useCounter.ts\` — edited 2026-11-12\n\n## Impact\n\n- flow\n\n## Verification\n\n${done}\n\n## Test instructions\n\n- open the page, click\n\n## Knowledge\n\n${knowledge}\n\n## Notes\n\n- Review: ok\n`
   const { suggest } = await import(pathToFileURL(join(d, ".ai", "scripts", "lib", "ticketctx.ts")).href)
-  assert.match(suggest({ key: "T-5", text: text("Decision: NOTHING — small") }), /^\/skill T-5 — this ticket changed code that 01-counter describes/)
-  assert.match(suggest({ key: "T-5", text: text("Decision: EDIT skills/01-counter — counter starts at 2") }), /^\/close T-5$/)
+  assert.match(suggest({ key: "T-5", text: text("Decision: NOTHING — small") }), /^this ticket changed code that 01-counter describes: update it/)
+  assert.match(suggest({ key: "T-5", text: text("Decision: EDIT skills/01-counter — counter starts at 2") }), /^close \(\.ai\/procedures\/close\.md\)$/)
 })
 
 test("flat skills and ## sections (a methodology with its own templates): matched, stale, written inside ## Impact analysis", () => {

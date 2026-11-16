@@ -8,7 +8,8 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { test } from "node:test"
-import { fileURLToPath } from "node:url"
+import { fileURLToPath, pathToFileURL } from "node:url"
+import { install } from "./helpers.mts"
 
 const CORE = join(dirname(fileURLToPath(import.meta.url)), "..")
 const run = (cwd: string, cmd: string[], env: Record<string, string> = {}, input = "") => {
@@ -23,25 +24,27 @@ test("two devs on one ticket: own diaries, shared view, migration of flat files"
   mkdirSync(join(dir, "src")); writeFileSync(join(dir, "src", "a.txt"), "a\n"); writeFileSync(join(dir, "src", "b.txt"), "b\n")
   run(dir, ["git", "init", "-q", "-b", "main"]); run(dir, ["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "init", "--allow-empty"])
   run(dir, ["git", "add", "-A"]); run(dir, ["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "files"])
-  assert.equal(run(dir, [process.execPath, "--experimental-strip-types", "--no-warnings", join(CORE, "install.ts"), dir, "--yes", "--no-doctor", "--name", "Team"]).code, 0)
+  install(dir, { stack: "generic" })
   const T = join(dir, ".ai", "tickets", "T-1")
   mkdirSync(T, { recursive: true })
   writeFileSync(join(T, "T-1.md"), readFileSync(join(dir, ".ai", "templates", "ticket.template.md"), "utf-8")
     .replace("key: EUIPOFO-00000", "key: T-1").replace('title: ""', 'title: "Shared work"').replace("type: bugfix", "type: feature")
     .replace("## Plan\n", "## Plan\n\nBlocks:\n- [x] A (ana)\n- [ ] B (luis)\n"))
   writeFileSync(join(dir, ".ai", "current-ticket.local.md"), "T-1\n")
-  const edit = (who: string, file: string) => cli(dir, ["hook", "edit"], { AI_DEV: who }, JSON.stringify({ tool_name: "Edit", tool_input: { file_path: join(dir, file) } }))
+  // what the opencode plugin does after an edit, and the header it attaches — each as the developer who runs opencode
+  const asDev = (who: string, js: string) => run(dir, [process.execPath, "--experimental-strip-types", "--no-warnings", "--input-type=module", "-e", js], { AI_DEV: who })
+  const edit = (who: string, file: string) => asDev(who, `const { afterEdit } = await import(${JSON.stringify(pathToFileURL(join(dir, ".ai", "scripts", "lib", "edits.ts")).href)}); await afterEdit(${JSON.stringify(dir)}, ${JSON.stringify(join(dir, file))})`)
   edit("ana", "src/a.txt"); edit("luis", "src/b.txt")
   const ana = readFileSync(join(T, "T-1.ana.md"), "utf-8"), luis = readFileSync(join(T, "T-1.luis.md"), "utf-8")
   assert.match(ana, /`src\/a\.txt` — edited/); assert.doesNotMatch(ana, /src\/b\.txt/)
   assert.match(luis, /`src\/b\.txt` — edited/); assert.doesNotMatch(luis, /src\/a\.txt/)
   assert.doesNotMatch(readFileSync(join(T, "T-1.md"), "utf-8"), /src\/a\.txt|src\/b\.txt/)   // the shared file is not touched
   writeFileSync(join(T, "T-1.luis.md"), luis.replace("## Current state\n", "## Current state\n\nWorking on block B (the import).\nNext: finish B\n"))
-  const header = JSON.parse(cli(dir, ["hook", "prompt"], { AI_DEV: "ana" }, "{}").out).hookSpecificOutput.additionalContext
+  const header = asDev("ana", `const { ticketHeader } = await import(${JSON.stringify(pathToFileURL(join(dir, ".ai", "scripts", "lib", "ticketctx.ts")).href)}); console.log(ticketHeader(${JSON.stringify(dir)}))`).out
   assert.match(header, /your diary \(ana\) \.ai\/tickets\/T-1\/T-1\.ana\.md/)
   assert.match(header, /Also on this ticket[\s\S]*luis[^\n]*Working on block B/)
   assert.doesNotMatch(header, /Next: finish B/)                           // luis's Next is not ana's
-  assert.match(header, /Suggested next command[^\n]*\/gate/)               // suggest(): everybody's changes, no gate yet
+  assert.match(header, /state calls for: \/gate/)               // suggest(): everybody's changes, no gate yet
   const state = cli(dir, ["review", "state", "T-1"], { AI_DEV: "ana" }).out
   assert.match(state, /src\/a\.txt/); assert.match(state, /src\/b\.txt/)   // the review covers both devs' changes
   assert.match(cli(dir, ["knowledge", "paths", "T-1"], { AI_DEV: "ana" }).out, /others\s+luis/)
@@ -62,8 +65,7 @@ test("one person, one diary: the saved name wins over the OS login; merge-user j
   const root = join(dirname(fileURLToPath(import.meta.url)), "..")
   const d = mk(path.join(os.tmpdir(), "aicore-who-"))
   cp.spawnSync("git", ["init", "-q", d])
-  const inst = cp.spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", path.join(root, "install.ts"), d, "--yes", "--no-doctor", "--no-wiring", "--stack", "generic", "--name", "p"], { encoding: "utf-8" })
-  assert.equal(inst.status, 0, inst.stdout + inst.stderr)
+  install(d, { stack: "generic" })
   const home = mk(path.join(os.tmpdir(), "aicore-home-"))   // no global git config here: like opencode's Windows process
   const env = { ...process.env, HOME: home, USERPROFILE: home, USER: "winlogin", USERNAME: "winlogin", AI_DEV: "", GIT_CONFIG_NOSYSTEM: "1" }
   const run = (...a: string[]) => cp.spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", ".ai/scripts/cli.ts", ...a], { cwd: d, encoding: "utf-8", env }).stdout.trim()

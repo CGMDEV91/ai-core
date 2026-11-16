@@ -30,15 +30,19 @@ if (argv.includes("--install-hook")) {
 }
 
 // 1. the tests
-const files = ["tests", join("core", "tests")].flatMap((d) => existsSync(join(CORE, d)) ? readdirSync(join(CORE, d)).filter((f) => f.endsWith(".test.mts")).map((f) => join(d, f)) : [])
+const files = readdirSync(join(CORE, "tests")).filter((f) => f.endsWith(".test.mts")).map((f) => join("tests", f))
 console.log(bold(`ai-core selftest — ${files.length} test files`))
 // a git hook (pre-push) exports GIT_DIR, GIT_INDEX_FILE…: the tests' own temporary repos must not inherit them
 const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_")))
-const t = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--test", ...files], { cwd: CORE, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024, env })
+const t = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", "--test", "--test-timeout=300000", ...files], { cwd: CORE, encoding: "utf-8", maxBuffer: 64 * 1024 * 1024, env })
 const out = (t.stdout ?? "") + (t.stderr ?? "")
 const n = (k: string) => Number((out.match(new RegExp(`^ℹ ${k} (\\d+)`, "m")) ?? [])[1] ?? 0)
 check("tests", t.status === 0, `${n("pass")} pass · ${n("fail")} fail`)
 if (t.status !== 0) console.log(out.split("\n").filter((l) => /^✖|AssertionError|expected|actual/.test(l)).slice(0, 20).join("\n"))
+
+/** install.sh into a sample repository: the framework as a developer installs it, without the per-machine wiring */
+const install = (dir: string, stack: string) => spawnSync("bash", [join(CORE, "install.sh"), "--project", dir, "--in-repo", "--yes", "--skip-install", "--stack", stack],
+  { encoding: "utf-8", env: { ...process.env, NO_COLOR: "1" } }).status === 0
 
 // 2. Windows, from WSL
 const wsl = process.platform === "linux" && !!process.env.WSL_DISTRO_NAME
@@ -47,46 +51,48 @@ if (argv.includes("--quick")) console.log(dim("· Windows checks skipped (--quic
 else if (!wsl) console.log(dim("· Windows checks: only from WSL"))
 else if (ps("node -v").status !== 0) console.log(dim("· Windows checks: no node on Windows' PATH"))
 else {
+  // a project in WSL opened by opencode on Windows (\\wsl.localhost\…): Windows' node runs the tools, they re-run in WSL
   const distro = process.env.WSL_DISTRO_NAME!, dir = join(homedir(), ".cache", "ai-core-selftest", "win")
   rmSync(dir, { recursive: true, force: true }); mkdirSync(join(dir, "web", "core", "lib"), { recursive: true }); mkdirSync(join(dir, "web", "modules", "custom", "m1"), { recursive: true })
   writeFileSync(join(dir, "composer.json"), '{"require":{"drupal/core-recommended":"^11"}}\n')
   writeFileSync(join(dir, "web", "core", "lib", "Drupal.php"), "<?php class Drupal { const VERSION = '11.2.0'; }\n")
   writeFileSync(join(dir, "web", "modules", "custom", "m1", "m1.module"), "<?php\n")
   spawnSync("git", ["init", "-q", dir]); spawnSync("git", ["-C", dir, "add", "-A"]); spawnSync("git", ["-C", dir, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "i"])
-  const inst = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(CORE, "install.ts"), dir, "--yes", "--no-doctor", "--no-deps",
-    "--stack", "drupal", "--exec", "local", "--name", "selftest", "--agents", "opencode,claude-code"], { encoding: "utf-8", env: { ...process.env, AI_SKIP_NPM: "1" } })
-  check("windows: sample installed (WSL)", inst.status === 0)
+  check("windows: sample installed (WSL)", install(dir, "drupal"))
   const unc = `\\\\wsl.localhost\\${distro}${dir.replace(/\//g, "\\")}`
-  const doc = ps(`Set-Location '${unc}'; node --experimental-strip-types --no-warnings .ai\\scripts\\cli.ts doctor`)
-  const d = doc.stdout ?? ""
-  check("windows: doctor re-runs inside WSL", /\| OK \| node \| (?!.*\(Windows)/.test(d) && /\| OK \| hooks project \|/.test(d) && /\| OK \| exclude \|/.test(d),
-    (d.match(/\| (FAIL|WARN) \| (hooks[^|]*|exclude|opencode load)[^\n]*/g) ?? []).join(" · ").slice(0, 160))
-  const load = ps(`Set-Location '${unc}'; node --experimental-strip-types --no-warnings .ai\\scripts\\cli.ts ocload`)
-  check("windows: opencode plugins and tools load", load.status === 0, (load.stdout ?? "").trim().split("\n").pop())
-  writeFileSync(join(dir, "runner-check.mts"), `import { pathToFileURL } from "node:url"
-const root = process.argv[2]
-const { runInProject } = await import(pathToFileURL(root + "\\\\.ai\\\\scripts\\\\opencode\\\\tool\\\\_lib.ts").href)
-console.log(JSON.stringify(await runInProject(root, "node -v")))
+  const d = ps(`Set-Location '${unc}'; node .ai\\scripts\\ai.mjs doctor`).stdout ?? ""
+  check("windows: doctor re-runs inside WSL", /\| OK \| node \| (?!.*\(Windows)/.test(d) && /\| OK \| in-repo \|/.test(d) && /\| OK \| commit guard \.ai \|/.test(d),
+    (d.match(/\| (FAIL|WARN) \| (node|in-repo|commit guard[^|]*)[^\n]*/g) ?? []).join(" · ").slice(0, 160))
+  const g = ps(`Set-Location '${unc}'; node .ai\\scripts\\ai.mjs git log --oneline -1`).stdout ?? ""
+  check("windows: read-only git through ai.mjs (git is in WSL)", / i$/m.test(g.trim()), g.trim().slice(0, 80))
+  // the per-machine stub, loaded by Windows' node the way opencode loads it, with the project on the WSL path
+  writeFileSync(join(dir, "load-check.mts"), `import { pathToFileURL } from "node:url"
+const m = await import(pathToFileURL(process.argv[2]).href)
+const hooks = await m.AiMethodology({ directory: process.argv[3], worktree: "/" })
+console.log(Object.keys(m).join(",") + " | " + Object.keys(hooks).sort().join(","))
 `)
-  const run = ps(`node --experimental-strip-types --no-warnings '${unc}\\runner-check.mts' '${unc}'`)
-  const r = (run.stdout ?? "").trim()
-  check("windows: tools reach WSL's node (nvm)", /"ok":true/.test(r) && /v\d+\./.test(r), r.slice(0, 80))
-  // a project on Windows itself (C:\…, no WSL): the launcher, the indexes and the opencode tools run with Windows' node
+  const stub = `\\\\wsl.localhost\\${distro}${join(CORE, "framework", "install", "opencode", "plugin", "ai-methodology.ts").replace(/\//g, "\\")}`
+  const l = (ps(`node --experimental-strip-types --no-warnings '${unc}\\load-check.mts' '${stub}' '${unc}'`).stdout ?? "").trim()
+  check("windows: opencode loads the ticket plugin", /^AiMethodology \| .*chat\.message.*tool\.execute\.after/.test(l), l.slice(0, 120))
+  // a project on Windows itself (C:\…, no WSL): install.ps1, then the tools with Windows' node
   const win = (ps("$env:TEMP").stdout ?? "").trim(), nat = `${win}\\aicore-native-selftest`, natL = (spawnSync("wslpath", ["-u", nat], { encoding: "utf-8" }).stdout ?? "").trim()
-  if (natL) {
+  if (natL && ps("git --version").status !== 0) console.log(dim("· windows native: skipped — no git on Windows' PATH (a project on C:\\ needs Git for Windows)"))
+  else if (natL) {
     rmSync(natL, { recursive: true, force: true }); cpSync(join(CORE, "tests", "fixtures", "react"), natL, { recursive: true })
-    spawnSync("git", ["init", "-q", natL])
-    spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(CORE, "install.ts"), natL, "--yes", "--no-doctor", "--no-deps", "--no-wiring", "--stack", "react-ts", "--exec", "local", "--name", "native"], { encoding: "utf-8", env: { ...process.env, AI_SKIP_NPM: "1" } })
-    mkdirSync(join(natL, ".ai", "skills", "01-counter"), { recursive: true })
-    writeFileSync(join(natL, ".ai", "skills", "01-counter", "SKILL.md"), "---\nname: 01-counter\ndescription: \"c\"\nrelated_skills: []\n---\n\n# c\n\n## Key files\n\n- `src/useCounter.ts` — `useCounter()`\n")
-    writeFileSync(join(natL, "rc.mts"), `import { pathToFileURL } from "node:url"
-const root = process.argv[2]
-const { runScript } = await import(pathToFileURL(root + "\\\\.ai\\\\scripts\\\\opencode\\\\tool\\\\_lib.ts").href)
-console.log(await runScript(root, "scripts/analysis/scan-impact.sh", ["--files", "src/useCounter.ts"]))
-`)
-    const o = (ps(`Set-Location '${nat}'; node .ai\\scripts\\ai.mjs codeindex --update; node .ai\\scripts\\ai.mjs callpaths --update; node .ai\\scripts\\ai.mjs touchpoints count; node --experimental-strip-types --no-warnings rc.mts '${nat}'`).stdout ?? "")
-    check("windows native: launcher, index, touchpoints", /code-index\.json written/.test(o) && /Touchpoints of "count"/.test(o), (o.match(/Touchpoints of[^\n]*/) ?? ["no touchpoints"])[0])
-    check("windows native: opencode tool runs without WSL", /⚠ \*\*01-counter\*\*/.test(o), (o.match(/- ⚠[^\n]*/) ?? ["no flow"])[0])
+    ps(`Set-Location '${nat}'; git init -q; git add -A; git -c user.name=t -c user.email=t@t commit -qm init`)
+    // execution policies block a .ps1 on a network path (\\wsl.localhost): the installer runs from a copy on C:
+    const src = `${win}\\aicore-src`, srcL = (spawnSync("wslpath", ["-u", src], { encoding: "utf-8" }).stdout ?? "").trim()
+    rmSync(srcL, { recursive: true, force: true }); mkdirSync(srcL, { recursive: true })
+    cpSync(join(CORE, "install.ps1"), join(srcL, "install.ps1")); cpSync(join(CORE, "framework"), join(srcL, "framework"), { recursive: true })
+    const ins = ps(`powershell -NoProfile -ExecutionPolicy Bypass -File '${src}\\install.ps1' -Project '${nat}' -InRepo -Yes -SkipInstall -Stack react-ts`)
+    rmSync(srcL, { recursive: true, force: true })
+    check("windows native: install.ps1", ins.status === 0, (ins.stdout ?? "").trim().split("\n").pop()?.slice(0, 120))
+    mkdirSync(join(natL, ".ai", "skills"), { recursive: true })
+    writeFileSync(join(natL, ".ai", "skills", "01-counter.md"), "---\nname: 01-counter\ndescription: \"c\"\nrelated_skills: []\n---\n\n# c\n\n## Key files\n\n- `src/useCounter.ts` — `useCounter()`\n")
+    writeFileSync(join(natL, "src", "useCounter.ts"), readFileSync(join(natL, "src", "useCounter.ts"), "utf-8") + "\n// changed\n")
+    const o = (ps(`Set-Location '${nat}'; node .ai\\scripts\\ai.mjs codeindex --update; node .ai\\scripts\\ai.mjs touchpoints count; node .ai\\scripts\\ai.mjs impact`).stdout ?? "")
+    check("windows native: index and touchpoints", /code-index\.json written/.test(o) && /Touchpoints of "count"/.test(o), (o.match(/Touchpoints of[^\n]*/) ?? ["no touchpoints"])[0])
+    check("windows native: impact flags the skill", /01-counter/.test(o), (o.match(/- ⚠[^\n]*/) ?? ["no flow"])[0])
     rmSync(natL, { recursive: true, force: true })
   }
   // the plugin's identity on Windows (no git there): the diary must be named as in WSL, not after the Windows login
@@ -95,7 +101,7 @@ const { devUser } = await import(pathToFileURL(process.argv[2] + "\\\\.ai\\\\scr
 console.log(devUser())
 `)
   const winWho = (ps(`node --experimental-strip-types --no-warnings '${unc}\\who-check.mts' '${unc}'`).stdout ?? "").trim()
-  const wslWho = (spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(dir, ".ai", "scripts", "cli.ts"), "knowledge", "whoami"], { cwd: dir, encoding: "utf-8" }).stdout ?? "").trim()
+  const wslWho = (spawnSync(process.execPath, [join(dir, ".ai", "scripts", "ai.mjs"), "knowledge", "whoami"], { cwd: dir, encoding: "utf-8" }).stdout ?? "").trim()
   check("windows: the plugin names your diary as WSL does", !!winWho && winWho === wslWho, `windows ${winWho || "?"} · wsl ${wslWho}`)
   rmSync(dir, { recursive: true, force: true })
 }
@@ -105,11 +111,7 @@ if (argv.includes("--real")) {
   const base = join(homedir(), ".cache", "ai-core-selftest", "real"); mkdirSync(base, { recursive: true })
   const sh = (cmd: string, cwd: string, timeout = 900000) => spawnSync("bash", ["-c", cmd], { cwd, encoding: "utf-8", timeout, env: { ...process.env, AI_SKIP_NPM: "1" } })
   const cli = (dir: string, ...a: string[]) => spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", ".ai/scripts/cli.ts", ...a], { cwd: dir, encoding: "utf-8", timeout: 900000 })
-  const fresh = (dir: string, stack: string) => {
-    rmSync(join(dir, ".ai"), { recursive: true, force: true })
-    return spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(CORE, "install.ts"), dir, "--yes", "--no-doctor", "--no-deps",
-      "--stack", stack, "--exec", "local", "--name", `real-${stack}`], { encoding: "utf-8", env: { ...process.env, AI_SKIP_NPM: "1" } }).status === 0
-  }
+  const fresh = (dir: string, stack: string) => { rmSync(join(dir, ".ai"), { recursive: true, force: true }); return install(dir, stack) }
   // React + TypeScript: the Vite template (create-vite 6.5.0)
   const app = join(base, "vite-react-ts")
   if (!existsSync(join(app, "node_modules"))) {
@@ -140,7 +142,7 @@ if (argv.includes("--real")) {
   check("real react-ts: impact flags the skill of the changed component", /⚠ \*\*01-app\*\* \(method: App::App\(\)\)/.test(im), (im.match(/- [⚠·] \*\*[^\n]*/) ?? ["no flow"])[0])
   check("real react-ts: touchpoints groups a concept", /## (components|hooks|code: other) — /.test(cli(app, "touchpoints", "count").stdout ?? ""))
   // Java: spring-petclinic at a pinned commit (needs a JDK)
-  if (spawnSync("java", ["-version"]).status !== 0) console.log(dim("· real java: skipped — no JDK here (install one: node .ai/scripts/cli.ts deps --install)"))
+  if (spawnSync("java", ["-version"]).status !== 0) console.log(dim("· real java: skipped — no JDK here (install one: node .ai/scripts/ai.mjs deps --install)"))
   else {
     const pc = join(base, "spring-petclinic")
     if (!existsSync(join(pc, "pom.xml"))) sh("git init -q spring-petclinic && cd spring-petclinic && git fetch -q --depth 1 https://github.com/spring-projects/spring-petclinic.git 500158f732419217507c7656904b8e6aa1bcc0d6 && git checkout -q FETCH_HEAD", base)

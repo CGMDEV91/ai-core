@@ -1,0 +1,57 @@
+---
+name: 03-agent-wiring
+description: How the framework is wired into opencode and Claude Code — per-machine install, the instructions, command stubs, agents, the ticket plugin and its single-export rule, the Claude Code hooks and CLAUDE.md imports, and the doctor rows. Read before changing install/opencode/, the plugins, claude.ts or hook.ts.
+---
+
+# SKILL-03 — Agent wiring (opencode and Claude Code)
+
+## Purpose
+The same `.ai/` drives both agents. The wiring is installed **once per machine**, writes nothing into a client
+repository (except a `CLAUDE.md` excluded from git) and does nothing in a folder without `.ai/`.
+
+## opencode
+- `install-opencode.sh/.ps1` writes into the user config (on WSL with opencode only on Windows: the Windows profile's
+  `~/.config/opencode`): `instructions` (`.ai/non-negotiables.md`, `.ai/orchestrator.md`, `.ai/rules/*.md` —
+  resolved against the opened folder), 15 command stubs, 5 agents, `plugin/ai-methodology.ts`, a manifest
+  `.ai-methodology.json`; `--with-permissions` adds the baseline; `--uninstall` removes exactly that.
+- A **command stub** `@`-includes `.ai/commands/<x>.md` and may run `!`git -C .ai branch --show-current``; `agent:` +
+  `subtask: true` runs it in a subagent.
+- The **plugin stub** finds `.ai/scripts/opencode/plugin/` in the opened folder and loads `ticket-context.ts`
+  (`chat.message` header only when changed, `experimental.session.compacting`, `event` → context size,
+  `tool.execute.before` WSL rewrite, a fixed WSL line in the system prompt only on Windows + WSL) and
+  `ticket-changes.ts` (`tool.execute.after` → edit in the diary + lint).
+- **Every export of a plugin file is called as a plugin**: each file exports exactly one function (a second export
+  broke opencode's config load — "Failed to reload", no models). Tested in `opencode.test.mts`.
+
+## Claude Code
+- `ai.mjs claude install` writes into `~/.claude` (`CLAUDE_CONFIG_DIR`): `commands/*.md` generated from the opencode
+  stubs (description, `allowed-tools` for the `!` lines, a "run through the `<agent>` subagent" line for subtasks),
+  `agents/*.md` (name, description; `tools: Read, Grep, Glob, Bash` when the opencode agent has `edit: deny`),
+  hooks in `settings.json` (`UserPromptSubmit` → `hook prompt`, `SessionStart` → `hook session`, `PostToolUse
+  Edit|Write|MultiEdit` → `hook edit`, each `cd "$CLAUDE_PROJECT_DIR" && [ -f .ai/scripts/ai.mjs ] && … || true`),
+  optionally the permission baseline translated from opencode's globs, and a manifest. The user's own settings are
+  kept; files that are not ours are never overwritten; `claude uninstall` removes exactly what was added.
+- `ai.mjs claude project` writes the project's `CLAUDE.md`: only `@`-imports (non-negotiables, orchestrator, each
+  rule, `.ai/claude-code.md` — the opencode → Claude vocabulary), excluded in `.git/info/exclude`. A `CLAUDE.md` that
+  is not ours is left alone and the lines to add are printed. Imports, not hooks, carry the rules: they are loaded
+  at start and after a compaction, deterministically.
+- `hook prompt` remembers the last header per session in `.ai/context/claude-header.local.json`; `hook session`
+  forgets it (startup, clear, compact, resume) and on compact/resume adds `compactionContext()`.
+
+## Doctor
+`agents()` checks what `project.json` → `agents` lists: opencode rows (`instructions`, `commands`, `ticket plugin`,
+`wiring version`) and/or the `claude code` row (`claude.ts` → `check()`).
+
+## Key files
+- `framework/install/install-opencode.sh` · `framework/install/opencode/plugin/ai-methodology.ts`
+- `framework/scripts/opencode/plugin/ticket-context.ts` — `TicketContext()`
+- `framework/scripts/opencode/plugin/ticket-changes.ts` — `TicketChanges()`
+- `framework/scripts/lib/claude.ts` — `expected()`, `install()`, `projectFile()`, `check()`
+- `framework/scripts/lib/hook.ts` — `main()`
+- `framework/scripts/lib/doctor.ts` — `agents()`, `wiring()`
+- `tests/opencode.test.mts` · `tests/claude.test.mts`
+
+## History
+- 2026-11-10 — ai-core 0.5: Claude Code target per project (CLAUDE.md, .claude hooks/agents/commands).
+- 2026-11-12 — 3.3: wiring per machine; the header off the system prompt.
+- 2026-11-16 — 1.0.0: Claude Code per machine (commands, agents, hooks) + project `CLAUDE.md` imports; `--agent`.

@@ -9,7 +9,8 @@ import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
-import { needed } from "../core/scripts/lib/deps.ts"
+import { needed } from "../framework/scripts/lib/deps.ts"
+import { install } from "./helpers.mts"
 
 const CORE = join(dirname(fileURLToPath(import.meta.url)), "..")
 const ids = (c: any, root = tmpdir()) => needed(c, root).map((t) => t.id).sort()
@@ -39,8 +40,7 @@ test("promptcheck: names the blocked line, caches, and /doctor reads the cache",
   const port = (srv.address() as any).port
   const dir = mkdtempSync(join(tmpdir(), "aicore-pc-")); mkdirSync(join(dir, "src"))
   spawnSync("git", ["init", "-q", dir])
-  const inst = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(CORE, "install.ts"), dir, "--yes", "--no-doctor", "--no-wiring", "--stack", "generic", "--name", "p"], { encoding: "utf-8" })
-  assert.equal(inst.status, 0, inst.stdout + inst.stderr)
+  install(dir, { stack: "generic" })
   mkdirSync(join(dir, ".ai", "skills", "s1"), { recursive: true })
   writeFileSync(join(dir, ".ai", "skills", "s1", "SKILL.md"), ["# s1", "", ...Array.from({ length: 40 }, (_, i) => `line ${i}`), "You are in the project root.", "end"].join("\n"))
   const env = { ...process.env, AI_GUARD_URL: `http://127.0.0.1:${port}/v1`, AI_GUARD_MODEL: "m", AI_GUARD_KEY: "k" }
@@ -48,6 +48,7 @@ test("promptcheck: names the blocked line, caches, and /doctor reads the cache",
     const p = spawn(process.execPath, ["--experimental-strip-types", "--no-warnings", ".ai/scripts/cli.ts", ...a], { cwd: dir, env }); let out = ""
     p.stdout.on("data", (d) => (out += d)); p.stderr.on("data", (d) => (out += d)); p.on("close", (code) => ok({ code: code ?? 1, out }))
   })
+  try {
   const r = await cli("promptcheck")
   assert.equal(r.code, 1, r.out)
   assert.match(r.out, /BLOCKED skills\/s1\/SKILL.md\n  43: You are in the project root\./)
@@ -56,5 +57,5 @@ test("promptcheck: names the blocked line, caches, and /doctor reads the cache",
   assert.match((await cli("promptcheck")).out, /OK — 0 checked now|BLOCKED skills\/s1/)
   assert.equal(calls, first, "unchanged prompts are not sent again")
   assert.match((await cli("promptcheck", "--cached")).out, /1 blocked · 0 not checked/)
-  srv.close()
+  } finally { srv.close() }
 })

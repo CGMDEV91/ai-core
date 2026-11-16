@@ -1,0 +1,8 @@
+# Normalise line endings in the knowledge repo: LF in the repository, whatever the OS uses in the
+# working tree. Without this, a methodology update (re-copying the framework over a CRLF checkout
+# on Windows) shows every file as changed and the diff cannot be reviewed.
+* text=auto eol=lf
+*.sh text eol=lf
+*.png binary
+*.jpg binary
+*.pdf binary

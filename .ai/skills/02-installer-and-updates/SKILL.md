@@ -1,0 +1,60 @@
+---
+name: 02-installer-and-updates
+description: How install.sh / install.ps1, the terminal commands (install-ai-framework, update-ai-framework) and update.ts work — the seven steps, the questions and what project.json records, the agent choice and --reconfigure, the source record and switching sources. Read before touching any of them.
+---
+
+# SKILL-02 — Installer and updates
+
+## Purpose
+One script sets up, updates and reconfigures a project; the same behaviour on Linux/WSL (`install.sh`) and Windows
+(`install.ps1`).
+
+## The seven steps (both installers)
+1. **Checks** — git; `framework/` beside the script; the project folder: `--in-repo` must be the repository root, a
+   workspace must not be inside a repository; services = sub-folders with `.git`; leftovers of an earlier set-up
+   (`AGENTS.md`, `opencode.json`, `.opencode`) warned.
+2. **Knowledge repository** — `.ai/` reused, cloned (`--remote`) or `git init`; in-repo: `.ai/` added to
+   `.git/info/exclude` (the project's `.gitignore` untouched).
+3. **Stacks and methodology** — stacks: `--stack`, else detected, else recorded in `project.json` (generic included),
+   else asked (default java). **Agents**: `--agent`, else recorded, else asked (default opencode); `--reconfigure`
+   asks again with the recorded value as default, even with `--yes`, only when there is a terminal. The framework is
+   copied for a new base or with `--update-methodology`; Java rules removed when no Java; files the framework no
+   longer ships listed (under `install/` removed); the `.gitignore` kept; `framework.local.json` written (source,
+   branch, commit, version, inRepo) and the old `guidelines.local.json` removed.
+4. **Commit guard** in `.ai/.git/hooks/pre-commit` (and in services with `--service-hooks`), never over a hook that
+   is not ours.
+5. **Agent wiring** — opencode: `.ai/install/install-opencode.sh`; Claude Code: `ai.mjs claude install` +
+   `claude project`. An agent recorded before and no longer chosen: its project file goes (`claude project
+   --remove`), the per-machine wiring stays (other projects) and the uninstall command is printed.
+6. **Tools** — `detect --write` (then `agents` written into project.json), exec asked per new stack, `detect --index`,
+   `qa` (asks once to set up the code checks).
+7. **Summary** and the start timeline.
+
+## Updates
+- `update-ai-framework` (terminal, `bin/update-ai-framework.sh`): no `.ai` → says install; no record → runs
+  `install.sh --update-methodology --yes` from this ai-core; **the record names another source** → runs this
+  ai-core's `install.sh` directly (the project's own `update.ts` may be too old to know `--source`); else
+  `node .ai/scripts/ai.mjs update`. `--agent` / `--reconfigure` are passed through in every path.
+- `update.ts`: fetch + pull `--ff-only` of the source; nothing new and no `--force` / `--agent` / `--reconfigure` →
+  "No AI framework update" (and a warning about uncommitted changes in ai-core); a recorded commit unknown to this
+  repository = moved source = update. Applies with `install.sh --update-methodology --yes [--agent X] [--reconfigure]`.
+
+## Gotchas
+- `set -euo pipefail`: a `grep` that finds nothing inside a pipe or `$( )` stops the script — wrap it
+  `{ grep … || true; }` (KI-01). Test every new grep with a project where it matches nothing (generic stack).
+- A recorded `generic` stack must be read back, or the default (java) wins on update (KI-02).
+- A `.ps1` on `\\wsl.localhost\…` does not run (execution policy, KI-04); `install.ps1` is tested from a copy on C:.
+  Check its syntax with the PowerShell parser after every edit (`[Parser]::ParseFile`).
+
+## Key files
+- `install.sh` · `install.ps1` — `norm_agents()` / `Split-Agents`, `has_agent`, the steps above
+- `bin/install-ai-framework.sh` · `bin/update-ai-framework.sh` · `bin/install-commands.sh`
+- `framework/scripts/lib/update.ts` — `main()`
+- `framework/scripts/lib/detect.ts` — `detectService()`, `plan()`
+- `tests/claude.test.mts` (switching agents) · `tests/qa.test.mts` (installer output)
+
+## History
+- 2026-11-12 — 3.3: `--in-repo`, questions with defaults, summary and timeline, terminal commands, `/update-ai-framework`.
+- 2026-11-13 — retired wiring files removed on update; "already installed" message; uncommitted changes warning.
+- 2026-11-16 — 1.0.0: renamed init → install, record `framework.local.json`, source switching, `--agent`,
+  `--reconfigure`, pipefail and generic-stack fixes.

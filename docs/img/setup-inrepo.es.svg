@@ -1,0 +1,61 @@
+<svg viewBox="0 0 1010 364" width="100%" xmlns="http://www.w3.org/2000/svg" class="tl" font-family="Segoe UI, Noto Sans, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker></defs>
+<rect x="0" y="0" width="1010" height="364" fill="#fff"/>
+<rect x="0" y="30" width="1010" height="108" fill="#f8fafc"/>
+<rect x="0" y="246" width="1010" height="108" fill="#f8fafc"/>
+<line x1="128" y1="76" x2="980" y2="76" stroke="#2563eb" stroke-width="2.6"/>
+<text x="10" y="72" font-size="11.0" font-weight="700" fill="#2563eb" font-family="Consolas, monospace">ideapow</text>
+<text x="10" y="87.0" font-size="8.5" fill="#64748b">tu repo (Drupal)</text>
+<line x1="395" y1="184" x2="980" y2="184" stroke="#059669" stroke-width="2.6"/>
+<text x="10" y="180" font-size="11.0" font-weight="700" fill="#059669" font-family="Consolas, monospace">.ai</text>
+<text x="10" y="195.0" font-size="8.5" fill="#64748b">repo de conocimiento, dentro</text>
+<line x1="128" y1="292" x2="980" y2="292" stroke="#0d9488" stroke-width="2.6"/>
+<text x="10" y="288" font-size="11.0" font-weight="700" fill="#0d9488" font-family="Consolas, monospace">opencode</text>
+<text x="10" y="303.0" font-size="8.5" fill="#64748b">el agente</text>
+<path d="M285,76 C345.5,76 334.5,184 395,184" stroke="#059669" stroke-width="2.6" fill="none"/>
+<path d="M404,184 C445.25,184 437.75,76 479,76" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 3" fill="none" marker-end="url(#arr)"/>
+<path d="M699,184 C740.25,184 732.75,292 774,292" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 3" fill="none" marker-end="url(#arr)"/>
+<path d="M884,292 C919.75,292 913.25,184 949,184" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 3" fill="none" marker-end="url(#arr)"/>
+<rect x="157" y="68" width="16" height="16" rx="8" fill="#fff" stroke="#2563eb" stroke-width="2.6"/><path d="M161.5,76 h7 M165,72.5 v7" stroke="#2563eb" stroke-width="2"/>
+<text x="165" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">install-ai-framework</text>
+<text x="165" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">detecta un repo</text>
+<text x="165" y="123.0" font-size="8.3" text-anchor="middle" fill="#64748b">--in-repo</text>
+<rect x="128.25" y="45.0" width="73.5" height="14.0" rx="7.0" fill="#dbeafe"/>
+<text x="165" y="55.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#1d4ed8">Drupal · ddev</text>
+<circle cx="285" cy="76" r="8.5" fill="#fff" stroke="#ea580c" stroke-width="2.6"/><path d="M282.8,72.4 v7.2 M287.2,72.4 v7.2" stroke="#ea580c" stroke-width="2"/>
+<text x="285" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">? stacks · exec</text>
+<text x="285" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">Enter acepta</text>
+<text x="285" y="123.0" font-size="8.3" text-anchor="middle" fill="#64748b">lo detectado</text>
+<rect x="243.15" y="45.0" width="83.7" height="14.0" rx="7.0" fill="#ffedd5"/>
+<text x="285" y="55.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#c2410c">[drupal] [ddev]</text>
+<rect x="387" y="176" width="16" height="16" rx="4" fill="#059669"/><rect x="392" y="181" width="6" height="6" rx="1.2" fill="#fff"/>
+<text x="395" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">escribe .ai</text>
+<text x="395" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">metodología · reglas</text>
+<text x="395" y="231.0" font-size="8.3" text-anchor="middle" fill="#64748b">índices · git init</text>
+<circle cx="490" cy="76" r="6.5" fill="#2563eb"/>
+<text x="490" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">exclude + hook</text>
+<text x="490" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">.git/info/exclude</text>
+<text x="490" y="123.0" font-size="8.3" text-anchor="middle" fill="#64748b">commit guard</text>
+<rect x="582" y="68" width="16" height="16" rx="8" fill="#fff" stroke="#2563eb" stroke-width="2.6"/><path d="M586.5,76 h7 M590,72.5 v7" stroke="#2563eb" stroke-width="2"/>
+<text x="590" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">qa --setup</text>
+<text x="590" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">phpcs · phpstan</text>
+<rect x="578.75" y="45.0" width="22.5" height="14.0" rx="7.0" fill="#ffedd5"/>
+<text x="590" y="55.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#c2410c">Y/n</text>
+<circle cx="690" cy="184" r="9" fill="#ea580c"/><circle cx="690" cy="181.4" r="2.6" fill="#fff"/><path d="M685.5,189 q4.5,-6.5 9,0" fill="#fff"/>
+<text x="690" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">commit .ai</text>
+<text x="690" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">local, sin remoto</text>
+<circle cx="785" cy="292" r="8.5" fill="#059669"/><path d="M781,292 l3,3 l5,-6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="785" y="316.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">/doctor</text>
+<text x="785" y="328.0" font-size="8.3" text-anchor="middle" fill="#64748b">NEXT: /start</text>
+<rect x="766.1" y="261.0" width="37.8" height="14.0" rx="7.0" fill="#d1fae5"/>
+<text x="785" y="271.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#047857">all OK</text>
+<rect x="867" y="284" width="16" height="16" rx="4" fill="#0d9488"/><rect x="872" y="289" width="6" height="6" rx="1.2" fill="#fff"/>
+<text x="875" y="316.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">/start</text>
+<text x="875" y="328.0" font-size="8.3" text-anchor="middle" fill="#64748b">lee el código</text>
+<circle cx="960" cy="184" r="9" fill="#ea580c"/><circle cx="960" cy="181.4" r="2.6" fill="#fff"/><path d="M955.5,189 q4.5,-6.5 9,0" fill="#fff"/>
+<text x="960" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">revisas + commit</text>
+<text x="960" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">orchestrator.md</text>
+<text x="960" y="231.0" font-size="8.3" text-anchor="middle" fill="#64748b">service.md</text>
+<rect x="933.45" y="153.0" width="53.1" height="14.0" rx="7.0" fill="#d1fae5"/>
+<text x="960" y="163.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#047857">knowledge</text>
+</svg>

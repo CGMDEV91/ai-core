@@ -1,5 +1,44 @@
 # Changelog
 
+## 1.0.0 — 2026-11-16
+
+ai-core is now the whole framework, not a set of tools installed per project: the working method and the tools in
+one repository, with no other repository behind it.
+
+- **Layout.** `framework/` is what a project gets in `.ai/`: the commands (`/start`, `/restart`, `/analysis`,
+  `/bugfix`, `/adaptive`, `/impact`, `/touchpoints`, `/gate`, `/reviewer`, `/security`, `/architect`, `/tester`,
+  `/learning`, `/doctor`, `/update-ai-framework`), the procedures they share, the rules (always loaded, and per stack
+  with the service), policies, templates and `scripts/` with every tool. `install.sh` / `install.ps1` set a project up
+  or update it; `bin/` has the terminal commands `install-ai-framework` and `update-ai-framework`.
+- **One repository or a workspace.** `--in-repo` puts `.ai/` inside a single repository (ignored by it through
+  `.git/info/exclude`); without it `.ai/` sits beside the service repositories of a plain folder. Stacks and exec are
+  detected per service (Drupal, Java, React + TypeScript, generic) and the gate runs each changed one in its own
+  repository.
+- **The opencode wiring is installed once per machine** (commands, agents, the ticket plugin and the always-loaded
+  instructions in the user's opencode config) and serves every project. Nothing AI is written into a client
+  repository.
+- **Tickets**: a folder per ticket with the shared file and one diary per developer; `ticket new`; receipts written by
+  the tools and folded into the ticket at close; the ticket header on every message; the compact hint at the end of a
+  phase; the skill question answered by update-the-skill or no-skill-because.
+- **Drupal**: `orchestrator --write` builds `.ai/orchestrator.md` from the code (version, modules, languages, checks,
+  services, the drush commands and the gate table) and keeps the team's sections; doctor warns when it is out of date.
+- **Windows + WSL**: read-only git and drush through `ai.mjs`, rewritten by the plugin when opencode runs on Windows
+  with the project in WSL.
+- **Updates**: `update-ai-framework` pulls this repository and re-copies the framework when there is a newer commit;
+  it reads the record of an earlier set-up (`guidelines.local.json`) and takes this repository as the source from then
+  on.
+- **opencode or Claude Code** (`--agent opencode|claude-code|both`, recorded in `project.json`). Claude Code gets the
+  same commands and agents in `~/.claude`, hooks for the ticket header, the state after a compaction and the edits in
+  your diary (`ai.mjs hook …`), and a `CLAUDE.md` in the project folder that only imports `.ai/` (excluded from git;
+  one that is not ours is left alone). `/doctor` checks the agent(s) the project uses.
+- Removed: the per-project installer with composed files and project parts, `/ticket` and its eleven agents, the
+  shell wrappers under `scripts/*/scan-*.sh` (the tools' messages now name
+  `node .ai/scripts/ai.mjs <tool>`).
+- The repository has its own knowledge in `.ai/` (context, nine skills, known issues, subagents) with `AGENTS.md` and
+  `CLAUDE.md` at the root; `node .ai/sync.mjs` generates `.claude/` and `.opencode/` from it. Never copied into a project.
+- Fixed: `install.sh` stopped at the code checks step when the project had none to report; an update of a project
+  whose recorded stack is `generic` installed the Java rules.
+
 ## 0.20.12 — 2026-11-13
 
 - **`ai.mjs git <args>`**: read-only git through the tools' entry (status, diff, log, show, blame, branch to list,

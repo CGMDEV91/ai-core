@@ -1,0 +1,39 @@
+---
+name: 05-gate-impact-callgraph
+description: How the gate (NEW vs PRE-EXISTING per service), impact by method, touchpoints, the code index, call paths, stale skills, code touched and contracts between services work, and what each stack adds. Read before changing gate*.ts, impact.ts, touchpoints*.ts, codeindex*.ts, callpaths*.ts or contracts.ts.
+---
+
+# SKILL-05 — Gate, impact and the call graph
+
+## Rules in force
+- **Gate**: each changed service in its own repository and exec (ddev, docker compose, local). A finding on a line
+  the change touched (or a new file) is **NEW** and fails; anywhere else it is **PRE-EXISTING**, listed, never
+  blocking. `RESULT: PASS | FAIL | INCOMPLETE` — a check that could not run is INCOMPLETE, never green. A check off by
+  project decision (`qa --off`) is SKIPPED. Drupal: phpcs, phpstan (JSON, never through bash: its prose output is
+  blocked by the security rules), hook signatures against the installed `*.api.php`, `drush cache:rebuild`, smoke
+  paths + watchdog, `config:status`. Java: compile, Checkstyle, JUnit. React: eslint, tsc, vitest/jest. Generic: the
+  commands in project.json. `--sonar`: the quality gate per service with a `sonar.projectKey`.
+- **Code index** (`detect --index`, local, never pushed): classes and methods per service; `where` and `callers`
+  read it.
+- **Call paths** (`callpaths --update`): from the methods each skill cites in `## Key files`, two levels of calls;
+  writes `context/callgraph.json` (pushed), a short `## Call path` block in the skill, `related_skills`.
+- **Impact**: the diff → the methods it touches → the skills, known issues and closed tickets citing them (directly or
+  through the call graph) → what to re-test. `--record <KEY>` writes the ticket's Code touched; `--stale-skills`
+  lists skills whose cited methods changed (the close cannot be silent about them).
+- **The method is the common key**: skills, tickets and known issues cite `path` + `Class::method()` (Drupal) /
+  `Class.method()`, or `impact` cannot see them.
+- **Touchpoints**: every place a term lives, grouped by the kind of place (Drupal: option maps, permissions, form
+  alters, config sync, Twig, `.po`) — the checklist of a change.
+- **Contracts**: endpoints exposed and called between the services *present*; the gate names the consumers of a changed
+  endpoint. Repositories not cloned are invisible — the shared-map proposal (`context/roadmap.md`).
+
+## Key files
+- `framework/scripts/lib/gate.ts` · `gatelib.ts` — `Gate` · `gate-drupal.ts` · `gate-java.ts` · `gate-react-ts.ts` · `gate-generic.ts`
+- `framework/scripts/lib/impact.ts` — `changeFromDiff()`, `analyse()`, `loadSkills()`, `main()`
+- `framework/scripts/lib/callpaths.ts` · `callpaths-drupal.ts` · `codeindex.ts` · `touchpoints.ts` · `contracts.ts` — `build()`, `touchedContracts()`
+- `framework/scripts/lib/qa.ts` · `sonar.ts`
+- `tests/stacks.test.mts` · `tests/impact.test.mts` · `tests/workspace.test.mts` · `tests/qa.test.mts` · `tests/sonar.test.mts`
+
+## History
+- 2026-11-11 — ai-core 0.18–0.19: workspaces, contracts, impact/touchpoints/call paths on every stack, stale skills.
+- 2026-11-16 — the explanatory note on impact, call graph and the shared map (two pages, EN/ES PDFs) written for the team.

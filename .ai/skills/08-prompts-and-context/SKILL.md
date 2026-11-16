@@ -1,0 +1,37 @@
+---
+name: 08-prompts-and-context
+description: How to write the text of commands, procedures, rules and templates so the model gateway accepts it and the context stays small — the injection filter and promptcheck, the always-loaded budget, on-demand procedures, brief answers, short subagent reports. Read before writing or rewording any prompt text in framework/.
+---
+
+# SKILL-08 — Prompts and context
+
+## The gateway's injection filter
+- The corporate gateway refuses a prompt that reads as role-play: *Request blocked: prompt injection attempt
+  detected*. Phrases that trigger it: "you are in the …", "act as / acting …", "behave …", "you are the …" in some
+  contexts. It is fuzzy: a line passed with one project name and failed with another (`actg` → "act").
+- Write instructions as facts about the place, not about the reader: "the working directory is the workspace folder",
+  not "you are in the workspace folder".
+- `node .ai/scripts/ai.mjs promptcheck` sends every command, procedure, rule, skill and template in batches of ≤16 KB,
+  bisects a blocked batch to the line, and caches per content (per project and per machine and gateway); doctor reads
+  the cache. Run it after any text change, in a project installed from the working tree.
+
+## Context
+- Always loaded: `non-negotiables.md`, `orchestrator.md`, `rules/*.md` (+ `claude-code.md` with Claude Code). Budget
+  4,000 tokens (`budget`, doctor `context`). Anything else is read when a step needs it: procedures split in parts
+  (`skills.md`, `learning-*`, `close-when.md`).
+- No prefix cache on the gateway: every message re-sends everything — a line removed from the always-loaded files is
+  saved on every call of every session.
+- **Brief answers** (non-negotiable 8): the result, the decision needed, ▶ Next — no restating.
+- **Subagents return a short fixed report** (reviewer, security, architect), relayed once by the main session; they
+  read the instructions only when they were not given.
+- Real numbers in `context/measurements.md`.
+
+## Key files
+- `framework/scripts/lib/promptcheck.ts` · `framework/scripts/lib/budget.ts` — `measure()`
+- `framework/non-negotiables.md` · `framework/install/opencode/agents/*.md`
+- `tests/deps.test.mts` (a fake gateway that blocks "you are in the")
+
+## History
+- 2026-11-10 — promptcheck after "/ticket" failed on one project only.
+- 2026-11-13 — brief answers; short subagent reports; on-demand procedures.
+- 2026-11-16 — `start.md` "you are in the workspace folder" reworded (the fake gateway of the tests blocked it).

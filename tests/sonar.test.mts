@@ -9,6 +9,7 @@ import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { test } from "node:test"
 import { fileURLToPath } from "node:url"
+import { install } from "./helpers.mts"
 
 const CORE = join(dirname(fileURLToPath(import.meta.url)), "..")
 
@@ -30,8 +31,7 @@ test("sonar: PASS, FAIL with the failed condition, NOT RUN without a token, SKIP
   mkdirSync(join(d, "src")); mkdirSync(bin)
   writeFileSync(join(d, "src", "a.txt"), "a\n")
   spawnSync("git", ["init", "-q", "-b", "main", d])
-  const inst = spawnSync(process.execPath, ["--experimental-strip-types", "--no-warnings", join(CORE, "install.ts"), d, "--yes", "--no-doctor", "--no-wiring", "--stack", "generic", "--name", "p"], { encoding: "utf-8" })
-  assert.equal(inst.status, 0, inst.stdout + inst.stderr)
+  install(d, { stack: "generic" })
   writeFileSync(join(bin, "sonar"), "#!/bin/sh\nmkdir -p .scannerwork && printf 'ceTaskId=T1\\n' > .scannerwork/report-task.txt\n"); chmodSync(join(bin, "sonar"), 0o755)
 
   const env = (extra: Record<string, string>) => ({ ...process.env, PATH: `${bin}:${process.env.PATH}`, SONAR_POLL_MS: "10", ...extra })
@@ -61,8 +61,8 @@ test("sonar: PASS, FAIL with the failed condition, NOT RUN without a token, SKIP
 })
 
 test("sonar in a workspace: each service is its own SonarQube project (its key, or none)", async () => {
-  const { targets, detect } = await import("../core/scripts/lib/sonar.ts")
-  const { state } = await import("../core/scripts/lib/qa.ts")
+  const { targets, detect } = await import("../framework/scripts/lib/sonar.ts")
+  const { state } = await import("../framework/scripts/lib/qa.ts")
   const w = mkdtempSync(join(tmpdir(), "aicore-sonar-ws-"))
   for (const r of ["site", "api", "web"]) mkdirSync(join(w, r))
   writeFileSync(join(w, "site", "sonar-project.properties"), "sonar.projectKey=site-key\n")

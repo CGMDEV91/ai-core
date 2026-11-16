@@ -1,3 +1,0 @@
-- Component boundaries and composition; where each piece of state lives (local, context, store, server cache)
-- Data fetching, caching and error handling; API contracts and their types
-- Routing and code splitting; performance budgets

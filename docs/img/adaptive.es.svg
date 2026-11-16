@@ -1,0 +1,70 @@
+<svg viewBox="0 0 1010 364" width="100%" xmlns="http://www.w3.org/2000/svg" class="tl" font-family="Segoe UI, Noto Sans, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker></defs>
+<rect x="0" y="0" width="1010" height="364" fill="#fff"/>
+<rect x="0" y="30" width="1010" height="108" fill="#f8fafc"/>
+<rect x="0" y="246" width="1010" height="108" fill="#f8fafc"/>
+<line x1="500" y1="76" x2="980" y2="76" stroke="#2563eb" stroke-width="2.6"/>
+<text x="10" y="72" font-size="11.0" font-weight="700" fill="#2563eb" font-family="Consolas, monospace">feature/EUIPOFO-123</text>
+<text x="10" y="87.0" font-size="8.5" fill="#64748b">rama en el servicio</text>
+<line x1="128" y1="184" x2="980" y2="184" stroke="#059669" stroke-width="2.6"/>
+<text x="10" y="180" font-size="11.0" font-weight="700" fill="#059669" font-family="Consolas, monospace">EUIPOFO-123.md</text>
+<text x="10" y="195.0" font-size="8.5" fill="#64748b">fichero compartido</text>
+<line x1="128" y1="292" x2="980" y2="292" stroke="#7c3aed" stroke-width="2.6"/>
+<text x="10" y="288" font-size="11.0" font-weight="700" fill="#7c3aed" font-family="Consolas, monospace">skills/</text>
+<text x="10" y="303.0" font-size="8.5" fill="#64748b">las reglas vigentes</text>
+<path d="M184,292 C217.0,292 211.0,184 244,184" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 3" fill="none" marker-end="url(#arr)"/>
+<path d="M425,184 C466.25,184 458.75,76 500,76" stroke="#2563eb" stroke-width="2.6" fill="none"/>
+<path d="M859,184 C878.25,184 874.75,292 894,292" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 3" fill="none" marker-end="url(#arr)"/>
+<circle cx="175" cy="292" r="6.5" fill="#7c3aed"/>
+<text x="175" y="316.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">school-videos.md</text>
+<text x="175" y="328.0" font-size="8.3" text-anchor="middle" fill="#64748b">cita el método</text>
+<rect x="157" y="176" width="16" height="16" rx="4" fill="#059669"/><rect x="162" y="181" width="6" height="6" rx="1.2" fill="#fff"/>
+<text x="165" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">/adaptive</text>
+<text x="165" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">intake · esfuerzo</text>
+<rect x="247" y="176" width="16" height="16" rx="8" fill="#fff" stroke="#059669" stroke-width="2.6"/><path d="M251.5,184 h7 M255,180.5 v7" stroke="#059669" stroke-width="2"/>
+<text x="255" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">/impact</text>
+<text x="255" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">métodos → skills</text>
+<text x="255" y="231.0" font-size="8.3" text-anchor="middle" fill="#64748b">known issues</text>
+<rect x="236.1" y="153.0" width="37.8" height="14.0" rx="7.0" fill="#dbeafe"/>
+<text x="255" y="163.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#1d4ed8">1 flow</text>
+<rect x="332" y="176" width="16" height="16" rx="8" fill="#fff" stroke="#059669" stroke-width="2.6"/><path d="M336.5,184 h7 M340,180.5 v7" stroke="#059669" stroke-width="2"/>
+<text x="340" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">/touchpoints</text>
+<text x="340" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">cada sitio donde</text>
+<text x="340" y="231.0" font-size="8.3" text-anchor="middle" fill="#64748b">vive un valor</text>
+<circle cx="425" cy="184" r="8.5" fill="#fff" stroke="#ea580c" stroke-width="2.6"/><path d="M422.8,180.4 v7.2 M427.2,180.4 v7.2" stroke="#ea580c" stroke-width="2"/>
+<text x="425" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">plan</text>
+<text x="425" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">agente architect</text>
+<text x="425" y="231.0" font-size="8.3" text-anchor="middle" fill="#64748b">fases A · B</text>
+<rect x="393.35" y="153.0" width="63.3" height="14.0" rx="7.0" fill="#ffedd5"/>
+<text x="425" y="163.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#c2410c">tú apruebas</text>
+<circle cx="500" cy="76" r="6.5" fill="#2563eb"/>
+<text x="500" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">fase A</text>
+<circle cx="570" cy="76" r="8.5" fill="#059669"/><path d="M566,76 l3,3 l5,-6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="570" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">gate</text>
+<rect x="556.2" y="45.0" width="27.599999999999998" height="14.0" rx="7.0" fill="#d1fae5"/>
+<text x="570" y="55.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#047857">PASS</text>
+<circle cx="640" cy="76" r="6.5" fill="#2563eb"/>
+<text x="640" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">fase B</text>
+<circle cx="710" cy="76" r="8.5" fill="#059669"/><path d="M706,76 l3,3 l5,-6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="710" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">gate</text>
+<rect x="696.2" y="45.0" width="27.599999999999998" height="14.0" rx="7.0" fill="#d1fae5"/>
+<text x="710" y="55.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#047857">PASS</text>
+<rect x="772" y="176" width="16" height="16" rx="8" fill="#fff" stroke="#059669" stroke-width="2.6"/><path d="M776.5,184 h7 M780,180.5 v7" stroke="#059669" stroke-width="2"/>
+<text x="780" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">review</text>
+<text x="780" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">+ security si</text>
+<text x="780" y="231.0" font-size="8.3" text-anchor="middle" fill="#64748b">roles / datos</text>
+<rect x="750.9" y="153.0" width="58.2" height="14.0" rx="7.0" fill="#d1fae5"/>
+<text x="780" y="163.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#047857">0 blocking</text>
+<rect x="842" y="176" width="16" height="16" rx="4" fill="#059669"/><rect x="847" y="181" width="6" height="6" rx="1.2" fill="#fff"/>
+<text x="850" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">cierre · paso 1</text>
+<text x="850" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">--stale-skills</text>
+<rect x="828.55" y="153.0" width="42.9" height="14.0" rx="7.0" fill="#ffedd5"/>
+<text x="850" y="163.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#c2410c">1 stale</text>
+<rect x="897" y="284" width="16" height="16" rx="4" fill="#7c3aed"/><rect x="902" y="289" width="6" height="6" rx="1.2" fill="#fff"/>
+<text x="905" y="316.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">skill actualizada</text>
+<text x="905" y="328.0" font-size="8.3" text-anchor="middle" fill="#64748b">## History</text>
+<text x="905" y="339.0" font-size="8.3" text-anchor="middle" fill="#64748b">tickets:</text>
+<circle cx="955" cy="76" r="9" fill="#ea580c"/><circle cx="955" cy="73.4" r="2.6" fill="#fff"/><path d="M950.5,81 q4.5,-6.5 9,0" fill="#fff"/>
+<text x="955" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">tú commiteas</text>
+<text x="955" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">código + .ai</text>
+</svg>

@@ -1,0 +1,74 @@
+<svg viewBox="0 0 1010 472" width="100%" xmlns="http://www.w3.org/2000/svg" class="tl" font-family="Segoe UI, Noto Sans, Arial, sans-serif">
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748b"/></marker></defs>
+<rect x="0" y="0" width="1010" height="472" fill="#fff"/>
+<rect x="0" y="30" width="1010" height="108" fill="#f8fafc"/>
+<rect x="0" y="246" width="1010" height="108" fill="#f8fafc"/>
+<line x1="128" y1="76" x2="980" y2="76" stroke="#64748b" stroke-width="2.6"/>
+<text x="10" y="72" font-size="11.0" font-weight="700" fill="#64748b" font-family="Consolas, monospace">IPTOOL/</text>
+<text x="10" y="87.0" font-size="8.5" fill="#64748b">workspace: plain folder</text>
+<line x1="235" y1="184" x2="980" y2="184" stroke="#2563eb" stroke-width="2.6"/>
+<text x="10" y="180" font-size="11.0" font-weight="700" fill="#2563eb" font-family="Consolas, monospace">design-api</text>
+<text x="10" y="195.0" font-size="8.5" fill="#64748b">service repo (Java)</text>
+<line x1="255" y1="292" x2="980" y2="292" stroke="#db2777" stroke-width="2.6"/>
+<text x="10" y="288" font-size="11.0" font-weight="700" fill="#db2777" font-family="Consolas, monospace">design-web</text>
+<text x="10" y="303.0" font-size="8.5" fill="#64748b">service repo (React)</text>
+<line x1="415" y1="400" x2="980" y2="400" stroke="#059669" stroke-width="2.6"/>
+<text x="10" y="396" font-size="11.0" font-weight="700" fill="#059669" font-family="Consolas, monospace">.ai</text>
+<text x="10" y="411.0" font-size="8.5" fill="#64748b">&lt;project&gt;-AI, beside them</text>
+<path d="M165,76 C203.5,76 196.5,184 235,184" stroke="#2563eb" stroke-width="2.6" fill="none"/>
+<path d="M165,76 C214.5,76 205.5,292 255,292" stroke="#db2777" stroke-width="2.6" fill="none"/>
+<path d="M335,76 C379.0,76 371.0,400 415,400" stroke="#059669" stroke-width="2.6" fill="none"/>
+<path d="M509,76 C544.75,76 538.25,400 574,400" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 3" fill="none" marker-end="url(#arr)"/>
+<path d="M594,400 C618.75,400 614.25,184 639,184" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 3" fill="none" marker-end="url(#arr)"/>
+<path d="M744,400 C777.0,400 771.0,76 804,76" stroke="#64748b" stroke-width="1.4" stroke-dasharray="3 3" fill="none" marker-end="url(#arr)"/>
+<circle cx="165" cy="76" r="9" fill="#ea580c"/><circle cx="165" cy="73.4" r="2.6" fill="#fff"/><path d="M160.5,81 q4.5,-6.5 9,0" fill="#fff"/>
+<text x="165" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">git clone ×2</text>
+<text x="165" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">each service</text>
+<circle cx="235" cy="184" r="6.5" fill="#2563eb"/>
+<text x="235" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">clone</text>
+<circle cx="255" cy="292" r="6.5" fill="#db2777"/>
+<text x="255" y="316.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">clone</text>
+<rect x="327" y="68" width="16" height="16" rx="8" fill="#fff" stroke="#64748b" stroke-width="2.6"/><path d="M331.5,76 h7 M335,72.5 v7" stroke="#64748b" stroke-width="2"/>
+<text x="335" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">install-ai-framework</text>
+<text x="335" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">--remote &lt;url&gt;</text>
+<rect x="305.9" y="45.0" width="58.2" height="14.0" rx="7.0" fill="#dbeafe"/>
+<text x="335" y="55.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#1d4ed8">2 services</text>
+<circle cx="415" cy="400" r="6.5" fill="#059669"/>
+<text x="415" y="424.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">git clone</text>
+<text x="415" y="436.0" font-size="8.3" text-anchor="middle" fill="#64748b">&lt;project&gt;-AI</text>
+<circle cx="500" cy="76" r="8.5" fill="#fff" stroke="#ea580c" stroke-width="2.6"/><path d="M497.8,72.4 v7.2 M502.2,72.4 v7.2" stroke="#ea580c" stroke-width="2"/>
+<text x="500" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">? stacks · exec</text>
+<text x="500" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">per service</text>
+<rect x="458.15" y="45.0" width="83.7" height="14.0" rx="7.0" fill="#ffedd5"/>
+<text x="500" y="55.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#c2410c">[java,react-ts]</text>
+<rect x="577" y="392" width="16" height="16" rx="4" fill="#059669"/><rect x="582" y="397" width="6" height="6" rx="1.2" fill="#fff"/>
+<text x="585" y="424.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">methodology</text>
+<text x="585" y="436.0" font-size="8.3" text-anchor="middle" fill="#64748b">Java rules</text>
+<text x="585" y="447.0" font-size="8.3" text-anchor="middle" fill="#64748b">React rules</text>
+<rect x="642" y="176" width="16" height="16" rx="8" fill="#fff" stroke="#2563eb" stroke-width="2.6"/><path d="M646.5,184 h7 M650,180.5 v7" stroke="#2563eb" stroke-width="2"/>
+<text x="650" y="208.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">hook</text>
+<text x="650" y="220.0" font-size="8.3" text-anchor="middle" fill="#64748b">commit guard</text>
+<rect x="662" y="284" width="16" height="16" rx="8" fill="#fff" stroke="#db2777" stroke-width="2.6"/><path d="M666.5,292 h7 M670,288.5 v7" stroke="#db2777" stroke-width="2"/>
+<text x="670" y="316.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">hook</text>
+<text x="670" y="328.0" font-size="8.3" text-anchor="middle" fill="#64748b">commit guard</text>
+<rect x="727" y="392" width="16" height="16" rx="8" fill="#fff" stroke="#059669" stroke-width="2.6"/><path d="M731.5,400 h7 M735,396.5 v7" stroke="#059669" stroke-width="2"/>
+<text x="735" y="424.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">detect · index</text>
+<text x="735" y="436.0" font-size="8.3" text-anchor="middle" fill="#64748b">project.json</text>
+<text x="735" y="447.0" font-size="8.3" text-anchor="middle" fill="#64748b">per service</text>
+<rect x="677.85" y="369.0" width="114.3" height="14.0" rx="7.0" fill="#dbeafe"/>
+<text x="735" y="379.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#1d4ed8">ddev · docker · local</text>
+<circle cx="815" cy="76" r="8.5" fill="#059669"/><path d="M811,76 l3,3 l5,-6" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+<text x="815" y="100.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">/doctor</text>
+<text x="815" y="112.0" font-size="8.3" text-anchor="middle" fill="#64748b">NEXT: /start</text>
+<rect x="796.1" y="45.0" width="37.8" height="14.0" rx="7.0" fill="#d1fae5"/>
+<text x="815" y="55.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#047857">all OK</text>
+<rect x="877" y="392" width="16" height="16" rx="4" fill="#059669"/><rect x="882" y="397" width="6" height="6" rx="1.2" fill="#fff"/>
+<text x="885" y="424.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">/start</text>
+<text x="885" y="436.0" font-size="8.3" text-anchor="middle" fill="#64748b">a subagent</text>
+<text x="885" y="447.0" font-size="8.3" text-anchor="middle" fill="#64748b">per service</text>
+<circle cx="960" cy="400" r="9" fill="#ea580c"/><circle cx="960" cy="397.4" r="2.6" fill="#fff"/><path d="M955.5,405 q4.5,-6.5 9,0" fill="#fff"/>
+<text x="960" y="424.0" font-size="9.4" font-weight="700" text-anchor="middle" fill="#0f172a">commit + push</text>
+<text x="960" y="436.0" font-size="8.3" text-anchor="middle" fill="#64748b">PR → master</text>
+<rect x="941.1" y="369.0" width="37.8" height="14.0" rx="7.0" fill="#d1fae5"/>
+<text x="960" y="379.0" font-size="8.2" font-weight="600" text-anchor="middle" fill="#047857">origin</text>
+</svg>
