@@ -39,4 +39,12 @@ if [ -n "$src" ] && [ "$(cd "$src" 2>/dev/null && pwd -P)" != "$FRAMEWORK" ]; th
     say "Installed from $src — updating it from $FRAMEWORK (it becomes the source from now on)."
     exec bash "$FRAMEWORK/install.sh" --project "$P" $mode --update-methodology --yes ${pass[@]+"${pass[@]}"}
 fi
+# files of the earlier methodology still in .ai/: its update tool reads them first and would go back to it — this
+# framework's installer re-copies the tools and removes them
+if [ -f .ai/guidelines.local.json ] || [ -f .ai/scripts/METHODOLOGY-OWNED ]; then
+    case " $* " in *" --check "*) say "Files of an earlier methodology in .ai/ — update-ai-framework (without --check) replaces its tools with $FRAMEWORK."; exit 0 ;; esac
+    mode=""; [ -d "$P/.git" ] && mode="--in-repo"
+    say "Files of an earlier methodology in .ai/ — updating it from $FRAMEWORK."
+    exec bash "$FRAMEWORK/install.sh" --project "$P" $mode --update-methodology --yes ${pass[@]+"${pass[@]}"}
+fi
 exec node .ai/scripts/ai.mjs update "$@"

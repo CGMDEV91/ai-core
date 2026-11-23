@@ -105,7 +105,7 @@ Closed list, not open impressions. Open-ended judgement is the failure mode of s
 
 **Correctness / tests**
 - [ ] Edge cases handled: null, empty, boundary, duplicate, concurrent where applicable.
-- [ ] A logic bug fix comes with a regression test, and the ticket's `## Verification` shows it
+- [ ] A logic bug fix comes with a regression test, and the ticket's `## Verification` shows it (Drupal: or says `test: declined by the human`)
       **red before the fix** (the failing assertion as evidence). You cannot run tests: if that line
       is missing, mark the item *unconfirmed* — never tick it from reading the test.
 - [ ] Existing tests were not weakened or deleted to make the change pass.

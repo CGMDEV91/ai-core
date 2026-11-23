@@ -103,3 +103,15 @@ test("update removes the files of an earlier set-up (another methodology reposit
   for (const f of ["scripts/METHODOLOGY-OWNED", "scripts/AI-CORE-VERSION", "guidelines.local.json"]) assert.ok(!existsSync(join(dir, ".ai", f)), f)
   assert.ok(existsSync(join(dir, ".ai", "framework.local.json")) && existsSync(join(dir, ".ai", "scripts", "ai.mjs")))
 })
+
+test("update-ai-framework with files of an earlier methodology in .ai/ goes through this installer, not the project's old update tool", () => {
+  const dir = tmp("oldtool")
+  mkdirSync(join(dir, "src")); writeFileSync(join(dir, "src", "a.txt"), "a\n"); commitAll(dir)
+  install(dir, { stack: "generic" })
+  writeFileSync(join(dir, ".ai", "guidelines.local.json"), JSON.stringify({ guidelines: "/nowhere/old-methodology" }) + "\n")
+  writeFileSync(join(dir, ".ai", "scripts", "METHODOLOGY-OWNED"), "old\n")
+  assert.match(run(dir, ["bash", join(ROOT, "bin", "update-ai-framework.sh"), "--check"]).out, /Files of an earlier methodology/)
+  const r = run(dir, ["bash", join(ROOT, "bin", "update-ai-framework.sh")], { OPENCODE_CFG_DIR: tmp("oc"), CLAUDE_CONFIG_DIR: tmp("cc") })
+  assert.equal(r.code, 0, r.out); assert.match(r.out, /Files of an earlier methodology in \.ai\/ — updating it from/)
+  for (const f of ["scripts/METHODOLOGY-OWNED", "guidelines.local.json"]) assert.ok(!existsSync(join(dir, ".ai", f)), f)
+})

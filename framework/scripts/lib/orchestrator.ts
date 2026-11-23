@@ -58,7 +58,7 @@ function drupalFacts(sv: Svc, s: any): { line: string; phpcs: string; phpstan: s
   const php = (text(root, ".ddev/config.yaml").match(/^php_version:\s*"?([\d.]+)/m) ?? [])[1]
   const sonar = (text(root, "sonar-project.properties").match(/^sonar\.projectKey\s*=\s*(\S+)/m) ?? [])[1]
   const parts = [`Drupal${ver ? ` ${ver}` : ""} (core in \`${s.apiRoot && s.apiRoot !== "." ? `${s.apiRoot}/` : s.apiRoot ? "" : "web/"}core\`)${php ? ` · PHP ${php} in ddev` : ""}`, ...code,
-    `config sync \`${s.configSync ?? "config/sync"}/\``, `tools run in ${s.exec ?? "local"}`]
+    existsSync(cs) ? `config sync \`${s.configSync ?? "config/sync"}/\`` : "no config sync folder", `tools run in ${s.exec ?? "local"}`]
   const extra = [langs.length ? `**Languages:** ${langs.join(", ")}` : "", `**Checks:** phpcs ${phpcs} · phpstan ${phpstan}${sonar ? ` · SonarQube \`${sonar}\`` : ""}`].filter(Boolean)
   return { line: `**${sv.folder === "." ? "Code" : sv.name}:** ${parts.join(" · ")}\n${extra.join(" · ")}`, phpcs, phpstan, version: ver }
 }

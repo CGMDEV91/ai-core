@@ -302,7 +302,7 @@ kv "stacks" "$STACKS" "($stacks_why)"
 # The agent(s) the project is wired for: --agent, else the ones recorded in project.json, else asked (opencode)
 norm_agents() { printf '%s' "$1" | tr -d ' ' | tr 'A-Z' 'a-z' | sed -e 's/^both$/opencode,claude-code/' -e 's/claude\(code\)\{0,1\}\([,]\|$\)/claude-code\2/g' -e 's/claude-code-code/claude-code/g'; }
 RECORDED_AGENTS=""
-[ -f "$AI/project.json" ] && RECORDED_AGENTS="$(grep -oE '"(opencode|claude-code)"' "$AI/project.json" | tr -d '"' | sort -u | paste -sd, - || true)"
+[ -f "$AI/project.json" ] && RECORDED_AGENTS="$(grep -oE '"(opencode|claude-code)"' "$AI/project.json" | tr -d '"' | sort -u | paste -sd, - | sed 's/^claude-code,opencode$/opencode,claude-code/' || true)"
 AGENTS="$(norm_agents "$AGENT_ARG")"; agents_why="--agent"
 if [ -z "$AGENTS" ] && [ -n "$RECORDED_AGENTS" ] && ! $RECONFIGURE; then AGENTS="$RECORDED_AGENTS"; agents_why=".ai/project.json"; fi
 if [ -z "$AGENTS" ] && { ! $YES || $RECONFIGURE; } && [ -t 0 ]; then

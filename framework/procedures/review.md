@@ -47,7 +47,8 @@ vulnerabilities it lists the versions touched; the organisation's scanner says t
 ## 3 · Tests — when logic was added without tests
 
 Run `.ai/commands/tester.md` (`tester` agent) when the change adds or alters logic that the
-existing tests do not exercise. It proposes the case list first, writes in the service's own test
+existing tests do not exercise. A Drupal service: ask the human first and run it only on a yes
+(`.ai/rules/stacks/drupal.md` → Tests). It proposes the case list first, writes in the service's own test
 patterns, runs them with `workdir` = the service, and reports what it could not cover. What is not
 automatable becomes a manual step in the ticket's `Verification`, never a fake test.
 

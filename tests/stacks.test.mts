@@ -99,3 +99,19 @@ test("drupal with the docroot at the repository root (ddev docroot \"\"): apiRoo
   const idx = JSON.parse(readFileSync(join(dir, ".ai", "context", "api-index.json"), "utf-8"))
   assert.equal(idx.version, "10.6.19"); assert.ok("hook_cache_flush" in idx.hooks); assert.ok(!("hook_should_not_be_indexed" in idx.hooks))
 })
+
+test("drupal built into a sub-folder (ddev docroot site, no composer.json at the root), custom code in eap/: detected", () => {
+  const dir = mkdtempSync(join(tmpdir(), "aicore-dsub-"))
+  const w = (p: string, t: string) => { const f = join(dir, p); run(dir, ["mkdir", "-p", join(f, "..")]); writeFileSync(f, t) }
+  w(".ddev/config.yaml", "name: p\ntype: drupal11\ndocroot: site\nphp_version: \"8.4\"\n")
+  w("site/composer.json", '{"require":{"drupal/core-recommended":"^11"}}\n')
+  w("site/core/lib/Drupal.php", "<?php class Drupal { const VERSION = '11.4.5'; }\n")
+  w("site/modules/contrib1/contrib1.info.yml", "name: C\ntype: module\n")
+  w("eap/modules/m1/m1.info.yml", "name: M1\ntype: module\n"); w("eap/modules/m1/m1.module", "<?php\n\nfunction m1_help() {}\n")
+  w("eap/themes/t1/t1.info.yml", "name: T1\ntype: theme\n")
+  git(dir, "init", "-q", "-b", "main"); git(dir, "add", "-A"); git(dir, "commit", "-qm", "init")
+  install(dir, {})
+  const st = JSON.parse(readFileSync(join(dir, ".ai", "project.json"), "utf-8")).stacks[0]
+  assert.equal(st.name, "drupal"); assert.equal(st.apiRoot, "site"); assert.deepEqual(st.paths, ["eap/modules", "eap/themes"])
+  assert.match(cli(dir, ["orchestrator"]).out, /core in `site\/core`.*no config sync folder/)
+})

@@ -35,7 +35,8 @@ answers *implement myself or delegate?*
 
 **4. Implement — in the service at fault, minimum change.**
 1. `gate.md` → the full gate of the service once, before touching anything (the starting point).
-2. **The regression test first**: a test that reproduces the defect, run with `workdir` = the service
+2. **The regression test first** (a Drupal service: only when the human says yes, `.ai/rules/stacks/drupal.md` →
+   Tests): a test that reproduces the defect, run with `workdir` = the service
    → **red**, the failing assertion recorded as evidence in `## Verification`. If it cannot be
    automated, say why and describe the manual check (reusable → `.ai/CONTEXT.md` → Manual test
    procedures).

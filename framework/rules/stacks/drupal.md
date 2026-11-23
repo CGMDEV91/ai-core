@@ -39,6 +39,13 @@
   `node .ai/scripts/ai.mjs gate --sonar` (sonar-scanner; `node .ai/scripts/ai.mjs qa` says what this machine lacks).
   No key: the service is not on SonarQube.
 
+## Tests — ask first
+- **Never write a unit, kernel or functional test on your own initiative in a Drupal service.** When a change or a fix
+  could have one, ask the human first, in one line: *"Write a test for <what> (<kind>, <file>)?"*. Yes → write it
+  (a regression test red first, then green). No → no test, no `tester` agent: `## Verification` says
+  `test: declined by the human` and the flow is checked by hand (below). This holds for `/bugfix`, `/adaptive` and the
+  review.
+
 ## Verifying for real
 - Exercise the flow in the browser with the role that uses it (ddev: the site URL of `ddev describe`); a page that
   renders is not a flow that works. What cannot be automated goes as manual steps into `## Verification`.

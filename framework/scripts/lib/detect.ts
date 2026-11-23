@@ -15,6 +15,7 @@ import { fileURLToPath } from "node:url"
 import { AI, WORKSPACE, cfg } from "./project.ts"
 
 type Detected = { stack: string; why: string; defaults: Record<string, unknown> }
+const SKIP_DRUPAL = new Set(["web", "docroot", "vendor", "node_modules", "core", "lib"])
 const SETUP = join(AI, "scripts", "setup")
 const adapter = (s: string): any => { try { return JSON.parse(readFileSync(join(SETUP, `adapter.${s}.json`), "utf-8")) } catch { return { defaults: {} } } }
 
@@ -24,15 +25,23 @@ export function detectService(dir: string): { stacks: Detected[]; exec: string; 
   const text = (p: string) => (has(p) ? readFileSync(join(dir, p), "utf-8") : "")
   const out: Detected[] = []
   const composer = text("composer.json")
-  if (/"drupal\/core(-recommended)?"/.test(composer) || has("web/core/lib/Drupal.php") || has("docroot/core/lib/Drupal.php") || has("core/lib/Drupal.php")) {
-    let apiRoot = ["web", "docroot"].find((d) => has(`${d}/core/lib/Drupal.php`))
+  // the docroot ddev serves (`docroot: site`): a Drupal built into a sub-folder, with no composer.json at the root
+  const ddevRoot = (text(".ddev/config.yaml").match(/^docroot:\s*"?([^"\s#]+)"?/m) ?? [])[1]?.replace(/\/+$/, "")
+  const ddevCore = ddevRoot && ddevRoot !== "." && has(`${ddevRoot}/core/lib/Drupal.php`) ? ddevRoot : undefined
+  if (/"drupal\/core(-recommended)?"/.test(composer) || ddevCore || has("web/core/lib/Drupal.php") || has("docroot/core/lib/Drupal.php") || has("core/lib/Drupal.php")) {
+    let apiRoot = ddevCore ?? ["web", "docroot"].find((d) => has(`${d}/core/lib/Drupal.php`))
     if (!apiRoot) for (const d of ["web", "docroot"]) if (has(d)) for (const sub of readdirSync(join(dir, d)))
       if (has(`${d}/${sub}/core/lib/Drupal.php`)) apiRoot = `${d}/${sub}`
     if (!apiRoot && has("core/lib/Drupal.php")) apiRoot = "."   // the docroot is the repository root (ddev `docroot: ""`)
     const at = (p: string) => (apiRoot === "." ? p : `${apiRoot ?? "web"}/${p}`)
-    const paths = has("lib/modules") ? ["lib/modules", "lib/themes"].filter(has)
+    // custom code: lib/, the docroot's custom folders, or a first-level <dir>/modules holding modules (bind-mounted into the docroot)
+    const own = (d: string) => has(`${d}/modules`) && readdirSync(join(dir, d, "modules"), { withFileTypes: true })
+      .some((m) => m.isDirectory() && has(`${d}/modules/${m.name}/${m.name}.info.yml`))
+    const mounted = readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory() && !e.name.startsWith(".") && e.name !== apiRoot && !SKIP_DRUPAL.has(e.name) && own(e.name)).map((e) => e.name)
+    let paths = has("lib/modules") ? ["lib/modules", "lib/themes"].filter(has)
       : [at("modules/custom"), at("themes/custom")].filter(has)
-    out.push({ stack: "drupal", why: `composer.json requires drupal/core${apiRoot ? `, core in ${apiRoot === "." ? "" : `${apiRoot}/`}core` : ""}`,
+    if (!has("lib/modules") && mounted.length === 1) paths = [`${mounted[0]}/modules`, `${mounted[0]}/themes`].filter(has)
+    out.push({ stack: "drupal", why: `${ddevCore && !/"drupal\/core/.test(composer) ? `ddev docroot ${ddevCore}` : "composer.json requires drupal/core"}${apiRoot ? `, core in ${apiRoot === "." ? "" : `${apiRoot}/`}core` : ""}`,
       defaults: { paths: paths.length ? paths : [at("modules/custom")], configSync: "config/sync", apiRoot: apiRoot ?? "web" } })
   }
   if ((has("pom.xml") && has("src/main/java")) || has("build.gradle") || has("build.gradle.kts"))

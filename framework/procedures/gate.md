@@ -70,7 +70,7 @@ is not on SonarQube: nothing to do.
   it: `BUILD SUCCESS` · `Tests run: 214, Failures: 0, Errors: 0`. The sha is the service's HEAD (or
   the working tree it ran on, with "dirty" noted). Without the evidence fragment the claim is not
   verified — a truncated or timed-out run never becomes "green".
-- A regression test for a logic bug is written **before** the fix and run twice: red first — paste
+- A regression test for a logic bug (a Drupal service: only when the human said yes) is written **before** the fix and run twice: red first — paste
   the failing assertion as the evidence — then green after the fix. A test that was never red proves
   nothing.
 - The gate exceeds the tool's timeout → do not report it as anything. Ask the human to run it and

@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- **Drupal: tests only when the human says yes.** `rules/stacks/drupal.md` → Tests: the agent asks before writing a
+  unit, kernel or functional test; declined → `test: declined by the human` in `## Verification` and the flow checked
+  by hand. `/bugfix`, the review, the gate procedure, the close and the reviewer checklist follow it.
+- **Claude Code: manual steps before the browser.** `claude-code.md`: before checking anything in the browser itself,
+  the agent gives the test steps and asks who runs them. opencode is not affected.
+- **Detection: Drupal built into a sub-folder** (ddev `docroot: site`, no `composer.json` at the root) with the custom
+  code in a first-level `<dir>/modules`. The orchestrator says "no config sync folder" when there is none.
+- **update-ai-framework** goes through the installer when `.ai/` still has files of an earlier methodology
+  (`guidelines.local.json`, `scripts/METHODOLOGY-OWNED`): the project's old update tool read them first and went back.
+- The recorded agents keep their order (`opencode,claude-code`) across updates.
+
 ## 1.0.0 — 2026-11-16
 
 ai-core is now the whole framework, not a set of tools installed per project: the working method and the tools in
